@@ -1,6 +1,6 @@
 {
     "name": "drupal/sutram",
-    "description": "Site building in short, exact commands. Stage changes, review the config diff, apply in one step, export as a recipe.",
+    "description": "A standard way for JavaScript apps to expose their commands, to people in a console and to AI agents.",
     "type": "drupal-module",
     "license": "GPL-2.0-or-later",
     "homepage": "https://www.drupal.org/project/sutram",

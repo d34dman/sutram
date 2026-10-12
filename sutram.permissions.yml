@@ -1,7 +1,3 @@
 use sutram:
-  title: 'Use Sutram'
-  description: 'Open the Sutram console and run read-only commands (search, describe).'
-apply sutram changes:
-  title: 'Apply Sutram changes'
-  description: 'Apply staged changes to site configuration. Every change is still checked against the permissions the user already has.'
-  restrict access: true
+  title: 'Use the Sutram console'
+  description: 'Load the Sutram console on pages. Commands still run with only what the user can already do on that page.'

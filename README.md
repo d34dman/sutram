@@ -1,31 +1,36 @@
 # Sutram
 
-Site building for Drupal in short, exact commands. Same input, same config,
-every time.
+A standard way for JavaScript apps to expose their commands, so their authors
+never have to build or ship a console of their own.
+
+An app registers its commands once. Then anyone on the page can run them: a
+person in the Sutram console, or an AI agent such as Claude through WebMCP.
 
 ```
-add type event "Event"
-add field event.field_date datetime --label "Starts"
-grant content_editor "create event content"
+› help canvas
+› canvas add block heading at:hero-2
+› describe field_image
+› canvas clear
+  Clear the canvas? This removes 14 elements. (y/n)
 ```
 
-Every command is checked against the live site and staged. You review the
-config diff, apply everything in one step, and can export what you did as a
-recipe. People, the built-in assistant and browser agents (WebMCP) all use the
-same commands.
+- **Discovery first.** `help` and `describe` show what is possible on the page
+  and what state it is in, for people and agents alike.
+- **Runs in the browser.** Commands can do only what the user can already do on
+  the page, so Sutram adds no way into the server.
+- **Annotated.** Commands say whether they are read-only or destructive, so the
+  console and agents can ask before acting.
+- **Forms and widgets.** Form API forms, and widgets such as the media library,
+  can expose themselves too, so agents stop guessing from screenshots.
+
+See [docs/design.md](docs/design.md).
 
 ## Why "Sutram"
 
 *Sūtram* (सूत्रम्) is Sanskrit for a short, exact rule. Pāṇini described all of
-Sanskrit grammar in about 4,000 of them: terse rules that, applied in order,
-always give the same result. In Malayalam, *sūtram* (സൂത്രം) is also everyday
-speech for a knack, a clever little device: one line instead of a three-step
-form wizard.
+Sanskrit grammar in about 4,000 of them. In Malayalam, *sūtram* (സൂത്രം) is also
+everyday speech for a knack, a clever little device.
 
 ## Status
 
-Early development. Nothing to use yet.
-
-## Requirements
-
-Drupal 10.3 or later (core recipes and config actions).
+Design stage. Nothing to use yet.

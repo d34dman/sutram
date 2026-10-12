@@ -1,5 +1,0 @@
-sutram.console:
-  title: 'Sutram'
-  description: 'Site building in short, exact commands.'
-  route_name: sutram.console
-  parent: system.admin_config_development
