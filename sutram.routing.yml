@@ -1,0 +1,7 @@
+sutram.console:
+  path: '/admin/config/development/sutram'
+  defaults:
+    _controller: '\Drupal\sutram\Controller\ConsoleController::page'
+    _title: 'Sutram'
+  requirements:
+    _permission: 'use sutram'

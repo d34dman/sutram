@@ -1,0 +1,6 @@
+name: Sutram
+type: module
+description: 'Site building in short, exact commands. Stage changes, review the config diff, apply in one step, export as a recipe.'
+package: Development
+core_version_requirement: ^10.3 || ^11
+configure: sutram.console

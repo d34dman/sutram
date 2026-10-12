@@ -1,0 +1,16 @@
+{
+    "name": "drupal/sutram",
+    "description": "Site building in short, exact commands. Stage changes, review the config diff, apply in one step, export as a recipe.",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://www.drupal.org/project/sutram",
+    "authors": [
+        {
+            "name": "Shibin Das",
+            "homepage": "https://www.drupal.org/u/d34dman"
+        }
+    ],
+    "require": {
+        "drupal/core": "^10.3 || ^11"
+    }
+}
