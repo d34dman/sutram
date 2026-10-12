@@ -37,7 +37,7 @@ On a Canvas page, the user opens the Sutram console:
 
 ```
 › help
-canvas clear                         Remove every element from the canvas   destructive
+canvas clear                         Remove every element from the canvas   consequential
 canvas add block <type> [at:<ref>]   Add a block                            
 canvas list blocks                   List the blocks on the canvas          read-only
 
@@ -133,7 +133,19 @@ the higher an integration goes, the better it works.
 
 Commands can carry annotations. The set is open:
 
-- **Known today:** `readOnly`, `destructive`.
+- **Known today:** `readOnly` and `consequential`, the same terms as WebMCP's
+  `readOnlyHint` and `consequentialHint`, so nothing needs translating. They give
+  three tiers:
+
+  | Annotation | Meaning | Example |
+  |---|---|---|
+  | `readOnly` | changes nothing | `canvas list blocks`, `describe` |
+  | neither (the default) | an ordinary write you would not think twice about | `canvas add block`, `form … set` |
+  | `consequential` | significant, or hard to take back | `canvas clear`, `form … submit` |
+
+  `consequential` stays rare on purpose: it only means something while it marks
+  the exception. `form submit` is not destructive, but it does matter, which is
+  why the word is "consequential" and not "destructive".
 - **Possible later:** `slow`, `network` (talks to the server), `undoable`, …
 - **Unknown keys pass through unchanged.** An app can add its own, and any
   client that understands them can use them. A new annotation never needs a new
@@ -142,12 +154,12 @@ Commands can carry annotations. The set is open:
 Annotations describe a command. They do not enforce anything. Each client
 decides what to do with them:
 
-- **The console:** read-only lines run straight away, and a destructive line asks
+- **The console:** read-only lines run straight away, and a consequential line asks
   first. A pasted block is checked before anything runs. If it contains
-  destructive lines, it asks **once** and names them: "2 of 5 lines are
-  destructive: `canvas clear`, `canvas delete …`. Run all?"
+  consequential lines, it asks **once** and names them: "2 of 5 lines are
+  consequential: `canvas clear`, `canvas delete …`. Run all?"
 - **Agents (WebMCP):** annotations become the tool hints, so the agent's host can
-  run read-only calls in a batch and ask the user before destructive ones.
+  run read-only calls in a batch and ask the user before consequential ones.
 
 ## Keeping clients up to date
 
@@ -176,7 +188,7 @@ do. That is a deliberate choice, and it means Sutram checks no permissions:
 
 The one real change is that **agents** become callers, and they act quickly with
 all of the user's permissions. Annotations handle that: they let a client ask the
-user before a destructive command, without Sutram becoming a permission system.
+user before a consequential command, without Sutram becoming a permission system.
 
 ## Forms and widgets
 
@@ -196,7 +208,7 @@ forms to expose, either per form ID in settings or with `#sutram` in code.
 form node_article_form fields              read-only
 form node_article_form set title "Hello"
 form node_article_form set status on
-form node_article_form submit              destructive: asks first
+form node_article_form submit              consequential: asks first
 ```
 
 `submit` is the same as clicking Save. Drupal validates and checks access as
@@ -219,7 +231,7 @@ knows how it works:
 |---|---|
 | describe: what it holds, and its current state | "2 of up to 3 Image items: #12 *Sunset* (alt: …), #15 *Harbour* (alt: …)" |
 | get / set, through the widget's own logic | `set field_image media:12,media:15` |
-| its own commands | `field_image search "sunset"` (read-only), `field_image remove 15` (destructive) |
+| its own commands | `field_image search "sunset"` (read-only), `field_image remove 15` (consequential) |
 | suggest | media matching what has been typed so far |
 
 `sutram_form` hands over to a widget's integration whenever one is registered. A
@@ -238,7 +250,7 @@ looks like. After that, each widget's own maintainers take over.
 | [FlowDrop Console](https://flowdrop.io/blog/the-flowdrop-console) | A console for the FlowDrop editor | Sutram makes that idea general, for any app |
 | [Coffee](https://drupal.org/project/coffee) | An Alt+D palette for jumping to admin pages | It only navigates |
 | WebMCP form modules, and WebMCP's declarative form tools | Turn chosen forms into agent tools | One tool per form, forms only, agents only |
-| agentk | A React command palette with WebMCP | The same pattern, not for Drupal, and no widget contract |
+| [agentk](https://github.com/stevysmith/agentk) | A flat catalog of MCP-style tools (`name`, `description`, `inputSchema`) for one app, shown in a React ⌘K palette with generated forms and registered with WebMCP. Optional agent mode with approval tiers from the WebMCP hints. | Tools first, with a form for each. No typed command line, one catalog owner instead of many providers, no `describe` of current state, no commands that come and go with page state. Its rule "one consequential call and the whole plan waits" matches our batch rule. |
 
 ## Open questions
 

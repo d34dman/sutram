@@ -18,7 +18,7 @@ person in the Sutram console, or an AI agent such as Claude through WebMCP.
   and what state it is in, for people and agents alike.
 - **Runs in the browser.** Commands can do only what the user can already do on
   the page, so Sutram adds no way into the server.
-- **Annotated.** Commands say whether they are read-only or destructive, so the
+- **Annotated.** Commands say whether they are read-only or consequential, so the
   console and agents can ask before acting.
 - **Forms and widgets.** Form API forms, and widgets such as the media library,
   can expose themselves too, so agents stop guessing from screenshots.
