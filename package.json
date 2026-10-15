@@ -1,5 +1,5 @@
 {
-  "name": "sutram",
+  "name": "@d34dman/sutram",
   "version": "0.2.0",
   "description": "A standard way for JavaScript apps to expose their commands: to people in a console, and to AI agents through WebMCP.",
   "type": "module",
