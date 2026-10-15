@@ -1,7 +1,7 @@
 {
   "name": "@d34dman/sutram",
   "version": "0.2.0",
-  "description": "A standard way for JavaScript apps to expose their commands: to people in a console, and to AI agents through WebMCP.",
+  "description": "Give your web app a command line, for people and AI agents. Register commands once: get a console, help and man pages, and WebMCP tools.",
   "type": "module",
   "exports": {
     ".": "./src/index.js",
@@ -27,11 +27,20 @@
     "example": "node example/serve.js"
   },
   "keywords": [
-    "command-palette",
-    "console",
     "webmcp",
     "mcp",
+    "model-context-protocol",
     "ai-agents",
+    "agentic-ai",
+    "llm-tools",
+    "command-line",
+    "command-palette",
+    "console",
+    "repl",
+    "web-components",
+    "json-schema",
+    "browser",
+    "developer-tools",
     "drupal"
   ],
   "author": "Shibin Das (https://www.drupal.org/u/d34dman)",
