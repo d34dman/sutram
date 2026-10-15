@@ -1,5 +1,6 @@
 // Serves the package root so example/index.html can load ../src as ES modules.
 // Usage: npm run example, then open http://localhost:8080/example/
+//        npm run site, then open http://localhost:8080/site/
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
@@ -19,4 +20,4 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(404).end("Not found");
   }
-}).listen(port, "127.0.0.1", () => console.log(`http://localhost:${port}/example/`));
+}).listen(port, "127.0.0.1", () => console.log(`http://localhost:${port}/${process.argv[2] || "example"}/`));

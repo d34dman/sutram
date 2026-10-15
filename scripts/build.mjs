@@ -27,6 +27,7 @@ const destructure = (list) => list.split(",").map((s) => s.trim()).filter(Boolea
   .map((s) => s.replace(/^(\w+)\s+as\s+(\w+)$/, "$1: $2")).join(", ");
 
 const chunks = [];
+const exportsOf = {};
 for (const { name, text } of order) {
   const names = [];
   let s = text
@@ -40,6 +41,7 @@ for (const { name, text } of order) {
     .replace(/^export\s+((?:async\s+)?(?:function\*?|const|let|class)\s+(\w+))/gm, (_, decl, id) => { names.push(id); return decl; });
   const left = s.match(/^\s*(import|export)\b.*$/m);
   if (left) throw new Error(`build: src/${name}.js: cannot bundle "${left[0].trim()}"`);
+  exportsOf[name] = names;
   chunks.push(`// src/${name}.js\nconst __${name} = (() => {\n${s.trimEnd()}\nreturn { ${names.join(", ")} };\n})();`);
 }
 
@@ -51,6 +53,8 @@ const out = [
   ...chunks,
   `export default __browser.default;`,
   `export const { ${exported.join(", ")} } = __index;`,
+  // What the sutram/events, sutram/webmcp and sutram/console entry points export.
+  ...["events", "webmcp", "console"].map((m) => `export const { ${exportsOf[m].join(", ")} } = __${m};`),
   "",
 ].join("\n\n");
 

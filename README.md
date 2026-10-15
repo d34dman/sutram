@@ -5,6 +5,7 @@
 [![license](https://img.shields.io/github/license/d34dman/sutram)](LICENSE)
 
 **Give your web app a command line, for people and for AI agents.**
+[Try it live →](https://d34dman.github.io/sutram/)
 
 Register your app's commands once. Sutram gives people a drop-down console to
 run them, and gives AI agents the same commands as tools through
@@ -298,6 +299,7 @@ cd sutram
 npm test              # node --test, no dependencies to install
 npm run example       # a todo list to play with, at http://localhost:8080/example/
 npm run build         # dist/sutram.js
+npm run site          # the website, at http://localhost:8080/site/
 ```
 
 [docs/design.md](docs/design.md) is the first design note. Parts of it have

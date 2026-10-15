@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sutram: a command line for your web app, for people and AI agents</title>
+<meta name="description" content="Register your web app's commands once. Sutram gives people a console and AI agents WebMCP tools, with help, man pages and safety prompts built in.">
+<meta property="og:title" content="Sutram: a command line for your web app">
+<meta property="og:description" content="Register commands once: people get a console, AI agents get WebMCP tools.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2311131c'/%3E%3Ctext x='7' y='22' font-family='monospace' font-size='16' fill='%239aa2ff'%3E%E2%80%BA_%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #fbfaf7; --surface: #ffffff; --ink: #161a2b; --muted: #5b6275; --line: #e6e3db;
+  --accent: #4f5bd5; --accent-soft: #eceefe; --ok: #1f8a54; --warn: #b8630f; --err: #c43c3c;
+  --term: #11131c; --term-ink: #e6e8f0; --term-dim: #8c93a8; --term-accent: #9aa2ff; --term-option: #7dcfff; --term-string: #c3e88d;
+  --radius: 14px; --shadow: 0 1px 2px #0000000d, 0 8px 24px #0000000f;
+  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0d0f17; --surface: #151826; --ink: #e8eaf3; --muted: #9aa1b5; --line: #262a3b;
+    --accent: #9aa2ff; --accent-soft: #1d2140; --ok: #6fd69a; --warn: #f5a35c; --err: #ff7b7b; --term: #090b12;
+    --shadow: 0 1px 2px #0006, 0 8px 24px #0005; }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+code, kbd, pre { font-family: var(--mono); font-size: 0.88em; }
+kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 0 6px; background: var(--surface); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+header.top { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); background: color-mix(in srgb, var(--bg) 85%, transparent); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
+.brand .mark { font-family: var(--mono); background: var(--term); color: var(--term-accent); border-radius: 8px; padding: 2px 8px; font-size: 15px; }
+nav.links { display: flex; gap: 22px; font-size: 15px; }
+nav.links a { color: var(--muted); text-decoration: none; }
+nav.links a:hover { color: var(--ink); }
+@media (max-width: 720px) { nav.links .hide-sm { display: none; } }
+
+.hero { padding-top: 88px; padding-bottom: 40px; text-align: center; }
+.eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 4px 14px; background: var(--surface); }
+.eyebrow b { color: var(--accent); font-weight: 600; }
+h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1.05; letter-spacing: -0.035em; margin: 22px auto 18px; max-width: 14ch; }
+h1 em { font-style: normal; color: var(--accent); }
+.lede { font-size: clamp(18px, 2.2vw, 21px); color: var(--muted); max-width: 40rem; margin: 0 auto 32px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 16px var(--sans); padding: 12px 20px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-decoration: none; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media (prefers-color-scheme: dark) { .btn.primary { color: #0d0f17; } }
+.btn:hover { transform: translateY(-1px); }
+.install { display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 15px; background: var(--term); color: var(--term-ink); padding: 11px 12px 11px 16px; border-radius: 10px; }
+.install span { color: var(--term-dim); }
+.copy { font: 12px var(--sans); background: #ffffff14; color: var(--term-ink); border: 1px solid #ffffff22; border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+.hint { margin-top: 18px; font-size: 14px; color: var(--muted); }
+
+section { padding: 56px 0; }
+h2 { font-size: clamp(28px, 3.6vw, 40px); letter-spacing: -0.025em; line-height: 1.15; margin: 0 0 12px; }
+.sub { color: var(--muted); max-width: 44rem; margin: 0 0 28px; }
+
+/* Demo */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.chip { font: 14px var(--mono); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip .p { color: var(--accent); margin-right: 6px; }
+.demo { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .demo { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.card h3 { margin: 0; font-size: 15px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.card h3 small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.shop { padding: 16px 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.product { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.product .emoji { font-size: 26px; }
+.product .name { font-weight: 600; font-size: 15px; line-height: 1.3; }
+.product .sku { font: 12px var(--mono); color: var(--muted); }
+.product .row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 8px; }
+.product button { font: 600 13px var(--sans); border: 0; background: var(--accent-soft); color: var(--accent); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+.cart { border-top: 1px solid var(--line); padding: 14px 18px; font-size: 15px; }
+.cart ul { list-style: none; margin: 0 0 8px; padding: 0; }
+.cart li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
+.cart .total { display: flex; justify-content: space-between; font-weight: 700; }
+.cart .empty, .note { color: var(--muted); font-size: 14px; }
+.order { margin-top: 8px; color: var(--ok); font-weight: 600; font-size: 14px; }
+.side { display: grid; gap: 20px; align-content: start; }
+.log { list-style: none; margin: 0; padding: 8px 0; max-height: 236px; overflow: auto; font: 13px/1.5 var(--mono); }
+.log li { display: grid; grid-template-columns: 70px 1fr auto; gap: 10px; padding: 4px 18px; align-items: baseline; }
+.log li.fresh { animation: flash 1.2s ease-out; }
+@keyframes flash { from { background: var(--accent-soft); } to { background: transparent; } }
+.who { font: 600 11px var(--sans); text-transform: uppercase; letter-spacing: .04em; border-radius: 5px; padding: 1px 6px; text-align: center; background: var(--accent-soft); color: var(--accent); }
+.who.button { background: #1f8a5418; color: var(--ok); }
+.who.agent { background: #b8630f1c; color: var(--warn); }
+.exit { color: var(--muted); }
+.exit.bad { color: var(--err); }
+.log .cmd { overflow-wrap: anywhere; }
+.log .empty { display: block; color: var(--muted); font-family: var(--sans); }
+.tools { list-style: none; margin: 0; padding: 6px 0; max-height: 300px; overflow: auto; }
+.tools li { padding: 8px 18px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.tools li:last-child { border-bottom: 0; }
+.tools .name { font: 600 13px var(--mono); }
+.tools .desc { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.tag { font: 11px var(--sans); border: 1px solid var(--line); border-radius: 99px; padding: 0 7px; margin-left: 6px; color: var(--muted); }
+.tag.ro { color: var(--ok); } .tag.cq { color: var(--warn); }
+.tools li.new { animation: flash 1.6s ease-out; }
+.webmcp { font-size: 13px; color: var(--muted); padding: 10px 18px; border-top: 1px solid var(--line); }
+
+/* Two shapes */
+.shapes { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: stretch; }
+@media (max-width: 900px) { .shapes { grid-template-columns: 1fr; } }
+pre.code { margin: 0; background: var(--term); color: var(--term-ink); border-radius: var(--radius); padding: 18px 20px; overflow: auto; font-size: 13.5px; line-height: 1.6; }
+.code .c { color: var(--term-dim); } .code .k { color: var(--term-accent); } .code .s { color: var(--term-string); } .code .o { color: var(--term-option); }
+.who-gets { display: grid; gap: 16px; }
+.who-gets .label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 0 0 6px; }
+
+/* Features */
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 900px) { .features { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .features { grid-template-columns: 1fr; } }
+.feature { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.feature h3 { margin: 0 0 6px; font-size: 17px; }
+.feature p { margin: 0; color: var(--muted); font-size: 15px; }
+.feature .icon { font: 600 15px var(--mono); color: var(--accent); margin-bottom: 10px; display: block; }
+
+/* Start */
+.steps { display: grid; gap: 22px; counter-reset: step; }
+.step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; }
+.step::before { counter-increment: step; content: counter(step); width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; display: grid; place-items: center; }
+.step h3 { margin: 4px 0 8px; font-size: 18px; }
+.step p { margin: 0 0 10px; color: var(--muted); }
+.codebox { position: relative; }
+/* Let wide code scroll inside its box instead of widening the page. */
+.demo > *, .shapes > *, .who-gets > *, .step > *, .codebox { min-width: 0; }
+.codebox .copy { position: absolute; top: 10px; right: 10px; }
+
+.callout { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
+.callout p { margin: 4px 0 0; color: var(--muted); max-width: 46rem; }
+
+footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; }
+footer p { margin: 0; max-width: 36rem; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><span class="mark">›_</span> Sutram</a>
+    <nav class="links">
+      <a href="#demo">Demo</a>
+      <a href="#start">Get started</a>
+      <a class="hide-sm" href="https://github.com/d34dman/sutram#readme">Docs</a>
+      <a class="hide-sm" href="https://www.npmjs.com/package/@d34dman/sutram">npm</a>
+      <a href="https://github.com/d34dman/sutram">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero wrap">
+    <span class="eyebrow"><b>New</b> Commands for people and AI agents, through WebMCP</span>
+    <h1>Give your web app a <em>command line</em>.</h1>
+    <p class="lede">Register your app's commands once. People get a console with help and man pages. AI agents get the same commands as tools. Nobody needs screenshots or guesswork.</p>
+    <div class="ctas">
+      <button class="btn primary" type="button" data-open-console>Try it now <span aria-hidden="true">→</span></button>
+      <span class="install"><span>$</span> npm i @d34dman/sutram <button class="copy" type="button" data-copy="npm i @d34dman/sutram">Copy</button></span>
+    </div>
+    <p class="hint">Or press <kbd>`</kbd> anywhere on this page.</p>
+  </div>
+
+  <section id="demo">
+    <div class="wrap">
+      <h2>Try it on a tiny coffee shop</h2>
+      <p class="sub">This page registers a handful of commands with Sutram. Click one, or open the console and type. The buttons, the console and agents all run the same commands, and you can see each run below.</p>
+      <div class="chips" aria-label="Commands to try">
+        <button class="chip" type="button" data-run="help"><span class="p">›</span>help</button>
+        <button class="chip" type="button" data-run="shop list"><span class="p">›</span>shop list</button>
+        <button class="chip" type="button" data-run="cart add V60-02 2"><span class="p">›</span>cart add V60-02 2</button>
+        <button class="chip" type="button" data-run="cart add GUJI-250 --qty=1"><span class="p">›</span>cart add GUJI-250 --qty=1</button>
+        <button class="chip" type="button" data-run="cart status"><span class="p">›</span>cart status</button>
+        <button class="chip" type="button" data-run="checkout"><span class="p">›</span>checkout</button>
+        <button class="chip" type="button" data-run="man cart add"><span class="p">›</span>man cart add</button>
+        <button class="chip" type="button" data-run="cart add V61"><span class="p">›</span>cart add V61</button>
+        <button class="chip" type="button" data-run="shop find filter"><span class="p">›</span>shop find filter</button>
+        <button class="chip" type="button" data-run="cart status --json"><span class="p">›</span>cart status --json</button>
+        <button class="chip" type="button" data-run="status"><span class="p">›</span>status</button>
+      </div>
+      <div class="demo">
+        <div class="card">
+          <h3>Brew &amp; Co. <small>A shop, rendered from its own state</small></h3>
+          <div class="shop" id="shop"></div>
+          <div class="cart" id="cart"></div>
+        </div>
+        <div class="side">
+          <div class="card">
+            <h3>Who ran what <small>registry.onResult()</small></h3>
+            <ul class="log" id="log"><li><span class="empty">Click a button or a command above.</span></li></ul>
+          </div>
+          <div class="card">
+            <h3>What an agent sees <small id="tool-count"></small></h3>
+            <ul class="tools" id="tools"></ul>
+            <div class="webmcp" id="webmcp"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>One definition, two shapes</h2>
+      <p class="sub">A command is a name, a JSON Schema for its input, and a function. Sutram turns it into a command line for people and a tool for agents. Your handler never knows who called it.</p>
+      <div class="shapes">
+<pre class="code"><span class="k">Sutram</span>.register({
+  name: <span class="s">"cart add"</span>,
+  provider: <span class="s">"cart"</span>,
+  description: <span class="s">"Add a product to the cart"</span>,
+  input: {                         <span class="c">// JSON Schema</span>
+    type: <span class="s">"object"</span>,
+    properties: {
+      sku: { type: <span class="s">"string"</span> },
+      qty: { type: <span class="s">"integer"</span>, minimum: 1, default: 1 },
+    },
+    required: [<span class="s">"sku"</span>],
+  },
+  positional: [<span class="s">"sku"</span>, <span class="s">"qty"</span>],
+  annotations: {},                 <span class="c">// readOnly, consequential, …</span>
+  run: ({ sku, qty }) =&gt; cart.add(sku, qty),
+});</pre>
+        <div class="who-gets">
+          <div>
+            <p class="label">A person types</p>
+<pre class="code"><span class="k">›</span> cart add V60-02 2
+<span class="k">›</span> cart add <span class="o">--sku=</span><span class="s">V60-02</span> <span class="o">--qty=</span><span class="s">2</span>
+<span class="k">›</span> cart add -h
+<span class="k">›</span> man cart add</pre>
+          </div>
+          <div>
+            <p class="label">An agent calls</p>
+<pre class="code">cart_add({ <span class="o">"sku"</span>: <span class="s">"V60-02"</span>, <span class="o">"qty"</span>: 2 })
+<span class="c">// same schema, same checks, same handler</span></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Everything a command line should have</h2>
+      <p class="sub">You write the commands. Sutram does the rest, the same way for every app on the page.</p>
+      <div class="features">
+        <div class="feature"><span class="icon">help · man · status</span><h3>Discovery built in</h3><p>Help and manual pages are generated from your definitions, so they always match what the page can do right now.</p></div>
+        <div class="feature"><span class="icon">read-only · consequential</span><h3>Asks before it matters</h3><p>Mark a command consequential and the console asks first. Agent hosts get the same hint and can ask the user too.</p></div>
+        <div class="feature"><span class="icon">WebMCP</span><h3>Agents without screenshots</h3><p>Every command becomes a WebMCP tool with its JSON Schema. Agents call your app's logic instead of clicking around.</p></div>
+        <div class="feature"><span class="icon">no new API</span><h3>The user's session, nothing more</h3><p>Commands run in the browser and call your own endpoints, so they can do exactly what the user could already do.</p></div>
+        <div class="feature"><span class="icon">--json · --wide</span><h3>Data in, tables out</h3><p>Return data. People get tables and key: value lines; agents and <code>--json</code> get the data exactly as you returned it.</p></div>
+        <div class="feature"><span class="icon">0 dependencies</span><h3>Small and plain</h3><p>ES modules, or one 68 kB file from a CDN. A web component for the console. Works with any framework, or none.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <h2>Get started in a minute</h2>
+      <p class="sub">No build step needed. Paste this into an HTML file and open it.</p>
+      <div class="steps">
+        <div class="step">
+          <div>
+            <h3>Load Sutram</h3>
+            <p>From the CDN, or install <code>@d34dman/sutram</code> from npm and import it.</p>
+            <div class="codebox"><pre class="code" id="snippet-load">&lt;script type="module"&gt;
+  import Sutram from "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.2/dist/sutram.js";
+&lt;/script&gt;</pre><button class="copy" type="button" data-copy-from="snippet-load">Copy</button></div>
+          </div>
+        </div>
+        <div class="step">
+          <div>
+            <h3>Register a command</h3>
+            <p>Give it a name, an input schema and a function.</p>
+            <div class="codebox"><pre class="code" id="snippet-register">Sutram.register({
+  name: "hello world",
+  provider: "hello",
+  description: "Say hello",
+  input: { type: "object", properties: { who: { type: "string", default: "you" } } },
+  positional: ["who"],
+  annotations: { readOnly: true },
+  run: ({ who }) =&gt; ({ text: `Hello, ${who}.` }),
+});
+Sutram.mountConsole();</pre><button class="copy" type="button" data-copy-from="snippet-register">Copy</button></div>
+          </div>
+        </div>
+        <div class="step">
+          <div>
+            <h3>Press <kbd>`</kbd></h3>
+            <p>Type <code>help</code>, then <code>hello world Ada</code>. In a browser with WebMCP, agents can call <code>hello_world</code> too.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="callout">
+        <div>
+          <h3 style="margin:0">Building on Drupal?</h3>
+          <p>The Drupal module exposes menus, pages and node forms as commands: <code>nav go "Content types"</code>, <code>form node-article-form set title …</code>, <code>form node-article-form save</code>.</p>
+        </div>
+        <a class="btn" href="https://github.com/d34dman/drupal-sutram-demo">See the Drupal demo →</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b>Sutram</b>: <i>sūtram</i> (सूत्रम्) is Sanskrit for a short, exact rule, and Malayalam everyday speech for a clever little device. Each command is one: a short line in place of clicks and screenshots.</p>
+    <p>MIT licensed · <a href="https://github.com/d34dman/sutram">GitHub</a> · <a href="https://www.npmjs.com/package/@d34dman/sutram">npm</a> · by <a href="https://www.drupal.org/u/d34dman">Shibin Das</a></p>
+  </div>
+</footer>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

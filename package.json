@@ -24,7 +24,8 @@
     "test": "node --test",
     "build": "node scripts/build.mjs",
     "prepack": "node scripts/build.mjs",
-    "example": "node example/serve.js"
+    "example": "node example/serve.js",
+    "site": "node scripts/build.mjs && cp dist/sutram.js site/sutram.js && node example/serve.js site"
   },
   "keywords": [
     "webmcp",

@@ -14,6 +14,10 @@ test("the build bundles browser.js into one module with the same API", async () 
 
   const bundle = await import(join(dir, "dist/sutram.js"));
   assert.deepEqual(Object.keys(api).filter((k) => !(k in bundle)), []);
+  for (const entry of ["events", "webmcp", "console"]) {
+    const mod = await import(`../src/${entry}.js`);
+    assert.deepEqual(Object.keys(mod).filter((k) => !(k in bundle)), [], `${entry} exports`);
+  }
   assert.equal(bundle.default, globalThis.Sutram);
 
   bundle.default.register({
