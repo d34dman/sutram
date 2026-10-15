@@ -4,13 +4,21 @@
 [![test](https://github.com/d34dman/sutram/actions/workflows/test.yml/badge.svg)](https://github.com/d34dman/sutram/actions/workflows/test.yml)
 [![license: MIT OR GPL-2.0-or-later](https://img.shields.io/badge/license-MIT%20OR%20GPL--2.0--or--later-blue)](LICENSE)
 
-**Give your web app a command line, for people and for AI agents.**
+**Let AI agents use your web app through commands, not clicks.**
 [Try it live →](https://d34dman.github.io/sutram/)
 
-Register your app's commands once. Sutram gives people a drop-down console to
-run them, and gives AI agents the same commands as tools through
-[WebMCP](https://github.com/webmachinelearning/webmcp). You write no console,
-no help pages and no agent integration.
+Sutram is a standard way for a web app to expose what it can do as commands.
+Register them once, and agents reach them however they reach the page:
+
+- as tools through [WebMCP](https://github.com/webmachinelearning/webmcp), in
+  browsers that have it;
+- from JavaScript, with `Sutram.tools()` and `Sutram.call()`, in a headless
+  browser, a test, or an agent that drives a browser;
+- by typing into a terminal-like console, which people can use too;
+- through a chat assistant, which answers with command lines a person pastes
+  into the console.
+
+You write no console, no help pages and no agent integration.
 
 ```
 › help
@@ -28,8 +36,8 @@ Place an order for 2 items, €48.00? Yes No
 
 - **Feels like a terminal.** `help`, `man`, `--json`, GNU-style options,
   history with ↑, "did you mean", and syntax highlighting as you type.
-- **Agents see what people see.** Every command is also a WebMCP tool, with
-  its JSON Schema and hints such as "read-only" or "ask first".
+- **Agents see what people see.** Every command is also a tool, with its JSON
+  Schema and hints such as "read-only" or "ask first", with or without WebMCP.
 - **No new way into your server.** Commands run in the browser with the
   user's own session, so they can do exactly what the user could already do.
 - **Small and dependency-free.** Plain ES modules, about 60 kB unminified,

@@ -1,7 +1,7 @@
 // The website's demo: a small shop that registers its commands with Sutram,
 // renders itself from its own state, and shows who ran what and what an
 // agent would see. sutram.js is the package build, copied in at deploy time.
-import Sutram, { toTool, STATUS_TOOL, commandLine, findModelContext } from "./sutram.js";
+import Sutram, { commandLine, findModelContext } from "./sutram.js";
 
 const { registry, events, CommandError, EXIT } = Sutram;
 
@@ -215,8 +215,8 @@ registry.onResult(({ name, input, caller, result }) => {
 
 let known = new Set();
 function renderTools() {
-  const tools = [STATUS_TOOL, ...registry.list().map((def) => toTool(def, registry.formats))];
-  document.getElementById("tool-count").textContent = `${tools.length} WebMCP tools`;
+  const tools = Sutram.tools();
+  document.getElementById("tool-count").textContent = `${tools.length} tools · Sutram.tools()`;
   document.getElementById("tools").replaceChildren(...tools.map((t) => {
     const hints = t.annotations || {};
     return el("li", { className: known.size && !known.has(t.name) ? "new" : "" },

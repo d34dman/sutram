@@ -48,16 +48,22 @@
   .ok { color: var(--ok); }
   .gap { height: 12px; }
   .agent { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--line); }
-  .who { font: 600 12px var(--sans); text-transform: uppercase; letter-spacing: .06em; border-radius: 6px; padding: 2px 8px; margin-right: 10px; vertical-align: 2px; }
-  .who.person { background: #9aa2ff22; color: var(--accent); }
-  .who.agent { background: #f5a35c22; color: var(--warn); }
+  .body { padding: 6px 0 8px; font-size: 14.5px; font-variant-ligatures: none; }
+  .row { display: grid; grid-template-columns: 84px 1fr; gap: 12px; align-items: baseline; padding: 10px 20px; }
+  .row .code { white-space: nowrap; }
+  .row + .row { border-top: 1px solid var(--line); }
+  .row.res { background: #ffffff06; }
+  .who { font: 600 11.5px var(--sans); text-transform: uppercase; letter-spacing: .06em; border-radius: 6px; padding: 3px 0; text-align: center; background: #9aa2ff22; color: var(--accent); }
+  .who.js { background: #7dcfff1f; color: var(--option); }
+  .who.con { background: #c3e88d1a; color: var(--string); }
+  .who.dimw { background: transparent; color: var(--muted); }
 </style>
 </head>
 <body>
   <div>
     <div class="brand"><img src="../site/logo.svg" alt="">sutram</div>
-    <h1>Give your web app a <em>command line</em>.</h1>
-    <p>Register commands once. <b>People</b> get a console, <b>AI&nbsp;agents</b> get WebMCP tools.</p>
+    <h1>Let agents use your web app through <em>commands</em>.</h1>
+    <p>Register commands once. <b>Agents</b> call them through WebMCP, from JavaScript, or in the console.</p>
     <div class="meta">
       <span class="pill"><span>$</span> npm i @d34dman/sutram</span>
       <span class="pill">d34dman.github.io/sutram</span>
@@ -65,15 +71,14 @@
   </div>
 
   <div class="term">
-    <div class="bar"><span><b>Sutram</b> · 8 commands on this page</span><span>Esc</span></div>
+    <div class="bar"><span><b>cart add</b> · one command, every way in</span><span>exit 0</span></div>
     <div class="body">
-      <div><span class="who person">person</span><span class="p">›</span> <span class="c">cart add</span> V60-02 <span class="o">--qty=</span><span class="s">2</span></div>
-      <div class="ok">Added 2 × V60 dripper. 2 items, €48.00.</div>
-      <div class="gap"></div>
-      <div><span class="p">›</span> <span class="c">checkout</span></div>
-      <div style="color: var(--warn)">Place an order for 2 items, €48.00? <span class="dim">Yes · No</span></div>
-      <div class="agent"><span class="who agent">agent</span>cart_add({ <span class="o">"sku"</span>: <span class="s">"V60-02"</span>, <span class="o">"qty"</span>: <span class="s">2</span> })</div>
-      <div class="dim">same schema · same checks · same handler</div>
+      <div class="row"><span class="who">WebMCP</span><span class="code">cart_add({ <span class="o">"sku"</span>: <span class="s">"V60-02"</span>, <span class="o">"qty"</span>: 2 })</span></div>
+      <div class="row"><span class="who js">Script</span><span class="code">Sutram.call(<span class="s">"cart_add"</span>, { sku: <span class="s">"V60-02"</span>, qty: 2 })</span></div>
+      <div class="row"><span class="who con">Console</span><span class="code"><span class="p">›</span> <span class="c">cart add</span> V60-02 <span class="o">--qty=</span><span class="s">2</span></span></div>
+      <div class="row res"><span class="who dimw">Result</span><span class="code"><span class="ok">{ code: 0, data: { count: 2, total: 48 } }</span></span></div>
+      <div class="row"><span class="who js">Script</span><span class="code">Sutram.call(<span class="s">"checkout"</span>)</span></div>
+      <div class="row res"><span class="who dimw">Result</span><span class="code"><span style="color: var(--warn)">code 130: ask the user first</span></span></div>
     </div>
   </div>
 </body>

@@ -1,7 +1,7 @@
 {
   "name": "@d34dman/sutram",
   "version": "0.2.1",
-  "description": "Give your web app a command line, for people and AI agents. Register commands once: get a console, help and man pages, and WebMCP tools.",
+  "description": "Let AI agents use your web app through commands, not clicks. Register commands once: agents call them through WebMCP, from JavaScript in a headless browser, or by typing into a console that people can use too.",
   "type": "module",
   "exports": {
     ".": "./src/index.js",
