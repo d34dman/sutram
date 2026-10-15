@@ -28,8 +28,13 @@ Place an order for 2 items, €48.00? Yes No
 npm install sutram
 ```
 
-No build step: the package is plain ES modules. Until it is on npm, install it
-from GitHub: `npm install git+ssh://git@github.com/d34dman/sutram.git#main`.
+The package is plain ES modules, so bundlers need no build step. Until it is
+on npm, install it from GitHub: `npm install git+ssh://git@github.com/d34dman/sutram.git#main`.
+
+For pages without a bundler, `npm run build` writes `dist/sutram.js`:
+`sutram/browser` and everything it imports as one module with no imports and
+no dependencies. Hosts that vendor a single file, such as a Drupal library,
+copy that file. The published package includes it.
 
 | Import | What it is | DOM |
 |---|---|---|
@@ -152,10 +157,10 @@ connectWebMCP(getRegistry());
 mountConsole({ locale: "de-DE" });   // the locale formats display with
 ```
 
-Without one:
+Without one, load the build (or `src/browser.js`, which imports the rest):
 
 ```html
-<script type="module" src="/libraries/sutram/src/browser.js"></script>
+<script type="module" src="/libraries/sutram/sutram.js"></script>
 <script type="module">
   Sutram.register({ /* … */ });
   Sutram.mountConsole();
@@ -180,6 +185,7 @@ providers that bundle their own copy still meet in one place.
 
 ```sh
 npm test
+npm run build     # dist/sutram.js
 npm run example   # then open http://localhost:8080/example/
 ```
 

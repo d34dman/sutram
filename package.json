@@ -9,10 +9,12 @@
     "./webmcp": "./src/webmcp.js",
     "./console": "./src/console.js",
     "./browser": "./src/browser.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./dist/sutram.js": "./dist/sutram.js"
   },
   "files": [
     "src",
+    "dist",
     "docs"
   ],
   "sideEffects": [
@@ -20,6 +22,8 @@
   ],
   "scripts": {
     "test": "node --test",
+    "build": "node scripts/build.mjs",
+    "prepack": "node scripts/build.mjs",
     "example": "node example/serve.js"
   },
   "keywords": [
