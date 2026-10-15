@@ -5,7 +5,7 @@
 // ToolAnnotations is a fixed set, and a tool has no output schema, so
 // Sutram's own annotations and a summary of `output` go into the description.
 
-import { getRegistry, runStatus } from "./core.js";
+import { EXIT, getRegistry, runStatus } from "./core.js";
 import { describeShape, formatsUsed, sentence } from "./format.js";
 import { getFormats } from "./formats.js";
 
@@ -40,6 +40,31 @@ export const STATUS_TOOL = {
   inputSchema: { type: "object", properties: {} },
   annotations: { readOnlyHint: true },
 };
+
+/** Every tool an agent sees on the page right now: sutram_status first, then one per command. */
+export function listTools(registry = getRegistry()) {
+  return [STATUS_TOOL, ...registry.list().map((def) => toTool(def, registry.formats))];
+}
+
+/**
+ * Calls a tool by its WebMCP name, the way an agent's host would. For code
+ * that drives the page from outside without WebMCP: a headless browser, a
+ * test, an agent that can run JavaScript in the page.
+ *
+ * This is a client, like the console, so it acts on the consequential hint:
+ * such a tool runs only with `confirmed: true`, which says that the user
+ * has agreed. Without it nothing runs and the result says so.
+ */
+export async function callTool(name, input = {}, { registry = getRegistry(), confirmed = false, caller = "agent", signal } = {}) {
+  if (name === STATUS_TOOL.name) return { code: EXIT.OK, providers: await runStatus(registry, { caller, signal }) };
+  const def = registry.list().find((d) => toolName(d) === name);
+  if (!def) return { code: EXIT.NOT_FOUND, message: `${name}: no such tool. Call tools() for the list.` };
+  if (def.annotations.consequential && !confirmed) {
+    const question = typeof def.confirm === "function" ? def.confirm(input) : `Run ${def.name}?`;
+    return { code: EXIT.CANCELLED, message: `${name} is consequential, so it did not run. Ask the user ("${question}"), then call it again with { confirmed: true }.` };
+  }
+  return registry.run(def.name, input, { caller, signal });
+}
 
 /**
  * Mirrors the registry into the model context, and keeps it in sync.

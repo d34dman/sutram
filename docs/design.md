@@ -169,6 +169,10 @@ decides what to do with them:
   consequential: `canvas clear`, `canvas delete …`. Run all?"
 - **Agents (WebMCP):** annotations become the tool hints, so the agent's host can
   run read-only calls in a batch and ask the user before consequential ones.
+- **Scripts (`Sutram.call`):** headless browsers, tests and agents that run
+  JavaScript in the page call tools by name. A consequential tool runs only with
+  `{ confirmed: true }`; without it, nothing runs and the result says to ask the
+  user. The registry's own `run()` stays neutral: it is for app code.
 
 ## Keeping clients up to date
 

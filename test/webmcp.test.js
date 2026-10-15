@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry } from "../src/index.js";
-import { connectWebMCP, toTool } from "../src/webmcp.js";
+import { createRegistry, EXIT } from "../src/index.js";
+import { connectWebMCP, toTool, listTools, callTool } from "../src/webmcp.js";
 
 function fakeModelContext() {
   const tools = new Map();
@@ -46,4 +46,28 @@ test("the bridge follows the registry, and tools run commands", async () => {
   assert.ok(!mc.tools.has("nav_go"));
   disconnect();
   assert.equal(mc.tools.size, 0);
+});
+
+test("listTools and callTool give code outside the page what an agent sees", async () => {
+  const r = createRegistry();
+  r.register(goDef);
+  const placed = [];
+  r.register({
+    name: "checkout", provider: "cart", description: "Place the order",
+    input: { type: "object", properties: {} }, annotations: { consequential: true },
+    confirm: () => "Place an order for 2 items?", run: () => { placed.push(1); return { data: { order: 1 } }; },
+  });
+  assert.deepEqual(listTools(r).map((t) => t.name), ["sutram_status", "checkout", "nav_go"]);
+
+  assert.deepEqual(await callTool("nav_go", { item: "/shop" }, { registry: r }), { code: 0, data: { url: "/shop" } });
+  assert.equal((await callTool("nav_go", {}, { registry: r })).code, EXIT.USAGE);
+  assert.equal((await callTool("nope", {}, { registry: r })).code, EXIT.NOT_FOUND);
+  assert.deepEqual(await callTool("sutram_status", {}, { registry: r }), { code: 0, providers: [] });
+
+  const refused = await callTool("checkout", {}, { registry: r });
+  assert.equal(refused.code, EXIT.CANCELLED);
+  assert.match(refused.message, /Place an order for 2 items\?.*confirmed: true/);
+  assert.equal(placed.length, 0);
+  assert.equal((await callTool("checkout", {}, { registry: r, confirmed: true })).code, 0);
+  assert.equal(placed.length, 1);
 });

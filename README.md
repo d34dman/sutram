@@ -252,6 +252,31 @@ the last 50 and forgets older ones when a `navigates` command leaves the page.
 Single-page apps that change page without such a command call
 `getEvents().clear()` themselves.
 
+### Without WebMCP: headless browsers, tests and scripts
+
+Code that can run JavaScript in the page gets the same tools from
+`window.Sutram`, with no console and no WebMCP. That covers Playwright,
+Puppeteer, raw Chrome DevTools Protocol, and agents that drive a browser:
+
+```js
+// Playwright; Puppeteer and CDP work the same way
+const tools = await page.evaluate(() => Sutram.tools());
+// → [{ name: "sutram_status", … }, { name: "cart_add", description, inputSchema, annotations }, …]
+
+await page.evaluate(() => Sutram.call("cart_add", { sku: "V60-02", qty: 2 }));
+// → { code: 0, text: "Added 2 × V60 dripper…", data: { count: 2, total: 48 } }
+
+await page.evaluate(() => Sutram.call("checkout"));
+// → { code: 130, message: "checkout is consequential, so it did not run. Ask the user …" }
+await page.evaluate(() => Sutram.call("checkout", {}, { confirmed: true }));
+```
+
+`tools()` is the list a WebMCP agent gets. `call()` takes the tool name and
+acts on the hints like a careful host: a consequential tool runs only with
+`{ confirmed: true }`, which says the user agreed. Results and exit codes are
+the same as everywhere else. (`Sutram.run("cart add", …)` is the registry's
+own call for app code, and asks nothing.)
+
 No WebMCP in the browser yet? An assistant such as ChatGPT or Claude can
 still drive the page through a person: give it the page's commands, paste
 the command lines it answers with into the console, and paste the output

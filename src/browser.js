@@ -1,6 +1,7 @@
 // One script for pages without a bundler: loads everything, defines
 // <sutram-console>, connects WebMCP when the browser has it, and exposes
-// the shared API as globalThis.Sutram.
+// the shared API as globalThis.Sutram. Headless browsers and tests use
+// Sutram.tools() and Sutram.call() from there.
 //
 //   <script type="module" src=".../sutram/src/browser.js"></script>
 //   <script type="module">
@@ -10,7 +11,7 @@
 
 import * as core from "./index.js";
 import { getEvents } from "./events.js";
-import { connectWebMCP, findModelContext } from "./webmcp.js";
+import { connectWebMCP, findModelContext, listTools, callTool } from "./webmcp.js";
 import { defineConsole, mountConsole } from "./console.js";
 
 const registry = core.getRegistry();
@@ -26,6 +27,10 @@ if (!globalThis.Sutram) {
     defineFormat: (name, def) => registry.formats.define(name, def),
     register: (def) => registry.register(def),
     run: (name, input, ctx) => registry.run(name, input, ctx),
+    // For code that drives the page from outside: what an agent sees, and a
+    // call that asks first, as WebMCP would.
+    tools: () => listTools(registry),
+    call: (name, input, options) => callTool(name, input, { ...options, registry }),
     mountConsole,
     connectWebMCP: () => connectWebMCP(registry, findModelContext()),
   });
