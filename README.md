@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@d34dman/sutram)](https://www.npmjs.com/package/@d34dman/sutram)
 [![test](https://github.com/d34dman/sutram/actions/workflows/test.yml/badge.svg)](https://github.com/d34dman/sutram/actions/workflows/test.yml)
-[![license](https://img.shields.io/npm/l/@d34dman/sutram)](LICENSE)
+[![license](https://img.shields.io/github/license/d34dman/sutram)](LICENSE)
 
 **Give your web app a command line, for people and for AI agents.**
 
