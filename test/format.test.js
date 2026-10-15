@@ -1,8 +1,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatResult, blocksToText, formatMan, describeShape, createRegistry, formatHelp } from "../src/index.js";
+import {
+  formatResult, blocksToText, formatMan, describeShape, createRegistry, formatHelp,
+  checkFields, createFormats,
+} from "../src/index.js";
 
-const MONEY = { type: "number", format: "money" };
+// Money is the app's format, not Sutram's: this test defines it the way a commerce module would.
+const formats = createFormats();
+formats.define("money", {
+  type: "object",
+  description: "{ amount, currency } with an ISO 4217 code",
+  validate: (v) => typeof v.amount === "number" && /^[A-Z]{3}$/.test(v.currency),
+  display: (v, { locale }) => new Intl.NumberFormat(locale, { style: "currency", currency: v.currency }).format(v.amount),
+  align: "right",
+});
+const MONEY = { type: "object", format: "money", properties: { amount: { type: "number" }, currency: { type: "string" } } };
+const eur = (amount) => ({ amount, currency: "EUR" });
 const cartStatus = {
   name: "cart status", provider: "cart", description: "What is in the cart now",
   input: { type: "object", properties: {} }, annotations: { readOnly: true },
@@ -13,12 +26,12 @@ const cartStatus = {
   run: () => ({}),
 };
 const result = { code: 0, text: "3 items, €60.90.", data: { items: [
-  { sku: "V60-02", name: "V60 dripper, size 02", qty: 2, price: 24 },
-  { sku: "COL-HUI-250", name: "Huila, Colombia", qty: 1, price: 12.9 },
-], total: 60.9 } };
+  { sku: "V60-02", name: "V60 dripper, size 02", qty: 2, price: eur(24) },
+  { sku: "COL-HUI-250", name: "Huila, Colombia", qty: 1, price: eur(12.9) },
+], total: eur(60.9) } };
 
 test("a summary, then each list as a table, money formatted", () => {
-  const text = blocksToText(formatResult(result, cartStatus, { currency: "EUR", locale: "en-IE" }));
+  const text = blocksToText(formatResult(result, cartStatus, { locale: "en-IE", formats }));
   assert.equal(text, [
     "3 items, €60.90.",
     "SKU          NAME                  QTY   PRICE",
@@ -51,8 +64,38 @@ test("man has OUTPUT and EXIT STATUS sections", () => {
   assert.match(text, /EXIT STATUS/);
 });
 
-test("describeShape summarises output for a tool description", () => {
-  assert.equal(describeShape(cartStatus.output), "{ items: [{ sku, name, qty, price }], total }");
+test("describeShape names a formatted field by its format", () => {
+  assert.equal(describeShape(cartStatus.output), "{ items: [{ sku, name, qty, price: money }], total: money }");
+});
+
+test("man explains a page-defined format where it is used", () => {
+  assert.match(formatMan(cartStatus, undefined, formats)[0].text, /total\n {10}object, money\. money: \{ amount, currency \} with an ISO 4217 code\./);
+});
+
+const products = {
+  name: "product list", provider: "product", description: "Products on this page",
+  input: { type: "object", properties: {} }, annotations: { readOnly: true },
+  output: { type: "array", items: { type: "object", properties: {
+    sku: { type: "string" }, name: { type: "string" }, origin: { type: "string" }, price: MONEY,
+  } } },
+  view: { columns: ["sku", "name", "price"] },
+  run: () => ({}),
+};
+const productData = { code: 0, data: [{ sku: "COL-HUI-250", name: "Huila", origin: "Colombia", price: eur(12.9) }] };
+
+test("--wide shows the columns view.columns leaves out", () => {
+  assert.doesNotMatch(blocksToText(formatResult(productData, products, { formats })), /ORIGIN/);
+  assert.match(blocksToText(formatResult(productData, products, { wide: true, formats })), /^SKU +NAME +ORIGIN +PRICE$/m);
+});
+
+test("--json=fields keeps only those fields, and names the ones that exist", () => {
+  const out = formatResult(productData, products, { json: true, fields: ["sku", "price"] });
+  assert.deepEqual(JSON.parse(out[0].text), [{ sku: "COL-HUI-250", price: { amount: 12.9, currency: "EUR" } }]);
+  const picked = JSON.parse(formatResult(result, cartStatus, { json: true, fields: ["total"] })[0].text);
+  assert.deepEqual(picked, { total: { amount: 60.9, currency: "EUR" } });
+  assert.equal(checkFields(products, ["sku"]), null);
+  assert.equal(checkFields(products, ["sku", "colour"]), 'product list: unknown field "colour". Available: sku, name, origin, price');
+  assert.deepEqual(formatResult(productData, products, { json: true, fields: ["colour"] })[0].code, 2);
 });
 
 test("help lists commands with usage and annotation", () => {

@@ -23,7 +23,7 @@ export function createEvents(registry, { bufferSize = 50 } = {}) {
       const def = defs.get(name);
       if (!def) throw new Error(`events: "${name}" is not defined`);
       if (def.payload) {
-        const { errors } = checkInput(def.payload, payload);
+        const { errors } = checkInput(def.payload, payload, registry.formats);
         if (errors.length) throw new Error(`events: ${name}: ${errors.join("; ")}`);
       }
       const ls = [...(listeners.get(name) || []), ...(listeners.get("*") || [])];
@@ -46,7 +46,32 @@ export function createEvents(registry, { bufferSize = 50 } = {}) {
 
     list: () => [...defs.entries()].map(([name, d]) => ({ name, description: d.description })),
     lastId: () => seq,
+
+    /**
+     * Forgets buffered events up to an id, by default all of them. Ids keep
+     * counting, so an agent's --since stays valid. Runs by itself after a
+     * navigates command succeeds; a single-page app whose router changes the
+     * page another way calls it too.
+     */
+    clear(upTo = seq) {
+      const keep = buffer.filter((e) => e.id > upTo);
+      buffer.splice(0, buffer.length, ...keep);
+    },
   };
+
+  // Events from a page the user has left describe things that are gone.
+  // Events the navigation itself emitted, such as route.changed, are kept.
+  const marks = new Map(); // command name → newest event id when it started
+  registry.onRun(({ name }) => {
+    const def = registry.get(name);
+    if (def && def.annotations.navigates) marks.set(name, seq);
+  });
+  registry.onResult(({ name, result }) => {
+    if (!marks.has(name)) return;
+    const mark = marks.get(name);
+    marks.delete(name);
+    if (result.code === 0) api.clear(mark);
+  });
 
   registry.register({
     name: "events list",
@@ -65,7 +90,7 @@ export function createEvents(registry, { bufferSize = 50 } = {}) {
   registry.register({
     name: "events recent",
     provider: "events",
-    description: "Show recent events, optionally only those after an event id",
+    description: "Show recent events on this page, optionally only those after an event id",
     input: { type: "object", properties: { since: { type: "integer", minimum: 0, default: 0, description: "Only events with a higher id than this" } } },
     output: {
       type: "object",

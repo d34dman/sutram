@@ -22,6 +22,8 @@ if (!globalThis.Sutram) {
     ...core,
     registry,
     events,
+    formats: registry.formats,
+    defineFormat: (name, def) => registry.formats.define(name, def),
     register: (def) => registry.register(def),
     run: (name, input, ctx) => registry.run(name, input, ctx),
     mountConsole,

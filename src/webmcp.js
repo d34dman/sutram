@@ -6,7 +6,8 @@
 // Sutram's own annotations and a summary of `output` go into the description.
 
 import { getRegistry, runStatus } from "./core.js";
-import { describeShape, sentence } from "./format.js";
+import { describeShape, formatsUsed, sentence } from "./format.js";
+import { getFormats } from "./formats.js";
 
 /** The page's model context, or null when the browser has none. */
 export function findModelContext() {
@@ -19,7 +20,7 @@ export function findModelContext() {
 export const toolName = (def) => def.name.replace(/\s+/g, "_");
 
 /** A command as a WebMCP tool definition, without `execute`. */
-export function toTool(def) {
+export function toTool(def, formats = getFormats()) {
   const a = def.annotations || {};
   const annotations = {};
   if (a.readOnly) annotations.readOnlyHint = true;
@@ -28,6 +29,8 @@ export function toTool(def) {
   let description = sentence(def.description);
   if (a.navigates) description += " Leaves this page; the tools on the next page may differ.";
   if (def.output) description += ` Returns ${describeShape(def.output)}.`;
+  // An agent cannot look up a page's own formats, so the description explains them.
+  for (const f of formatsUsed(def, formats)) description += ` ${f.name}: ${sentence(f.description)}`;
   return { name: toolName(def), description, inputSchema: def.input, annotations };
 }
 
@@ -60,7 +63,7 @@ export function connectWebMCP(registry = getRegistry(), modelContext = findModel
   };
 
   add("\0status", STATUS_TOOL, async (_, { signal } = {}) => ({ code: 0, providers: await runStatus(registry, { caller: "agent", signal }) }));
-  const addCommand = (def) => add(def.name, toTool(def), (input, { signal } = {}) => registry.run(def.name, input, { caller: "agent", signal }));
+  const addCommand = (def) => add(def.name, toTool(def, registry.formats), (input, { signal } = {}) => registry.run(def.name, input, { caller: "agent", signal }));
 
   registry.list().forEach(addCommand);
   const off = registry.onChange(({ type, name, def }) => {

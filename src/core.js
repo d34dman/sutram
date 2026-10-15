@@ -2,6 +2,8 @@
 // It checks definitions and input, runs handlers, and announces changes.
 // It holds no app state and touches no DOM.
 
+import { getFormats } from "./formats.js";
+
 /** Exit codes, borrowed from the shell. */
 export const EXIT = Object.freeze({
   OK: 0,
@@ -14,8 +16,8 @@ export const EXIT = Object.freeze({
 /** Top-level words that belong to clients. No provider may register them. */
 export const RESERVED_WORDS = Object.freeze(["help", "man", "status", "clear"]);
 
-/** Options that belong to clients: -h/--help and --json. */
-export const CLIENT_OPTIONS = Object.freeze(["help", "json"]);
+/** Options that belong to clients: -h/--help, --json[=fields] and --wide. */
+export const CLIENT_OPTIONS = Object.freeze(["help", "json", "wide"]);
 
 const REQUIRED_FIELDS = ["name", "provider", "description", "input", "annotations"];
 const NAME = /^[a-z][a-z0-9-]*( [a-z][a-z0-9-]*)*$/;
@@ -42,12 +44,18 @@ function typeOf(value) {
   return typeof value;
 }
 
+/** What a failed format check says, from the format's own description. */
+const formatError = (formats, name) => {
+  const def = formats.get(name);
+  return def && def.description ? `${name}, ${def.description}` : `a valid ${name}`;
+};
+
 /**
  * Checks input against the subset of JSON Schema commands use, and coerces
- * strings typed in a console into the declared types.
- * Returns { errors, value }.
+ * strings typed in a console into the declared types. A `format` is checked
+ * when the format registry defines it. Returns { errors, value }.
  */
-export function checkInput(schema, input = {}) {
+export function checkInput(schema, input = {}, formats = getFormats()) {
   const errors = [];
   const value = {};
   const props = (schema && schema.properties) || {};
@@ -87,18 +95,20 @@ export function checkInput(schema, input = {}) {
       v = String(v);
     }
     if (prop.enum && !prop.enum.includes(v)) errors.push(`${key} must be one of: ${prop.enum.join(", ")}`);
+    if (prop.format && !formats.valid(prop.format, v)) errors.push(`${key} must be ${formatError(formats, prop.format)}`);
     value[key] = v;
   }
   return { errors, value };
 }
 
 /**
- * A shallow check of a result against an output schema: types and required
- * keys, following arrays into their first item. Returns null when it matches,
- * or a message naming the first field that does not.
+ * A shallow check of a result against an output schema: types, required keys
+ * and defined formats, following arrays into their first item. Returns null
+ * when it matches, or a message naming the first field that does not.
  */
-export function checkOutput(schema, data, root = schema) {
+export function checkOutput(schema, data, root = schema, formats = getFormats()) {
   schema = deref(schema, root);
+  if (schema && schema.format && !formats.valid(schema.format, data)) return `expected ${formatError(formats, schema.format)}`;
   if (!schema || !schema.type) return null;
   const t = typeOf(data);
   const ok = t === schema.type || (schema.type === "number" && t === "integer");
@@ -107,12 +117,12 @@ export function checkOutput(schema, data, root = schema) {
     for (const key of schema.required || []) if (!(key in data)) return `${key} is missing`;
     for (const [key, prop] of Object.entries(schema.properties || {})) {
       if (data[key] === undefined) continue;
-      const err = checkOutput(prop, data[key], root);
+      const err = checkOutput(prop, data[key], root, formats);
       if (err) return `${key}: ${err}`;
     }
   }
   if (t === "array" && schema.items && data.length) {
-    const err = checkOutput(schema.items, data[0], root);
+    const err = checkOutput(schema.items, data[0], root, formats);
     if (err) return `[0]: ${err}`;
   }
   return null;
@@ -137,16 +147,20 @@ function checkDefinition(def) {
  * Creates a registry. Most pages should use getRegistry() instead, so that
  * every copy of Sutram bundled on the page shares one list.
  */
-export function createRegistry({ checkResults = true } = {}) {
+export function createRegistry({ checkResults = true, formats = getFormats() } = {}) {
   const commands = new Map();
   const changeFns = new Set();
   const runFns = new Set();
+  const resultFns = new Set();
 
   const notify = (fns, event) => fns.forEach((fn) => {
     try { fn(event); } catch (err) { console.error(err); }
   });
 
   const registry = {
+    /** The format registry this registry checks input and results against. */
+    formats,
+
     /**
      * Adds a command. Returns a function that removes it again.
      * Registering a name another definition owns is refused.
@@ -175,6 +189,8 @@ export function createRegistry({ checkResults = true } = {}) {
     onChange(fn) { changeFns.add(fn); return () => changeFns.delete(fn); },
     /** Called before every run, with { name, input, caller }. */
     onRun(fn) { runFns.add(fn); return () => runFns.delete(fn); },
+    /** Called after every run that got as far as the handler, with { name, input, caller, result }. */
+    onResult(fn) { resultFns.add(fn); return () => resultFns.delete(fn); },
 
     /**
      * Runs a command. Always resolves to a result:
@@ -183,22 +199,26 @@ export function createRegistry({ checkResults = true } = {}) {
     async run(name, input = {}, { caller = "code", signal } = {}) {
       const def = commands.get(name);
       if (!def) return { code: EXIT.NOT_FOUND, message: `${name}: command not found` };
-      const { errors, value } = checkInput(def.input, input);
+      const { errors, value } = checkInput(def.input, input, formats);
       if (errors.length) return { code: EXIT.USAGE, message: `${name}: ${errors.join("; ")}` };
       if (signal && signal.aborted) return { code: EXIT.CANCELLED, message: `${name}: cancelled` };
 
       notify(runFns, { name, input: value, caller });
-      try {
-        const res = (await def.run(value, { caller, signal })) || {};
-        if (checkResults && def.output && res.data !== undefined) {
-          const err = checkOutput(def.output, res.data);
-          if (err) console.warn(`sutram: ${name} returned data that does not match its output schema: ${err}`);
+      const result = await (async () => {
+        try {
+          const res = (await def.run(value, { caller, signal })) || {};
+          if (checkResults && def.output && res.data !== undefined) {
+            const err = checkOutput(def.output, res.data, def.output, formats);
+            if (err) console.warn(`sutram: ${name} returned data that does not match its output schema: ${err}`);
+          }
+          return { code: EXIT.OK, ...res };
+        } catch (err) {
+          if (signal && signal.aborted) return { code: EXIT.CANCELLED, message: `${name}: cancelled` };
+          return { code: err && Number.isInteger(err.code) ? err.code : EXIT.FAILED, message: (err && err.message) || String(err) };
         }
-        return { code: EXIT.OK, ...res };
-      } catch (err) {
-        if (signal && signal.aborted) return { code: EXIT.CANCELLED, message: `${name}: cancelled` };
-        return { code: err && Number.isInteger(err.code) ? err.code : EXIT.FAILED, message: (err && err.message) || String(err) };
-      }
+      })();
+      notify(resultFns, { name, input: value, caller, result });
+      return result;
     },
   };
   return registry;

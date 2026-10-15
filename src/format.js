@@ -3,6 +3,7 @@
 // that a console (or a terminal) can print. No DOM.
 
 import { deref } from "./core.js";
+import { getFormats, STANDARD_FORMATS } from "./formats.js";
 
 /**
  * A block of output: { kind, text, head? }.
@@ -16,18 +17,20 @@ const isRecords = (v) => Array.isArray(v) && v.length > 0 && v.every(isRecord);
 /** Ends a description with exactly one full stop. */
 export const sentence = (s) => String(s).replace(/\.?\s*$/, ".");
 
+/** The format definition for a property, from the page's format registry. */
+const formatOf = (prop, options) => (prop && prop.format ? (options.formats || getFormats()).get(prop.format) : undefined);
+
 /** Formats one value for a table cell or a `key: value` line. */
 export function formatValue(value, prop = {}, options = {}) {
   if (value === null || value === undefined) return "";
-  if (prop.format === "money" && typeof value === "number") {
-    if (options.currency) {
-      return new Intl.NumberFormat(options.locale, { style: "currency", currency: options.currency }).format(value);
+  const fmt = formatOf(prop, options);
+  if (fmt && fmt.display) {
+    try {
+      const shown = fmt.display(value, { locale: options.locale });
+      if (shown !== undefined && shown !== null) return String(shown);
+    } catch (err) {
+      // A format that cannot show this value falls back to the plain value.
     }
-    return value.toFixed(2);
-  }
-  if (prop.format === "date-time" && typeof value === "string") {
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? value : d.toLocaleString(options.locale);
   }
   if (Array.isArray(value)) return value.every((x) => typeof x !== "object") ? value.join(", ") : `${value.length} items`;
   if (isRecord(value)) return JSON.stringify(value);
@@ -41,8 +44,9 @@ export function formatValue(value, prop = {}, options = {}) {
 export function formatTable(rows, itemSchema, root, { columns, maxWidth = 40, ...options } = {}) {
   const props = (deref(itemSchema, root) || {}).properties || {};
   const scalar = (k) => {
-    const t = (deref(props[k], root) || {}).type;
-    return t !== "object" && t !== "array";
+    const p = deref(props[k], root) || {};
+    const fmt = formatOf(p, options);
+    return (fmt && fmt.display) || (p.type !== "object" && p.type !== "array");
   };
   const cols = columns || (Object.keys(props).length ? Object.keys(props).filter(scalar) : Object.keys(rows[0]));
 
@@ -59,7 +63,11 @@ export function formatTable(rows, itemSchema, root, { columns, maxWidth = 40, ..
     return s.length > maxWidth ? s.slice(0, maxWidth - 1) + "…" : s;
   }));
   const head = cols.map((k) => String((props[k] && props[k].title) || k).toUpperCase());
-  const numeric = cols.map((k) => props[k] && ["number", "integer"].includes(props[k].type));
+  const numeric = cols.map((k) => {
+    const fmt = formatOf(props[k], options);
+    if (fmt && fmt.align) return fmt.align === "right";
+    return !!props[k] && ["number", "integer"].includes(props[k].type);
+  });
   const width = cols.map((_, i) => Math.max(head[i].length, ...cells.map((c) => c[i].length)));
   const line = (cs) => cs
     .map((c, i) => (numeric[i] ? c.padStart(width[i]) : i === cs.length - 1 ? c : c.padEnd(width[i])))
@@ -73,17 +81,26 @@ export function formatTable(rows, itemSchema, root, { columns, maxWidth = 40, ..
  * - A failure prints its message.
  * - A summary `text`, if any, comes first; then only the lists in `data`.
  * - Without a summary: `key: value` lines for a record, a table for each list.
- * - With { json: true }: the data, unchanged.
+ * - With { json: true }: the data, unchanged. With { fields }, only those fields.
+ * - With { wide: true }: every column, ignoring view.columns.
  */
 export function formatResult(result, def = {}, options = {}) {
   if (result.code !== 0) return [{ kind: "error", text: result.message || `exit ${result.code}`, code: result.code }];
-  if (options.json) return [{ kind: "json", text: JSON.stringify(result.data === undefined ? null : result.data, null, 2) }];
+  if (options.json) {
+    let data = result.data === undefined ? null : result.data;
+    if (options.fields) {
+      const picked = selectFields(data, options.fields, def.output);
+      if (picked.error) return [{ kind: "error", text: `${def.name || "--json"}: ${picked.error}`, code: 2 }];
+      data = picked.data;
+    }
+    return [{ kind: "json", text: JSON.stringify(data, null, 2) }];
+  }
 
   const schema = def.output || {};
   const view = def.view || {};
   const data = result.data;
   const blocks = [];
-  const tableOpts = { ...options, columns: view.columns };
+  const tableOpts = { ...options, columns: options.wide ? undefined : view.columns };
   const table = (rows, items) => {
     const { head, rows: lines } = formatTable(rows, items, schema, tableOpts);
     blocks.push({ kind: "table", head, text: [head, ...lines].join("\n") });
@@ -112,6 +129,71 @@ export function formatResult(result, def = {}, options = {}) {
   for (const [rows, prop] of lists) table(rows, prop && prop.items);
   if (!blocks.length) blocks.push({ kind: "dim", text: "Nothing to show." });
   return blocks;
+}
+
+/** The fields `--json=` can pick: the properties of each record in a list, or of the record itself. */
+function fieldNames(schema, data) {
+  schema = deref(schema, schema) || {};
+  const target = schema.type === "array" ? deref(schema.items, schema) || {} : schema;
+  if (target.properties) return Object.keys(target.properties);
+  if (isRecords(data)) return [...new Set(data.flatMap(Object.keys))];
+  if (isRecord(data)) return Object.keys(data);
+  return [];
+}
+
+/**
+ * Checks `--json=` field names against a command's output schema before it
+ * runs, so a typo never costs a consequential command. Returns a message or null.
+ */
+export function checkFields(def, fields) {
+  if (!def.output) return null;
+  const known = fieldNames(def.output);
+  if (!known.length) return `${def.name}: --json= needs records, and this command returns ${def.output.type || "no fields"}`;
+  const unknown = fields.filter((f) => !known.includes(f));
+  return unknown.length ? `${def.name}: unknown field ${unknown.map((f) => `"${f}"`).join(", ")}. Available: ${known.join(", ")}` : null;
+}
+
+/**
+ * Keeps only the named fields, like `gh … --json=a,b`: of each record in a
+ * list, or of a single record. Returns { data } or { error }.
+ */
+export function selectFields(data, fields, schema) {
+  const known = fieldNames(schema, data);
+  if (!isRecord(data) && !isRecords(data)) return { error: "--json= needs records, and this command returned none" };
+  const unknown = fields.filter((f) => !known.includes(f));
+  if (unknown.length) return { error: `unknown field ${unknown.map((f) => `"${f}"`).join(", ")}. Available: ${known.join(", ")}` };
+  const pick = (r) => Object.fromEntries(fields.filter((f) => f in r).map((f) => [f, r[f]]));
+  return { data: Array.isArray(data) ? data.map(pick) : pick(data) };
+}
+
+/** Quotes a value for a command line only when it needs it, the way a shell user would. */
+function quoteArg(value) {
+  const s = Array.isArray(value) ? value.join(",") : String(value);
+  return s !== "" && /^[\w@%+=:,./-]+$/.test(s) && !s.startsWith("-") ? s : `"${s.replace(/(["\\])/g, "\\$1")}"`;
+}
+
+/**
+ * The command line that runs a command with this input, such as
+ * `form node-article-edit-form set revision_log "Clearer title"`. Positional
+ * arguments come first, in order; the rest are long options. Clients use it to
+ * show what an agent or a button ran in the words a person would type.
+ */
+export function commandLine(def, input = {}) {
+  const parts = [def.name];
+  const props = (def.input && def.input.properties) || {};
+  const order = def.positional || [];
+  const used = new Set();
+  for (const key of order) {
+    if (input[key] === undefined) break;
+    parts.push(quoteArg(input[key]));
+    used.add(key);
+  }
+  for (const [key, value] of Object.entries(input)) {
+    if (used.has(key) || value === undefined) continue;
+    if (props[key] && props[key].type === "boolean") parts.push(value ? `--${key}` : `--no-${key}`);
+    else parts.push(`--${key}=${quoteArg(value)}`);
+  }
+  return parts.join(" ");
 }
 
 /** Plain text for a list of blocks, for terminals and tests. */
@@ -163,7 +245,7 @@ export function formatHelp(registry, prefix = "") {
     return `${usages[i].padEnd(w)}  ${d.description}${label ? `  [${label}]` : ""}`;
   });
   const blocks = [{ kind: "text", text: lines.join("\n"), commands: list }];
-  if (!prefix) blocks.push({ kind: "dim", text: "help <provider> · man <command> · <command> -h · <command> --json · status · clear" });
+  if (!prefix) blocks.push({ kind: "dim", text: "help <provider> · man <command> · <command> -h · <command> --json[=fields] · <command> --wide · status · clear" });
   return blocks;
 }
 
@@ -185,8 +267,14 @@ const BUILT_IN_MAN = {
   clear: ["clear", "Clear the console."],
 };
 
+/** ", money: { amount, currency } with an ISO 4217 code." for a property whose format is defined. */
+function formatNote(prop, formats) {
+  const fmt = prop && prop.format ? formats.get(prop.format) : undefined;
+  return fmt && fmt.description && !STANDARD_FORMATS.includes(prop.format) ? ` ${prop.format}: ${sentence(fmt.description)}` : "";
+}
+
 /** `man <command>`: the full entry, generated from the definition. */
-export function formatMan(def, name = def && def.name) {
+export function formatMan(def, name = def && def.name, formats = getFormats()) {
   if (!def && BUILT_IN_MAN[name]) {
     const [syn, desc] = BUILT_IN_MAN[name];
     return [{ kind: "man", text: [name.toUpperCase(), "", "NAME", `     ${name} - built into every Sutram client`, "", "SYNOPSIS", `     ${syn}`, "", "DESCRIPTION", `     ${desc}`].join("\n") }];
@@ -204,12 +292,13 @@ export function formatMan(def, name = def && def.name) {
   for (const [k, p] of Object.entries(props)) {
     const bits = [
       p.type,
+      p.format,
       required.includes(k) ? "required" : null,
       p.enum ? `one of ${p.enum.join(", ")}` : null,
       p.minimum !== undefined ? `at least ${p.minimum}` : null,
       p.default !== undefined ? `default ${p.default}` : null,
     ].filter(Boolean).join(", ");
-    L.push(`     --${k}`, `          ${bits}.${p.description ? " " + sentence(p.description) : ""}`);
+    L.push(`     --${k}`, `          ${bits}.${p.description ? " " + sentence(p.description) : ""}${formatNote(p, formats)}`);
   }
 
   L.push("", "OUTPUT");
@@ -225,12 +314,12 @@ export function formatMan(def, name = def && def.name) {
         const items = p.type === "array" ? deref(p.items, root) || {} : null;
         const isList = items && items.properties;
         const bits = [isList ? "list of records" : items ? `list of ${items.type || "values"}` : p.type, p.format].filter(Boolean).join(", ");
-        L.push(`${" ".repeat(indent)}${k}`, `${" ".repeat(indent + 5)}${bits}.${p.description ? " " + sentence(p.description) : ""}`);
+        L.push(`${" ".repeat(indent)}${k}`, `${" ".repeat(indent + 5)}${bits}.${p.description ? " " + sentence(p.description) : ""}${formatNote(p, formats)}`);
         // Recursive schemas, such as a menu tree, are described once.
         if (isList && depth < 2 && !(raw.items && raw.items.$ref && depth > 0)) fields(p.items, indent + 5, depth + 1);
       }
     })(def.output, 5, 0);
-    L.push("     The console formats this as text. --json prints it unchanged, as an agent gets it.");
+    L.push("     The console formats this as text; --wide shows every column. --json prints it unchanged, as an agent gets it, and --json=<field,…> keeps only those fields.");
   }
 
   const label = annotationLabel(def.annotations);
@@ -251,14 +340,40 @@ export function formatMan(def, name = def && def.name) {
 export function describeShape(schema, root = schema, depth = 0) {
   schema = deref(schema, root);
   if (!schema) return "any";
+  // A field with a format is named by its format; formatsUsed() explains it once.
+  if (schema.format && depth > 0) return schema.format;
   if (depth > 2) return schema.type === "array" ? "[…]" : "{…}";
   if (schema.type === "array") return `[${describeShape(schema.items, root, depth + 1)}]`;
   if (schema.type === "object" && schema.properties) {
     const fields = Object.entries(schema.properties).map(([k, p]) => {
       const q = deref(p, root);
+      if (q && q.format) return `${k}: ${q.format}`;
       return q && (q.type === "array" || (q.type === "object" && q.properties)) ? `${k}: ${describeShape(q, root, depth + 1)}` : k;
     });
     return `{ ${fields.join(", ")} }`;
   }
   return schema.type || "any";
+}
+
+/**
+ * The page-defined formats a command's input and output use, with their
+ * descriptions, for readers that cannot look them up. JSON Schema's own
+ * formats are left out: agents already know them.
+ */
+export function formatsUsed(def, formats = getFormats()) {
+  const names = new Set();
+  const seen = new Set();
+  const walk = (schema, root) => {
+    schema = deref(schema, root);
+    if (!schema || typeof schema !== "object" || seen.has(schema)) return;
+    seen.add(schema);
+    if (schema.format) names.add(schema.format);
+    if (schema.items) walk(schema.items, root);
+    for (const p of Object.values(schema.properties || {})) walk(p, root);
+  };
+  walk(def.input, def.input);
+  if (def.output) walk(def.output, def.output);
+  return [...names]
+    .filter((n) => !STANDARD_FORMATS.includes(n) && formats.get(n) && formats.get(n).description)
+    .map((n) => ({ name: n, description: formats.get(n).description }));
 }

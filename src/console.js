@@ -1,10 +1,10 @@
 // <sutram-console>: one client of the registry.
 // A drop-down console with history, help, man, status, "did you mean",
-// confirmation for consequential commands, and --json.
+// confirmation for consequential commands, --json[=fields] and --wide.
 
 import { CommandError, EXIT, getRegistry, runStatus } from "./core.js";
 import { parse, tokenize } from "./parse.js";
-import { formatHelp, formatMan, formatResult, formatUsage, annotationLabel } from "./format.js";
+import { formatHelp, formatMan, formatResult, formatUsage, annotationLabel, checkFields } from "./format.js";
 
 const STYLE = `
 :host {
@@ -90,7 +90,7 @@ export class SutramConsole extends Base {
   }
 
   get formatOptions() {
-    return { currency: this.getAttribute("currency") || undefined, locale: this.getAttribute("locale") || undefined };
+    return { locale: this.getAttribute("locale") || undefined, formats: this.registry.formats };
   }
 
   updateCount() { this.countEl.textContent = this.registry.list().length; }
@@ -226,7 +226,7 @@ export class SutramConsole extends Base {
         this.printBlocks([{ kind: "error", text: `No manual entry for ${name}. See help.`, code: EXIT.FAILED }]);
         return;
       }
-      this.printBlocks(formatMan(def, name));
+      this.printBlocks(formatMan(def, name, this.registry.formats));
       return;
     }
     if (first === "clear" && !rest.length) { this.out.replaceChildren(); return; }
@@ -240,14 +240,16 @@ export class SutramConsole extends Base {
     }
 
     try {
-      const { def, input, help, json } = parse(this.registry, line);
+      const { def, input, help, json, wide, fields } = parse(this.registry, line);
       if (help) { this.printBlocks(formatUsage(def)); return; }
+      const fieldError = fields && checkFields(def, fields);
+      if (fieldError) { this.printBlocks([{ kind: "error", text: fieldError, code: EXIT.USAGE }]); return; }
       if (def.annotations.consequential) {
         const message = typeof def.confirm === "function" ? def.confirm(input) : `Run ${def.name}?`;
         if (!(await this.ask(message))) { this.print("Cancelled. Nothing changed.", "dim"); return; }
       }
       const result = await this.registry.run(def.name, input, { caller: "console" });
-      this.printBlocks(formatResult(result, def, { ...this.formatOptions, json }), def.annotations.readOnly ? "text" : "ok");
+      this.printBlocks(formatResult(result, def, { ...this.formatOptions, json, wide, fields }), def.annotations.readOnly ? "text" : "ok");
     } catch (err) {
       const code = err instanceof CommandError ? err.code : EXIT.FAILED;
       this.printBlocks([{ kind: "error", text: err.message, code }]);

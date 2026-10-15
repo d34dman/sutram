@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry, parse, tokenize, EXIT } from "../src/index.js";
+import { createRegistry, parse, tokenize, EXIT, commandLine } from "../src/index.js";
 
 const r = createRegistry();
 r.register({
@@ -32,6 +32,11 @@ test("booleans, --no-, -- and client options", () => {
   assert.equal(parse(r, "cart add -- --V60").input.sku, "--V60");
   assert.equal(parse(r, "cart add V60 --json").json, true);
   assert.equal(parse(r, "cart add -h").help, true);
+  assert.equal(parse(r, "cart add V60 --wide").wide, true);
+  const picked = parse(r, "cart add V60 --json=sku,qty");
+  assert.equal(picked.json, true);
+  assert.deepEqual(picked.fields, ["sku", "qty"]);
+  assert.throws(() => parse(r, "cart add V60 --json="), (e) => e.code === EXIT.USAGE);
 });
 
 test("the last positional takes the rest of the line", () => {
@@ -42,4 +47,14 @@ test("the last positional takes the rest of the line", () => {
 test("usage errors and did-you-mean", () => {
   assert.throws(() => parse(r, "cart add V60 --colour=red"), (e) => e.code === EXIT.USAGE && /unknown option --colour/.test(e.message));
   assert.throws(() => parse(r, "cart ad V60"), (e) => e.code === EXIT.NOT_FOUND && /most similar command is: cart add/.test(e.message));
+});
+
+test("commandLine writes input back as the line a person would type, and parses to the same input", () => {
+  const def = r.get("cart add");
+  assert.equal(commandLine(def, { sku: "V60", qty: 2, gift: true }), "cart add V60 2 --gift");
+  assert.equal(commandLine(def, { sku: 'say "hi"', gift: false }), 'cart add "say \\"hi\\"" --no-gift');
+  assert.equal(commandLine(r.get("nav find"), { query: "pour over" }), 'nav find "pour over"');
+  for (const input of [{ sku: "V60", qty: "2" }, { sku: "a b", qty: "3" }, { sku: "--x" }]) {
+    assert.deepEqual(parse(r, commandLine(def, input)).input, input);
+  }
 });

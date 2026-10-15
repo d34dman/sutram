@@ -63,7 +63,7 @@ export function suggest(registry, words) {
 
 /**
  * Parses a line against the registry. The longest registered name that the
- * line starts with wins. Returns { def, input, help, json }, or throws a
+ * line starts with wins. Returns { def, input, help, json, wide, fields }, or throws a
  * CommandError with exit code 2 (usage) or 127 (not found).
  */
 export function parse(registry, line) {
@@ -93,6 +93,8 @@ function parseArguments(def, rest) {
   const positional = [];
   let help = false;
   let json = false;
+  let wide = false;
+  let fields = null;
   let endOfOptions = false;
 
   for (let i = 0; i < rest.length; i++) {
@@ -101,6 +103,13 @@ function parseArguments(def, rest) {
     if (option && raw === "--") { endOfOptions = true; continue; }
     if (option && (raw === "-h" || raw === "--help")) { help = true; continue; }
     if (option && raw === "--json") { json = true; continue; }
+    if (option && raw.startsWith("--json=")) {
+      fields = raw.slice(7).split(",").map((f) => f.trim()).filter(Boolean);
+      if (!fields.length) throw new CommandError(`${name}: --json= needs field names, such as --json=sku,price`, EXIT.USAGE);
+      json = true;
+      continue;
+    }
+    if (option && raw === "--wide") { wide = true; continue; }
     if (option && raw.startsWith("--")) {
       const m = /^--([a-z][\w-]*)(?:=([\s\S]*))?$/i.exec(raw);
       if (!m) throw new CommandError(`${name}: cannot read option ${raw}`, EXIT.USAGE);
@@ -132,5 +141,5 @@ function parseArguments(def, rest) {
     // The last positional takes the rest of the line, so `nav find pour over` works without quotes.
     input[key] = i === order.length - 1 ? positional.slice(i).join(" ") : positional[i];
   });
-  return { def, input, help, json };
+  return { def, input, help, json, wide, fields };
 }
