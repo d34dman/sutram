@@ -26,9 +26,9 @@ if (!globalThis.Sutram) {
     formats: registry.formats,
     defineFormat: (name, def) => registry.formats.define(name, def),
     register: (def) => registry.register(def),
-    run: (name, input, ctx) => registry.run(name, input, ctx),
     // For code that drives the page from outside: what an agent sees, and a
-    // call that asks first, as WebMCP would.
+    // call that asks first, as WebMCP would. App code that needs no asking
+    // uses registry.run().
     tools: () => listTools(registry),
     call: (name, input, options) => callTool(name, input, { ...options, registry }),
     mountConsole,

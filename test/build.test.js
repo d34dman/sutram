@@ -26,8 +26,7 @@ test("the build bundles browser.js into one module with the same API", async () 
     annotations: { readOnly: true },
     run: () => ({ text: "hello" }),
   });
-  const result = await bundle.default.run("build check", {});
-  assert.equal(result.text, "hello");
+  assert.equal(bundle.default.run, undefined);
   assert.ok(bundle.default.tools().some((t) => t.name === "build_check"));
   assert.equal((await bundle.default.call("build_check")).text, "hello");
 });

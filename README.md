@@ -282,8 +282,9 @@ await page.evaluate(() => Sutram.call("checkout", {}, { confirmed: true }));
 `tools()` is the list a WebMCP agent gets. `call()` takes the tool name and
 acts on the hints like a careful host: a consequential tool runs only with
 `{ confirmed: true }`, which says the user agreed. Results and exit codes are
-the same as everywhere else. (`Sutram.run("cart add", …)` is the registry's
-own call for app code, and asks nothing.)
+the same as everywhere else. App code that needs no asking, such as the
+page's own buttons, calls `Sutram.registry.run("cart add", …)` with the
+command name.
 
 No WebMCP in the browser yet? An assistant such as ChatGPT or Claude can
 still drive the page through a person: give it the page's commands, paste
