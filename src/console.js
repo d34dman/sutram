@@ -1,7 +1,7 @@
 // <sutram-console>: one client of the registry.
 // A drop-down console with history, help, man, status, "did you mean",
-// confirmation for consequential commands, --json[=fields] and --wide, and
-// syntax highlighting of the line being typed.
+// confirmation for consequential commands, --json[=fields] and --wide,
+// syntax highlighting of the line being typed, and pasted batches of lines.
 
 import { CommandError, EXIT, getRegistry, runStatus } from "./core.js";
 import { highlight, parse, tokenize } from "./parse.js";
@@ -22,6 +22,7 @@ const STYLE = `
 header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 14px;
   border-bottom: 1px solid var(--sutram-line); color: var(--sutram-dim); font-size: 12px; }
 header b { color: var(--sutram-fg); }
+header .tools { display: flex; gap: 6px; }
 header button { font: inherit; background: none; border: 1px solid var(--sutram-line); color: var(--sutram-dim); border-radius: 5px; padding: 0 8px; cursor: pointer; }
 .out { flex: 1; overflow: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
 .ln { white-space: pre-wrap; word-break: break-word; }
@@ -70,7 +71,7 @@ export class SutramConsole extends Base {
     const root = this.attachShadow({ mode: "open" });
     root.innerHTML = `<style>${STYLE}</style>
       <div class="panel" role="dialog" aria-label="Sutram console">
-        <header><span><b>Sutram</b> · <span class="count">0</span> commands on this page</span><button type="button" class="close" aria-label="Close">Esc</button></header>
+        <header><span><b>Sutram</b> · <span class="count">0</span> commands on this page</span><span class="tools"><button type="button" class="copy" title="Copy the output as text">Copy</button><button type="button" class="close" aria-label="Close">Esc</button></span></header>
         <div class="out" aria-live="polite"></div>
         <form><span aria-hidden="true">›</span><div class="field"><div class="hl" aria-hidden="true"></div><input type="text" autocomplete="off" spellcheck="false" aria-label="Command" placeholder="type a command, or help"></div></form>
       </div>`;
@@ -79,6 +80,19 @@ export class SutramConsole extends Base {
     this.hl = root.querySelector(".hl");
     this.countEl = root.querySelector(".count");
     root.querySelector(".close").addEventListener("click", () => this.close());
+    root.querySelector(".copy").addEventListener("click", async (e) => {
+      const b = e.currentTarget;
+      try { await navigator.clipboard.writeText(this.transcript()); b.textContent = "Copied"; } catch { b.textContent = "Not allowed"; }
+      setTimeout(() => { b.textContent = "Copy"; }, 1500);
+    });
+    // Several lines pasted at once run as a batch.
+    this.input.addEventListener("paste", (e) => {
+      const text = e.clipboardData && e.clipboardData.getData("text");
+      if (!text || !/\n./.test(text.trim())) return;
+      e.preventDefault();
+      this.setInput("");
+      this.runBatch(text);
+    });
     root.querySelector("form").addEventListener("submit", (e) => {
       e.preventDefault();
       const line = this.input.value;
@@ -237,60 +251,111 @@ export class SutramConsole extends Base {
     });
   }
 
-  /** Runs one line, as if it was typed. */
-  async submit(line) {
+  /**
+   * Runs one line, as if it was typed. Resolves to its exit code.
+   * `confirmed` skips the question for a consequential command, for a batch
+   * that has already asked once.
+   */
+  async submit(line, { confirmed = false } = {}) {
     line = String(line).trim();
-    if (!line) return;
+    if (!line) return EXIT.OK;
     if (this.pendingAsk) {
       this.print(line, "input");
       this.pendingAsk(/^y(es)?$/i.test(line));
-      return;
+      return EXIT.OK;
     }
     this.history.push(line);
     this.historyIndex = this.history.length;
     this.print("", "input").append(...this.spans(line));
+    const fail = (text, code) => { this.printBlocks([{ kind: "error", text, code }]); return code; };
 
     let words;
-    try { words = tokenize(line).map((t) => t.value); } catch (err) { this.printBlocks([{ kind: "error", text: err.message, code: err.code }]); return; }
+    try { words = tokenize(line).map((t) => t.value); } catch (err) { return fail(err.message, err.code); }
     const [first, ...rest] = words;
 
-    if (first === "help") { this.printBlocks(formatHelp(this.registry, rest.join(" ").toLowerCase())); return; }
+    if (first === "help") { this.printBlocks(formatHelp(this.registry, rest.join(" ").toLowerCase())); return EXIT.OK; }
     if (first === "man") {
       const name = rest.join(" ").toLowerCase();
-      if (!name) { this.print("What manual page do you want?\nFor example, try: man help", "text"); return; }
+      if (!name) { this.print("What manual page do you want?\nFor example, try: man help", "text"); return EXIT.USAGE; }
       const def = this.registry.get(name);
-      if (!def && !["help", "man", "status", "clear"].includes(name)) {
-        this.printBlocks([{ kind: "error", text: `No manual entry for ${name}. See help.`, code: EXIT.FAILED }]);
-        return;
-      }
+      if (!def && !["help", "man", "status", "clear"].includes(name)) return fail(`No manual entry for ${name}. See help.`, EXIT.FAILED);
       this.printBlocks(formatMan(def, name, this.registry.formats));
-      return;
+      return EXIT.OK;
     }
-    if (first === "clear" && !rest.length) { this.out.replaceChildren(); return; }
+    if (first === "clear" && !rest.length) { this.out.replaceChildren(); return EXIT.OK; }
     if (first === "status" && (!rest.length || (rest.length === 1 && rest[0] === "--json"))) {
       const results = await runStatus(this.registry, { caller: "console" });
-      if (rest.length) { this.print(JSON.stringify(results.map(({ provider, data }) => ({ provider, data })), null, 2), "json"); return; }
-      if (!results.length) { this.print("No provider on this page reports a status.", "dim"); return; }
+      if (rest.length) { this.print(JSON.stringify(results.map(({ provider, data }) => ({ provider, data })), null, 2), "json"); return EXIT.OK; }
+      if (!results.length) { this.print("No provider on this page reports a status.", "dim"); return EXIT.OK; }
       const w = Math.max(...results.map((r) => r.provider.length));
       this.print(results.map((r) => `${r.provider.padEnd(w)}  ${(r.code ? r.message : r.text || "").split("\n")[0]}`).join("\n"), "text");
-      return;
+      return EXIT.OK;
     }
 
     try {
       const { def, input, help, json, wide, fields } = parse(this.registry, line);
-      if (help) { this.printBlocks(formatUsage(def)); return; }
+      if (help) { this.printBlocks(formatUsage(def)); return EXIT.OK; }
       const fieldError = fields && checkFields(def, fields);
-      if (fieldError) { this.printBlocks([{ kind: "error", text: fieldError, code: EXIT.USAGE }]); return; }
-      if (def.annotations.consequential) {
+      if (fieldError) return fail(fieldError, EXIT.USAGE);
+      if (def.annotations.consequential && !confirmed) {
         const message = typeof def.confirm === "function" ? def.confirm(input) : `Run ${def.name}?`;
-        if (!(await this.ask(message))) { this.print("Cancelled. Nothing changed.", "dim"); return; }
+        if (!(await this.ask(message))) { this.print("Cancelled. Nothing changed.", "dim"); return EXIT.CANCELLED; }
       }
       const result = await this.registry.run(def.name, input, { caller: "console" });
       this.printBlocks(formatResult(result, def, { ...this.formatOptions, json, wide, fields }), def.annotations.readOnly ? "text" : "ok");
+      return result.code;
     } catch (err) {
-      const code = err instanceof CommandError ? err.code : EXIT.FAILED;
-      this.printBlocks([{ kind: "error", text: err.message, code }]);
+      return fail(err.message, err instanceof CommandError ? err.code : EXIT.FAILED);
     }
+  }
+
+  /**
+   * Runs pasted lines in order, as one batch. Pasted text is the least
+   * carefully read input, so the batch asks once, naming its consequential
+   * lines, and stops at the first line that fails. Prompt marks copied along
+   * with the lines (› or $) and # comments are ignored.
+   */
+  async runBatch(text) {
+    const lines = String(text).split(/\r?\n/)
+      .map((l) => l.trim().replace(/^(?:›|\$|>)\s*/, ""))
+      .filter((l) => l && !l.startsWith("#"));
+    if (!lines.length) return EXIT.OK;
+    if (lines.length === 1) return this.submit(lines[0]);
+
+    const consequential = lines.filter((l) => {
+      try { return parse(this.registry, l).def.annotations.consequential; } catch { return false; }
+    });
+    this.print(`Pasted ${lines.length} lines.`, "dim");
+    if (consequential.length) {
+      const names = consequential.map((l) => parse(this.registry, l).def.name);
+      if (!(await this.ask(`Run all ${lines.length} lines? ${[...new Set(names)].join(", ")} cannot easily be undone.`))) {
+        this.print("Cancelled. Nothing ran.", "dim");
+        return EXIT.CANCELLED;
+      }
+    }
+    for (let i = 0; i < lines.length; i++) {
+      // A command may have gone away because of an earlier line; parse() reports that.
+      const code = await this.submit(lines[i], { confirmed: true });
+      if (code !== EXIT.OK) {
+        if (i < lines.length - 1) this.print(`Stopped after line ${i + 1} of ${lines.length}; the rest did not run.`, "dim");
+        return code;
+      }
+    }
+    return EXIT.OK;
+  }
+
+  /**
+   * The console's output as plain text, for pasting into a chat: typed lines
+   * start with "› ", exit codes read "(exit 2)" and annotation tags "[read-only]".
+   */
+  transcript() {
+    const text = (el) => [...el.childNodes].map((n) => {
+      if (n.nodeType !== 1) return n.textContent;
+      if (n.classList.contains("code")) return `  (${n.textContent})`;
+      if (n.classList.contains("tag")) return `  [${n.textContent}]`;
+      return n.textContent;
+    }).join("");
+    return [...this.out.children].map((el) => (el.classList.contains("input") ? `› ${el.textContent}` : text(el))).join("\n");
   }
 }
 

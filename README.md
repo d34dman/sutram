@@ -252,6 +252,12 @@ the last 50 and forgets older ones when a `navigates` command leaves the page.
 Single-page apps that change page without such a command call
 `getEvents().clear()` themselves.
 
+No WebMCP in the browser yet? An assistant such as ChatGPT or Claude can
+still drive the page through a person: give it the page's commands, paste
+the command lines it answers with into the console, and paste the output
+back. [The website](https://d34dman.github.io/sutram/) builds such a prompt
+from its own commands.
+
 ## The console
 
 Open it with <kbd>`</kbd> (outside text fields) or
@@ -265,6 +271,8 @@ Open it with <kbd>`</kbd> (outside text fields) or
 | `status` | See every provider's status |
 | `clear` | Clear the screen |
 | ↑ / ↓ | Walk through history |
+| Paste several lines | Run them in order as one batch. It asks once if any line is consequential, and stops at the first line that fails. |
+| *Copy* (top bar) | Copy the output as text, for example to paste back to a chat assistant |
 
 `mountConsole({ greeting, locale })` sets a first line and the locale values
 are shown in. Restyle it with CSS custom properties on `sutram-console`:
