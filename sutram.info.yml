@@ -1,5 +1,0 @@
-name: Sutram
-type: module
-description: 'A standard way for JavaScript apps to expose their commands, to people in a console and to AI agents.'
-package: Development
-core_version_requirement: ^10.3 || ^11

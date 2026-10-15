@@ -1,3 +1,0 @@
-use sutram:
-  title: 'Use the Sutram console'
-  description: 'Load the Sutram console on pages. Commands still run with only what the user can already do on that page.'

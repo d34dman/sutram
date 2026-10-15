@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sutram example</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; color: #1b1f2e; background: #f7f7fb; }
+  kbd { font: 13px ui-monospace, monospace; border: 1px solid #ccd; border-radius: 4px; padding: 0 5px; background: #fff; }
+  ul { padding-left: 1.2em; }
+</style>
+</head>
+<body>
+<h1>Sutram example</h1>
+<p>Press <kbd>`</kbd> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>) to open the console. Try:</p>
+<ul>
+  <li><code>help</code>, <code>status</code>, <code>man todo add</code></li>
+  <li><code>todo add "Buy beans"</code>, <code>todo list</code>, <code>todo list --json</code></li>
+  <li><code>todo done 1</code>, <code>todo clear</code> (asks first)</li>
+</ul>
+<ul id="todos"></ul>
+
+<script type="module" src="../src/browser.js"></script>
+<script type="module">
+  const { register, events, mountConsole, CommandError } = globalThis.Sutram;
+  const todos = [];
+  let nextId = 1;
+  const item = { type: "object", required: ["id", "title"], properties: { id: { type: "integer", title: "#" }, title: { type: "string" }, done: { type: "boolean" } } };
+
+  events.define("todo.changed", { description: "The todo list changed", payload: { type: "object", properties: { open: { type: "integer" } }, required: ["open"] } });
+  const changed = (source) => {
+    document.getElementById("todos").replaceChildren(...todos.map((t) => Object.assign(document.createElement("li"), { textContent: `${t.done ? "✓" : "○"} ${t.title}` })));
+    events.emit("todo.changed", { open: todos.filter((t) => !t.done).length }, { source });
+  };
+
+  register({
+    name: "todo status", provider: "todo", description: "How many todos are open",
+    input: { type: "object", properties: {} }, annotations: { readOnly: true },
+    output: { type: "object", properties: { open: { type: "integer" }, done: { type: "integer" } } },
+    run: () => {
+      const open = todos.filter((t) => !t.done).length;
+      return { text: `${open} open, ${todos.length - open} done.`, data: { open, done: todos.length - open } };
+    },
+  });
+  register({
+    name: "todo list", provider: "todo", description: "List the todos",
+    input: { type: "object", properties: { all: { type: "boolean", default: true, description: "Include done todos" } } },
+    annotations: { readOnly: true },
+    output: { type: "object", properties: { todos: { type: "array", items: item } } },
+    examples: ["todo list", "todo list --no-all", "todo list --json"],
+    run: ({ all }) => {
+      const list = todos.filter((t) => all || !t.done);
+      return list.length ? { data: { todos: list } } : { text: "Nothing to do.", data: { todos: [] } };
+    },
+  });
+  register({
+    name: "todo add", provider: "todo", description: "Add a todo",
+    input: { type: "object", properties: { title: { type: "string", description: "What to do" } }, required: ["title"] },
+    positional: ["title"], annotations: {},
+    output: item, seeAlso: ["todo list", "todo done"],
+    run: ({ title }, ctx) => {
+      const t = { id: nextId++, title, done: false };
+      todos.push(t);
+      changed(ctx.caller);
+      return { text: `Added #${t.id}.`, data: t };
+    },
+  });
+  register({
+    name: "todo done", provider: "todo", description: "Mark a todo as done",
+    input: { type: "object", properties: { id: { type: "integer", minimum: 1 } }, required: ["id"] },
+    positional: ["id"], annotations: {}, output: item,
+    run: ({ id }, ctx) => {
+      const t = todos.find((x) => x.id === id);
+      if (!t) throw new CommandError(`todo done: no todo #${id}. See todo list.`);
+      t.done = true;
+      changed(ctx.caller);
+      return { text: `Done: ${t.title}.`, data: t };
+    },
+  });
+  register({
+    name: "todo clear", provider: "todo", description: "Remove every todo",
+    input: { type: "object", properties: {} }, annotations: { consequential: true },
+    confirm: () => `Remove all ${todos.length} todos?`,
+    run: (_, ctx) => { todos.length = 0; changed(ctx.caller); return { text: "All todos removed." }; },
+  });
+
+  mountConsole({ greeting: "Sutram console. Type help." }).open();
+</script>
+</body>
+</html>

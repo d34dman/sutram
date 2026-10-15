@@ -1,0 +1,42 @@
+{
+  "name": "sutram",
+  "version": "0.1.0",
+  "description": "A standard way for JavaScript apps to expose their commands: to people in a console, and to AI agents through WebMCP.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./events": "./src/events.js",
+    "./webmcp": "./src/webmcp.js",
+    "./console": "./src/console.js",
+    "./browser": "./src/browser.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "docs"
+  ],
+  "sideEffects": [
+    "./src/browser.js"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "example": "node example/serve.js"
+  },
+  "keywords": [
+    "command-palette",
+    "console",
+    "webmcp",
+    "mcp",
+    "ai-agents",
+    "drupal"
+  ],
+  "author": "Shibin Das (https://www.drupal.org/u/d34dman)",
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/d34dman/sutram.git"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

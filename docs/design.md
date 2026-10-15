@@ -1,6 +1,15 @@
 # Sutram design
 
-Status: draft, 12 Oct 2026. Nothing built yet. Open questions are at the end.
+Status: draft, 12 Oct 2026. Open questions are at the end.
+
+> **Update, 15 Oct 2026.** Open question 1 is answered: Sutram is an npm
+> package (this repository), and the Drupal integration lives in
+> `drupal-sutram-demo` for now. Some of this note has since changed, as
+> described in the package README: `describe` became `status`, `help` and
+> `man`; named arguments use GNU long options (`--at=hero-2`) instead of
+> `at:hero-2`; results carry exit codes and declared output; and annotations
+> outside WebMCP's fixed set go into the tool description instead of passing
+> through unchanged.
 
 ## What Sutram is
 

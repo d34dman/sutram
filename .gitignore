@@ -1,7 +1,2 @@
-# Built by ddev-drupal-contrib.
-/web/
-/vendor/
-/composer.lock
-/composer.contrib.json
-/.ddev/.contrib-*
+node_modules/
 .DS_Store
