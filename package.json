@@ -1,6 +1,6 @@
 {
   "name": "@d34dman/sutram",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Give your web app a command line, for people and AI agents. Register commands once: get a console, help and man pages, and WebMCP tools.",
   "type": "module",
   "exports": {
