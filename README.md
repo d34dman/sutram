@@ -54,7 +54,7 @@ Save this as an HTML file, open it, and press <kbd>`</kbd> (backtick):
 <p>Press <kbd>`</kbd> and type <code>help</code>.</p>
 
 <script type="module">
-  import Sutram from "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.2/dist/sutram.js";
+  import Sutram from "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.3/dist/sutram.js";
 
   Sutram.register({
     name: "hello world",
