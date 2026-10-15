@@ -7,12 +7,21 @@ const { registry, events, CommandError, EXIT } = Sutram;
 
 // --- The shop's own state and rendering -------------------------------------
 
+// Line drawings on a 24 × 24 grid, one per product.
+const art = {
+  dripper: '<path d="M4 6h16l-5.5 9h-5L4 6Z"/><path d="M7.5 18.5h9M12 15v3.5M20 8h1.5a1.5 1.5 0 0 1 0 3H18.5"/>',
+  wave: '<path d="M5 6h14l-2 9H7L5 6Z"/><path d="M8 9.5c1 .8 2 .8 3 0s2-.8 3 0 2 .8 3 0M8 18.5h8M12 15v3.5"/>',
+  beans: '<ellipse cx="9" cy="10" rx="4" ry="5.5" transform="rotate(-25 9 10)"/><path d="M7.2 5.6c2.4 2 .2 6.4 3.6 8.8"/><ellipse cx="16" cy="15" rx="3.6" ry="5" transform="rotate(30 16 15)"/><path d="M18 10.8c-2.1 1.9-.4 5.8-3.9 8.3"/>',
+  filters: '<path d="M5 5h14l-4.5 14h-5L5 5Z"/><path d="M8.5 5 11 19M15.5 5 13 19"/>',
+  scale: '<rect x="3" y="12" width="18" height="7.5" rx="2"/><path d="M6 9h12"/><rect x="9" y="14.5" width="6" height="2.5" rx=".6"/>',
+};
+
 const products = [
-  { sku: "V60-02", name: "V60 dripper, size 02", price: 24, emoji: "☕" },
-  { sku: "KALITA-185", name: "Kalita Wave 185", price: 32, emoji: "🫖" },
-  { sku: "GUJI-250", name: "Ethiopia Guji, 250 g", price: 14.5, emoji: "🫘" },
-  { sku: "FILTERS-02", name: "Paper filters, 100", price: 6.9, emoji: "📄" },
-  { sku: "SCALE", name: "Brew scale with timer", price: 45, emoji: "⚖️" },
+  { sku: "V60-02", name: "V60 dripper, size 02", price: 24, art: art.dripper },
+  { sku: "KALITA-185", name: "Kalita Wave 185", price: 32, art: art.wave },
+  { sku: "GUJI-250", name: "Ethiopia Guji, 250 g", price: 14.5, art: art.beans },
+  { sku: "FILTERS-02", name: "Paper filters, 100", price: 6.9, art: art.filters },
+  { sku: "SCALE", name: "Brew scale with timer", price: 45, art: art.scale },
 ];
 const bySku = new Map(products.map((p) => [p.sku, p]));
 const cart = new Map(); // sku → qty
@@ -33,7 +42,7 @@ function el(tag, props = {}, ...children) {
 
 function render() {
   document.getElementById("shop").replaceChildren(...products.map((p) => el("div", { className: "product" },
-    el("span", { className: "emoji", ariaHidden: "true", textContent: p.emoji }),
+    el("span", { className: "art", ariaHidden: "true", innerHTML: `<svg viewBox="0 0 24 24">${p.art}</svg>` }),
     el("span", { className: "name", textContent: p.name }),
     el("span", { className: "sku", textContent: p.sku }),
     el("span", { className: "row" },

@@ -7,11 +7,13 @@
 <meta charset="utf-8">
 <title>Sutram social preview</title>
 <style>
+  @font-face { font-family: "Geist"; src: url("../site/fonts/Geist-Variable.woff2") format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Geist Mono"; src: url("../site/fonts/GeistMono-Variable.woff2") format("woff2"); font-weight: 100 900; }
   :root {
     --bg: #0d0f17; --ink: #e8eaf3; --muted: #9aa1b5; --line: #262a3b;
     --accent: #9aa2ff; --option: #7dcfff; --string: #c3e88d; --ok: #6fd69a; --warn: #f5a35c;
-    --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "Geist Mono", ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+    --sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; width: 1280px; height: 640px; overflow: hidden; }
@@ -21,12 +23,12 @@
       radial-gradient(700px 420px at 0% 100%, #9aa2ff1f, transparent 70%),
       var(--bg);
     color: var(--ink); font-family: var(--sans);
-    display: grid; grid-template-columns: 500px 1fr; gap: 44px; align-items: center;
+    display: grid; grid-template-columns: 530px 1fr; gap: 40px; align-items: center;
     padding: 64px 60px;
   }
-  .brand { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
-  .mark { font-family: var(--mono); background: #11131c; color: var(--accent); border: 1px solid var(--line); border-radius: 12px; padding: 4px 12px; font-size: 26px; }
-  h1 { font-size: 62px; line-height: 1.02; letter-spacing: -0.04em; margin: 34px 0 22px; }
+  .brand { display: flex; align-items: center; gap: 14px; font-size: 34px; font-weight: 620; letter-spacing: -0.04em; }
+  .brand img { width: 44px; height: 44px; border-radius: 11px; box-shadow: 0 0 0 1px #ffffff24; }
+  h1 { font-size: 60px; font-weight: 650; line-height: 1.02; letter-spacing: -0.045em; margin: 34px 0 22px; }
   h1 em { font-style: normal; color: var(--accent); }
   p { font-size: 25px; line-height: 1.4; color: var(--muted); margin: 0; }
   p b { color: var(--ink); font-weight: 600; }
@@ -53,7 +55,7 @@
 </head>
 <body>
   <div>
-    <div class="brand"><span class="mark">›_</span> Sutram</div>
+    <div class="brand"><img src="../site/logo.svg" alt="">sutram</div>
     <h1>Give your web app a <em>command line</em>.</h1>
     <p>Register commands once. <b>People</b> get a console, <b>AI&nbsp;agents</b> get WebMCP tools.</p>
     <div class="meta">
@@ -63,7 +65,7 @@
   </div>
 
   <div class="term">
-    <div class="bar"><span><b>Sutram</b> · 6 commands on this page</span><span>Esc</span></div>
+    <div class="bar"><span><b>Sutram</b> · 8 commands on this page</span><span>Esc</span></div>
     <div class="body">
       <div><span class="who person">person</span><span class="p">›</span> <span class="c">cart add</span> V60-02 <span class="o">--qty=</span><span class="s">2</span></div>
       <div class="ok">Added 2 × V60 dripper. 2 items, €48.00.</div>
