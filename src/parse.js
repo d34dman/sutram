@@ -7,7 +7,7 @@ import { CommandError, EXIT, RESERVED_WORDS, CLIENT_OPTIONS } from "./core.js";
 /**
  * Splits a line into words. Double and single quotes group words, and a
  * backslash escapes the next character outside single quotes.
- * Each token is { value, quoted }.
+ * Each token is { value, quoted }; quoted means the word starts with a quote.
  */
 export function tokenize(line) {
   const tokens = [];
@@ -26,7 +26,9 @@ export function tokenize(line) {
       continue;
     }
     if (!current) current = { value: "", quoted: false };
-    if (ch === '"' || ch === "'") { quote = ch; current.quoted = true; continue; }
+    // A word is quoted, and so never an option, when it starts with a quote:
+    // --who="Grace Hopper" is an option with a quoted value.
+    if (ch === '"' || ch === "'") { quote = ch; if (!current.value) current.quoted = true; continue; }
     if (ch === "\\" && i + 1 < line.length) { current.value += line[++i]; continue; }
     current.value += ch;
   }
@@ -167,7 +169,7 @@ export function highlight(registry, line) {
       if (ch === quote) quote = null;
       else if (ch === "\\" && quote === '"' && i + 1 < line.length) w.value += line[++i];
       else w.value += ch;
-    } else if (ch === '"' || ch === "'") { quote = ch; w.quoted = true; }
+    } else if (ch === '"' || ch === "'") { quote = ch; if (i === w.start) w.quoted = true; }
     else if (ch === "\\" && i + 1 < line.length) w.value += line[++i];
     else w.value += ch;
   }

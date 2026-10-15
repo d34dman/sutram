@@ -26,6 +26,12 @@ test("positional and long options give the same input", () => {
   assert.deepEqual(parse(r, "cart add V60 --qty 2").input, want);
 });
 
+test("an option's value may be quoted; a quoted word is never an option", () => {
+  assert.deepEqual(parse(r, `cart add --sku="V60 02" --qty=2`).input, { sku: "V60 02", qty: "2" });
+  assert.deepEqual(parse(r, `cart add --sku='V60 02'`).input, { sku: "V60 02" });
+  assert.deepEqual(parse(r, `nav find "--qty=2"`).input, { query: "--qty=2" });
+});
+
 test("booleans, --no-, -- and client options", () => {
   assert.equal(parse(r, "cart add V60 --gift").input.gift, true);
   assert.equal(parse(r, "cart add V60 --no-gift").input.gift, false);
