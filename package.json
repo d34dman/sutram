@@ -13,9 +13,12 @@
     "./dist/sutram.js": "./dist/sutram.js"
   },
   "files": [
-    "src",
+    "LICENSE",
+    "LICENSE-GPL-2.0",
+    "LICENSE-MIT",
     "dist",
-    "docs"
+    "docs",
+    "src"
   ],
   "sideEffects": [
     "./src/browser.js"
@@ -45,7 +48,7 @@
     "drupal"
   ],
   "author": "Shibin Das (https://www.drupal.org/u/d34dman)",
-  "license": "MIT",
+  "license": "(MIT OR GPL-2.0-or-later)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/d34dman/sutram.git"

@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@d34dman/sutram)](https://www.npmjs.com/package/@d34dman/sutram)
 [![test](https://github.com/d34dman/sutram/actions/workflows/test.yml/badge.svg)](https://github.com/d34dman/sutram/actions/workflows/test.yml)
-[![license](https://img.shields.io/github/license/d34dman/sutram)](LICENSE)
+[![license: MIT OR GPL-2.0-or-later](https://img.shields.io/badge/license-MIT%20OR%20GPL--2.0--or--later-blue)](LICENSE)
 
 **Give your web app a command line, for people and for AI agents.**
 [Try it live →](https://d34dman.github.io/sutram/)
@@ -328,5 +328,8 @@ changes bump the minor version until then.
 
 ## License
 
-[MIT](LICENSE). Version 0.2.0 on npm was published under GPL-2.0-or-later;
-later versions are MIT.
+Dual-licensed: use Sutram under the [MIT License](LICENSE-MIT) or the
+[GNU GPL, version 2 or later](LICENSE-GPL-2.0), whichever suits your project
+(`MIT OR GPL-2.0-or-later`). MIT fits most JavaScript projects; GPL fits
+Drupal and other GPL software. Version 0.2.0 on npm was published under
+GPL-2.0-or-later only.
