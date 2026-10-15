@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry, parse, tokenize, EXIT, commandLine } from "../src/index.js";
+import { createRegistry, parse, tokenize, EXIT, commandLine, highlight } from "../src/index.js";
 
 const r = createRegistry();
 r.register({
@@ -57,4 +57,19 @@ test("commandLine writes input back as the line a person would type, and parses 
   for (const input of [{ sku: "V60", qty: "2" }, { sku: "a b", qty: "3" }, { sku: "--x" }]) {
     assert.deepEqual(parse(r, commandLine(def, input)).input, input);
   }
+});
+
+test("highlight covers every character and names each part of the line", () => {
+  const kinds = (line) => highlight(r, line).filter((s) => s.kind !== "space").map((s) => `${s.kind}:${s.text}`);
+  for (const line of [`cart add "V60 02" --qty=2 --no-gift -- --x`, `nav find "half`, "  help  cart ", "", "x\\ y"]) {
+    assert.equal(highlight(r, line).map((s) => s.text).join(""), line);
+  }
+  assert.deepEqual(kinds(`cart add "V60 02" --qty=2 --nope --json=sku`),
+    ["command:cart", "command:add", 'string:"V60 02"', "option:--qty=", "value:2", "bad-option:--nope", "option:--json=", "value:sku"]);
+  assert.deepEqual(kinds("cart add V60 -- --gift"), ["command:cart", "command:add", "arg:V60", "option:--", "arg:--gift"]);
+  assert.deepEqual(kinds("help cart"), ["client:help", "arg:cart"]);
+  // While a name is being typed it is not marked unknown yet.
+  assert.deepEqual(kinds("car"), ["command:car"]);
+  assert.deepEqual(kinds("cart "), ["command:cart"]);
+  assert.deepEqual(kinds("cark add"), ["unknown:cark", "arg:add"]);
 });

@@ -170,6 +170,12 @@ Without one, load the build (or `src/browser.js`, which imports the rest):
 Open the console with <kbd>`</kbd> (outside text fields) or
 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>.
 
+The console colours the line as you type: the command, options, values and
+quoted words, with unknown commands and options underlined. Other clients can
+use the same rules through `highlight(registry, line)`, which returns spans of
+`{ text, kind }`. Colours are CSS custom properties on the element
+(`--sutram-accent`, `--sutram-option`, `--sutram-string`, `--sutram-err`).
+
 Agents read events by polling `events recent --since=<id>`. The bus keeps the
 last 50 and, when a `navigates` command succeeds, forgets the ones from
 before it, because they describe a page the user has left. What the

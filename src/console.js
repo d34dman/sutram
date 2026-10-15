@@ -1,15 +1,17 @@
 // <sutram-console>: one client of the registry.
 // A drop-down console with history, help, man, status, "did you mean",
-// confirmation for consequential commands, --json[=fields] and --wide.
+// confirmation for consequential commands, --json[=fields] and --wide, and
+// syntax highlighting of the line being typed.
 
 import { CommandError, EXIT, getRegistry, runStatus } from "./core.js";
-import { parse, tokenize } from "./parse.js";
+import { highlight, parse, tokenize } from "./parse.js";
 import { formatHelp, formatMan, formatResult, formatUsage, annotationLabel, checkFields } from "./format.js";
 
 const STYLE = `
 :host {
   --sutram-bg: #11131c; --sutram-fg: #e6e8f0; --sutram-dim: #8c93a8; --sutram-accent: #9aa2ff;
   --sutram-ok: #6fd69a; --sutram-warn: #f5a35c; --sutram-err: #ff7b7b; --sutram-line: #ffffff1a;
+  --sutram-option: #7dcfff; --sutram-string: #c3e88d;
   --sutram-font: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
   position: fixed; inset: 0 0 auto 0; z-index: 2147483000; display: none;
 }
@@ -40,7 +42,16 @@ header button { font: inherit; background: none; border: 1px solid var(--sutram-
 .ln.ask button.yes { background: var(--sutram-warn); color: var(--sutram-bg); }
 form { display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--sutram-line); padding: 8px 14px; }
 form span { color: var(--sutram-accent); }
-input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--sutram-fg); font: inherit; caret-color: var(--sutram-accent); }
+.field { flex: 1; min-width: 0; display: grid; }
+.field > * { grid-area: 1 / 1; font: inherit; padding: 0; margin: 0; border: 0; white-space: pre; letter-spacing: normal; }
+.hl { overflow: hidden; pointer-events: none; color: var(--sutram-fg); }
+input { min-width: 0; background: transparent; outline: 0; color: transparent; caret-color: var(--sutram-accent); }
+input::placeholder { color: var(--sutram-dim); }
+.s-command { color: var(--sutram-accent); }
+.s-client { color: var(--sutram-accent); font-style: italic; }
+.s-unknown, .s-bad-option { color: var(--sutram-err); text-decoration: underline wavy; text-decoration-thickness: 1px; }
+.s-option { color: var(--sutram-option); }
+.s-value, .s-string { color: var(--sutram-string); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--sutram-accent); outline-offset: 2px; }
 `;
 
@@ -61,25 +72,29 @@ export class SutramConsole extends Base {
       <div class="panel" role="dialog" aria-label="Sutram console">
         <header><span><b>Sutram</b> · <span class="count">0</span> commands on this page</span><button type="button" class="close" aria-label="Close">Esc</button></header>
         <div class="out" aria-live="polite"></div>
-        <form><span aria-hidden="true">›</span><input type="text" autocomplete="off" spellcheck="false" aria-label="Command" placeholder="type a command, or help"></form>
+        <form><span aria-hidden="true">›</span><div class="field"><div class="hl" aria-hidden="true"></div><input type="text" autocomplete="off" spellcheck="false" aria-label="Command" placeholder="type a command, or help"></div></form>
       </div>`;
     this.out = root.querySelector(".out");
     this.input = root.querySelector("input");
+    this.hl = root.querySelector(".hl");
     this.countEl = root.querySelector(".count");
     root.querySelector(".close").addEventListener("click", () => this.close());
     root.querySelector("form").addEventListener("submit", (e) => {
       e.preventDefault();
       const line = this.input.value;
-      this.input.value = "";
+      this.setInput("");
       this.submit(line);
     });
     this.input.addEventListener("keydown", (e) => this.onInputKey(e));
+    this.input.addEventListener("input", () => this.renderInput());
+    // The input scrolls when the line is longer than the field; follow it.
+    for (const type of ["scroll", "keyup", "click", "select"]) this.input.addEventListener(type, () => { this.hl.scrollLeft = this.input.scrollLeft; });
     this.onGlobalKey = this.onGlobalKey.bind(this);
   }
 
   connectedCallback() {
     document.addEventListener("keydown", this.onGlobalKey);
-    this.offChange = this.registry.onChange(() => this.updateCount());
+    this.offChange = this.registry.onChange(() => { this.updateCount(); this.renderInput(); });
     this.updateCount();
     if (!this.out.childElementCount && this.hasAttribute("greeting")) this.print(this.getAttribute("greeting"), "dim");
   }
@@ -94,6 +109,28 @@ export class SutramConsole extends Base {
   }
 
   updateCount() { this.countEl.textContent = this.registry.list().length; }
+
+  /** Colours a command line: the command, options, values and quoted words. */
+  spans(line) {
+    return highlight(this.registry, line).map(({ text, kind }) => {
+      if (kind === "space" || kind === "arg") return document.createTextNode(text);
+      const s = document.createElement("span");
+      s.className = `s-${kind}`;
+      s.textContent = text;
+      return s;
+    });
+  }
+
+  setInput(value) {
+    this.input.value = value;
+    this.renderInput();
+  }
+
+  renderInput() {
+    // A trailing space keeps the layer as wide as the input when the caret is at the end.
+    this.hl.replaceChildren(...this.spans(this.input.value), " ");
+    this.hl.scrollLeft = this.input.scrollLeft;
+  }
 
   open() {
     this.setAttribute("open", "");
@@ -123,11 +160,11 @@ export class SutramConsole extends Base {
   onInputKey(e) {
     if (e.key === "ArrowUp" && this.historyIndex > 0) {
       this.historyIndex--;
-      this.input.value = this.history[this.historyIndex];
+      this.setInput(this.history[this.historyIndex]);
       e.preventDefault();
     } else if (e.key === "ArrowDown") {
       this.historyIndex = Math.min(this.history.length, this.historyIndex + 1);
-      this.input.value = this.history[this.historyIndex] || "";
+      this.setInput(this.history[this.historyIndex] || "");
       e.preventDefault();
     } else if (e.key === "`" && !this.input.value) {
       e.preventDefault();
@@ -211,7 +248,7 @@ export class SutramConsole extends Base {
     }
     this.history.push(line);
     this.historyIndex = this.history.length;
-    this.print(line, "input");
+    this.print("", "input").append(...this.spans(line));
 
     let words;
     try { words = tokenize(line).map((t) => t.value); } catch (err) { this.printBlocks([{ kind: "error", text: err.message, code: err.code }]); return; }
