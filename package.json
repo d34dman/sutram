@@ -35,10 +35,14 @@
     "drupal"
   ],
   "author": "Shibin Das (https://www.drupal.org/u/d34dman)",
-  "license": "GPL-2.0-or-later",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/d34dman/sutram.git"
+    "url": "git+https://github.com/d34dman/sutram.git"
+  },
+  "homepage": "https://github.com/d34dman/sutram#readme",
+  "bugs": {
+    "url": "https://github.com/d34dman/sutram/issues"
   },
   "engines": {
     "node": ">=20"

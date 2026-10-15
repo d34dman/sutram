@@ -1,229 +1,322 @@
 # Sutram
 
-A standard way for JavaScript apps to expose their commands, so their authors
-never have to build or ship a console of their own.
+[![npm](https://img.shields.io/npm/v/@d34dman/sutram)](https://www.npmjs.com/package/@d34dman/sutram)
+[![test](https://github.com/d34dman/sutram/actions/workflows/test.yml/badge.svg)](https://github.com/d34dman/sutram/actions/workflows/test.yml)
+[![license](https://img.shields.io/npm/l/@d34dman/sutram)](LICENSE)
 
-An app registers its commands once. Anyone on the page can then run them: a
-person in the Sutram console, or an AI agent such as Claude through WebMCP.
-It borrows its behaviour from the command line, so anyone who has used a
-terminal already knows their way around.
+**Give your web app a command line, for people and for AI agents.**
+
+Register your app's commands once. Sutram gives people a drop-down console to
+run them, and gives AI agents the same commands as tools through
+[WebMCP](https://github.com/webmachinelearning/webmcp). You write no console,
+no help pages and no agent integration.
 
 ```
 › help
+cart add <sku> [qty]   Add a product to the cart
+cart status            Show what is in the cart          read-only
+checkout               Place the order                    consequential
 › cart add V60-02 --qty=2
 Added 2 × V60 dripper, size 02. The cart has 2 items, €48.00.
 › cart status
-2 items, €48.00.
 SKU     NAME                  QTY   PRICE
 V60-02  V60 dripper, size 02    2  €24.00
-› cart status --json
-› man cart add
 › checkout
 Place an order for 2 items, €48.00? Yes No
+```
+
+- **Feels like a terminal.** `help`, `man`, `--json`, GNU-style options,
+  history with ↑, "did you mean", and syntax highlighting as you type.
+- **Agents see what people see.** Every command is also a WebMCP tool, with
+  its JSON Schema and hints such as "read-only" or "ask first".
+- **No new way into your server.** Commands run in the browser with the
+  user's own session, so they can do exactly what the user could already do.
+- **Small and dependency-free.** Plain ES modules, about 60 kB unminified,
+  no runtime dependencies.
+
+## Quick start
+
+Save this as an HTML file, open it, and press <kbd>`</kbd> (backtick):
+
+```html
+<!doctype html>
+<meta charset="utf-8">
+<title>Hello, Sutram</title>
+<p>Press <kbd>`</kbd> and type <code>help</code>.</p>
+
+<script type="module">
+  import Sutram from "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.2/dist/sutram.js";
+
+  Sutram.register({
+    name: "hello world",
+    provider: "hello",
+    description: "Say hello",
+    input: {
+      type: "object",
+      properties: { who: { type: "string", default: "you", description: "Who to greet" } },
+    },
+    positional: ["who"],
+    annotations: { readOnly: true },
+    run: ({ who }) => ({ text: `Hello, ${who}.` }),
+  });
+
+  Sutram.mountConsole();
+</script>
+```
+
+Then try:
+
+```
+› help
+› hello world
+› hello world Ada
+› hello world --who="Grace Hopper"
+› hello world -h
+› man hello world
 ```
 
 ## Install
 
 ```sh
-npm install sutram
+npm install @d34dman/sutram
 ```
 
-The package is plain ES modules, so bundlers need no build step. Until it is
-on npm, install it from GitHub: `npm install git+ssh://git@github.com/d34dman/sutram.git#main`.
-
-For pages without a bundler, `npm run build` writes `dist/sutram.js`:
-`sutram/browser` and everything it imports as one module with no imports and
-no dependencies. Hosts that vendor a single file, such as a Drupal library,
-copy that file. The published package includes it.
-
-| Import | What it is | DOM |
-|---|---|---|
-| `sutram` | The registry, the command line parser, and the formatter (`help`, `man`, tables) | no |
-| `sutram/events` | Declared events, plus the `events list` and `events recent` commands | no |
-| `sutram/webmcp` | Mirrors the registry into `document.modelContext` as WebMCP tools | no |
-| `sutram/console` | `<sutram-console>`, a drop-down console as a web component | yes |
-| `sutram/browser` | All of the above for pages without a bundler, exposed as `globalThis.Sutram` | yes |
-
-## Register a command
+With a bundler, import what you need:
 
 ```js
-import { getRegistry } from "sutram";
+import { getRegistry } from "@d34dman/sutram";
+import { mountConsole } from "@d34dman/sutram/console";
+import { connectWebMCP } from "@d34dman/sutram/webmcp";
 
-getRegistry().register({
-  name: "cart add",                 // <provider> <verb>
-  provider: "cart",
-  description: "Add a product to the cart",
-  input: {                          // JSON Schema
-    type: "object",
-    properties: {
-      sku: { type: "string" },
-      qty: { type: "integer", minimum: 1, default: 1 },
-    },
-    required: ["sku"],
-  },
-  output: {                         // JSON Schema, for man, tables and agents
-    type: "object",
-    properties: { count: { type: "integer" }, total: { type: "number", format: "money" } },
-  },
-  positional: ["sku", "qty"],       // cart add V60-02 2  ==  cart add --sku=V60-02 --qty=2
-  annotations: {},                  // readOnly, consequential, untrustedContent, navigates
-  examples: ["cart add V60-02 --qty=2"],
-  seeAlso: ["cart status"],
-  run: ({ sku, qty }, { caller, signal }) => {
-    cart.add(sku, qty);
-    return { text: `Added ${qty} × ${sku}.`, data: { count: cart.count, total: cart.total } };
-  },
-});
+const registry = getRegistry();
+registry.register({ /* a command, see below */ });
+
+mountConsole();              // the console for people
+connectWebMCP(registry);     // the same commands as WebMCP tools, where the browser supports it
 ```
 
-`register()` returns a function that removes the command again. Register
-commands when they make sense on the page, and remove them when they no longer
-do; every client sees the change.
-
-Each provider should also register a read-only `<provider> status` that
-returns a one-line `text`. A bare `status` runs all of them.
-
-### Results
-
-`run()` always resolves to a result that looks like a process exit:
-
-| Code | Means |
-|---|---|
-| 0 | Done: `{ code: 0, text?, data? }` |
-| 1 | Ran, but failed: `{ code: 1, message }`. Throw an error, or a `CommandError` with your own code. |
-| 2 | Usage error: input did not match the schema |
-| 127 | Command not found |
-| 130 | Cancelled through the `AbortSignal` |
-
-Return data, not formatted text. The console formats `data` for people: a
-table for a list of records, `key: value` lines for a record, an indented tree
-for records with `children`. `title` and `format` in the output schema, and
-`view: { columns }` on the command, tune the tables.
-
-Every client owns three options, so no command may declare them:
-
-| Option | Prints |
-|---|---|
-| `--wide` | Every column, including those `view.columns` leaves out |
-| `--json` | The data unchanged, exactly as an agent gets it |
-| `--json=sku,price` | Only those fields, of each record in a list or of the record itself. Unknown names are a usage error that lists the real ones. |
-
-### Formats
-
-A `format` in a schema means what the page says it means. JSON Schema treats
-`format` as an annotation and lets validators add formats of their own (Ajv's
-`addFormat`). Sutram follows that, and adds how to show a value. Sutram
-defines no domain formats such as money: the app that owns the data defines
-them, next to its provider.
-
-```js
-import { getFormats } from "sutram";
-
-// shipped by the commerce module, next to its cart provider
-getFormats().define("money", {
-  type: "number",                                   // the JSON type it applies to
-  description: "an amount in euros",                // for man and agents
-  validate: (v) => Number.isFinite(v),              // checks typed input and, in development, results
-  display: (v, { locale }) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(v),
-  align: "right",                                   // in tables
-});
-```
-
-| Field | Used by |
-|---|---|
-| `validate(value)` | Core: input that fails is a usage error (exit 2); a result that fails gets a warning in development |
-| `display(value, { locale })` | The console, for table cells and `key: value` lines |
-| `align` | The console's tables: `left` or `right` |
-| `description` | `man`, and the WebMCP bridge, which explains each page-defined format once in the tool description |
-| `type` | Documentation of which JSON type the format applies to, as in Ajv |
-
-A format nobody defined stays an annotation: nothing is checked and the value
-is shown as it is. Defining a name that is already taken is refused, so two
-modules cannot disagree about what `money` means. The registry comes with
-display rules for JSON Schema's own `date-time` and `date`. Like the command
-registry, there is one per page (`Symbol.for("sutram.formats@1")`).
-
-## Use it on a page
-
-With a bundler:
-
-```js
-import { getRegistry } from "sutram";
-import { getEvents } from "sutram/events";
-import { connectWebMCP } from "sutram/webmcp";
-import { mountConsole } from "sutram/console";
-
-connectWebMCP(getRegistry());
-mountConsole({ locale: "de-DE" });   // the locale formats display with
-```
-
-Without one, load the build (or `src/browser.js`, which imports the rest):
+Without a bundler, load one file: `dist/sutram.js` from the package (or from
+the CDN, as in the quick start). It sets up the console and WebMCP and exposes
+everything as `globalThis.Sutram`:
 
 ```html
-<script type="module" src="/libraries/sutram/sutram.js"></script>
+<script type="module" src="/path/to/sutram.js"></script>
 <script type="module">
   Sutram.register({ /* … */ });
   Sutram.mountConsole();
 </script>
 ```
 
-Open the console with <kbd>`</kbd> (outside text fields) or
-<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>.
+| Import | What it is | Needs a DOM |
+|---|---|---|
+| `@d34dman/sutram` | The registry, the command line parser and the formatter | no |
+| `@d34dman/sutram/console` | `<sutram-console>`, the drop-down console, as a web component | yes |
+| `@d34dman/sutram/webmcp` | Mirrors the registry into `document.modelContext` as WebMCP tools | no |
+| `@d34dman/sutram/events` | Events your app declares and emits, and the `events list` and `events recent` commands | no |
+| `@d34dman/sutram/browser` | All of the above, as `globalThis.Sutram` | yes |
+| `@d34dman/sutram/dist/sutram.js` | The same as `browser`, bundled into one file | yes |
 
-The console colours the line as you type: the command, options, values and
-quoted words, with unknown commands and options underlined. Other clients can
-use the same rules through `highlight(registry, line)`, which returns spans of
-`{ text, kind }`. Colours are CSS custom properties on the element
-(`--sutram-accent`, `--sutram-option`, `--sutram-string`, `--sutram-err`).
+## Write a command
 
-Agents read events by polling `events recent --since=<id>`. The bus keeps the
-last 50 and, when a `navigates` command succeeds, forgets the ones from
-before it, because they describe a page the user has left. What the
-navigation itself emitted, such as `route.changed`, stays. Ids keep counting,
-so `--since` stays valid. A single-page app whose router changes the page another way calls
-`getEvents().clear()` itself.
+A command is a name, a JSON Schema for its input, and a function.
 
-Every copy of Sutram on a page shares one registry and one event bus, through
-`Symbol.for("sutram.registry@1")` and `Symbol.for("sutram.events@1")`, so
-providers that bundle their own copy still meet in one place.
+```js
+import { getRegistry } from "@d34dman/sutram";
 
-## Try it
+const remove = getRegistry().register({
+  name: "cart add",                        // "<provider> <verb>", lowercase words
+  provider: "cart",                        // who owns it; help groups by this
+  description: "Add a product to the cart",
+  input: {                                 // JSON Schema: checked before run() is called
+    type: "object",
+    properties: {
+      sku: { type: "string", description: "Product code" },
+      qty: { type: "integer", minimum: 1, default: 1 },
+    },
+    required: ["sku"],
+  },
+  positional: ["sku", "qty"],              // cart add V60-02 2  ==  cart add --sku=V60-02 --qty=2
+  output: {                                // optional: drives tables, man and agents
+    type: "object",
+    properties: { count: { type: "integer" }, total: { type: "number" } },
+  },
+  annotations: {},                         // see "Annotations"
+  examples: ["cart add V60-02 --qty=2"],   // shown in man and given to agents
+  seeAlso: ["cart status"],
+  run: async ({ sku, qty }, { caller, signal }) => {
+    await cart.add(sku, qty);              // your app's own code and endpoints
+    return { text: `Added ${qty} × ${sku}.`, data: { count: cart.count, total: cart.total } };
+  },
+});
 
-```sh
-npm test
-npm run build     # dist/sutram.js
-npm run example   # then open http://localhost:8080/example/
+// Later, when the command no longer makes sense on this page:
+remove();
 ```
+
+Register commands when they make sense on the page, and remove them when they
+no longer do. The console, `help` and the agent's tool list follow along.
+
+`run()` gets the checked input, and a context with `caller` (`"console"`,
+`"agent"`, …) and an `AbortSignal`. Return `data` (and optionally a short
+`text`); the console formats the data for people and agents get it as is.
+Throw an error to fail.
+
+### Tell people where things stand: `<provider> status`
+
+Give each provider a read-only `<provider> status` command that returns a
+one-line `text`. A bare `status` runs all of them, so a person or an agent
+can see the state of the whole page with one word.
+
+### Annotations
+
+Annotations are hints. Clients decide what to do with them.
+
+| Annotation | Means | The console | Agents |
+|---|---|---|---|
+| *(none)* | An ordinary change | Runs it | Can call it |
+| `readOnly: true` | Changes nothing | Runs it; marks it read-only | Get `readOnlyHint` |
+| `consequential: true` | Significant or hard to undo | Asks first (a pasted batch asks once) | Get `consequentialHint`; hosts can ask the user |
+| `navigates: true` | Leaves the page | Runs it | Told in the description that the page reloads |
+| `untrustedContent: true` | Its output contains text from outside, such as user content | | Get `untrustedContentHint` |
+
+Use `confirm: (input) => "Place an order for 2 items?"` to word the question
+for a consequential command.
+
+### Results and exit codes
+
+Every run resolves to a result shaped like a process exit, whoever called it:
+
+| Code | Means |
+|---|---|
+| `0` | Done: `{ code: 0, text?, data? }` |
+| `1` | Ran, but failed: `{ code: 1, message }`. Throw an `Error`, or a `CommandError` with your own message. |
+| `2` | Usage error: the input did not match the schema |
+| `127` | No such command |
+| `130` | Cancelled |
+
+### How results look
+
+You return data; the console decides how to show it:
+
+- a list of records becomes a table (pick columns with `view: { columns: [...] }`),
+- a record becomes `key: value` lines,
+- records with `children` become an indented tree.
+
+Every command also gets these options for free:
+
+| Option | Prints |
+|---|---|
+| `--json` | The data unchanged, exactly as an agent gets it |
+| `--json=sku,price` | Only those fields |
+| `--wide` | Every column, including those `view.columns` leaves out |
+| `-h`, `--help` | The command's usage |
+
+### Formats: money, sizes, durations
+
+`format` in a schema works as in JSON Schema, where apps define their own
+formats. Sutram defines no domain formats; the app that owns the data defines
+them, and the console uses them to check input and show values:
+
+```js
+import { getFormats } from "@d34dman/sutram";
+
+getFormats().define("money", {
+  type: "number",
+  description: "an amount in euros",       // for man and agents
+  validate: (v) => Number.isFinite(v),     // bad input is a usage error
+  display: (v, { locale }) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(v),
+  align: "right",                          // in tables
+});
+
+// then, in an output schema: total: { type: "number", format: "money" }
+```
+
+A format nobody defined is left alone. Names can be defined only once per page,
+so two modules cannot disagree about what `money` means. `date-time` and
+`date` are shown in the console's locale out of the box.
+
+## For AI agents
+
+`connectWebMCP()` (or loading `dist/sutram.js`) registers every command as a
+WebMCP tool in browsers that support it, and keeps the tool list in step with
+the registry. Tool names are command names with underscores
+(`cart_add`). Each tool gets the input schema and the annotation hints, and
+its description says what it returns, whether it leaves the page, and what
+any app-defined formats mean. A `sutram_status` tool runs every
+`<provider> status` at once, so an agent can start there.
+
+Agents cannot be notified, so they poll for what changed:
+`events recent --since=<id>` returns the events after an id. The page keeps
+the last 50 and forgets older ones when a `navigates` command leaves the page.
+Single-page apps that change page without such a command call
+`getEvents().clear()` themselves.
+
+## The console
+
+Open it with <kbd>`</kbd> (outside text fields) or
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>; close it with <kbd>Esc</kbd>.
+
+| Type | To |
+|---|---|
+| `help`, `help <provider>` | See the commands on this page |
+| `man <command>` | Read a command's full manual |
+| `<command> -h` | See a command's usage |
+| `status` | See every provider's status |
+| `clear` | Clear the screen |
+| ↑ / ↓ | Walk through history |
+
+`mountConsole({ greeting, locale })` sets a first line and the locale values
+are shown in. Restyle it with CSS custom properties on `sutram-console`:
+
+```css
+sutram-console {
+  --sutram-bg: #11131c;  --sutram-fg: #e6e8f0;  --sutram-dim: #8c93a8;
+  --sutram-accent: #9aa2ff;  --sutram-option: #7dcfff;  --sutram-string: #c3e88d;
+  --sutram-ok: #6fd69a;  --sutram-warn: #f5a35c;  --sutram-err: #ff7b7b;
+}
+```
+
+### Several copies on one page
+
+If two scripts each bundle their own copy of Sutram, they still share one
+registry, one format registry and one event bus, so every command ends up in
+the same console.
 
 ## Drupal
 
-The Drupal integration (menus as a `nav` provider, the console for users with
-permission, WebMCP) is being built in
-[drupal-sutram-demo](https://github.com/d34dman/drupal-sutram-demo), as the
-custom module `sutram`. It moves to drupal.org as `drupal/sutram` once it
-settles. The earlier Drupal module skeleton is on the `1.0.x` branch.
+The Drupal integration is being built in
+[drupal-sutram-demo](https://github.com/d34dman/drupal-sutram-demo) as the
+module `sutram`: menus as `nav` commands (access-checked on the server), page
+information, and `form <form-id> set/save` commands for node forms. It will
+move to drupal.org as `drupal/sutram`.
 
-## Design
+## Develop
 
-- [docs/design.md](docs/design.md): the first design note.
-- The [package design page](https://claude.ai/artifact/38pXuBgupPRgDegkiZrZyR)
-  (private) supersedes parts of it: `describe` became `status`, `help` and
-  `man`; arguments use GNU long options; results have exit codes and declared
-  output.
-- The [decisions of 15 October 2026](https://claude.ai/artifact/1wcw5tjRjFh994UNnQMU2p)
-  (private) settled its open questions: GNU options only, `-h` as the only
-  short option, an explicit `positional` list, exit codes 0/1/2/127/130, one
-  prompt per pasted batch, `--wide` and `--json=fields`, events forgotten on
-  navigation, one package with subpath imports. A follow-up the same day
-  replaced built-in money and other formats with a format registry that apps
-  fill.
+```sh
+git clone https://github.com/d34dman/sutram.git
+cd sutram
+npm test              # node --test, no dependencies to install
+npm run example       # a todo list to play with, at http://localhost:8080/example/
+npm run build         # dist/sutram.js
+```
+
+[docs/design.md](docs/design.md) is the first design note. Parts of it have
+changed since: `describe` became `status`, `help` and `man`; arguments use GNU
+long options only; results have exit codes; and formats are defined by apps.
 
 ## Why "Sutram"
 
 *Sūtram* (सूत्रम्) is Sanskrit for a short, exact rule. Pāṇini described all of
 Sanskrit grammar in about 4,000 of them. In Malayalam, *sūtram* (സൂത്രം) is also
-everyday speech for a knack, a clever little device.
+everyday speech for a knack, a clever little device. Each command is a sūtram:
+one short line in place of clicks and screenshots.
 
 ## Status
 
-0.2.0, early. The contract may still change. Not published to npm yet.
+Version 0.2: early. The command contract may still change before 1.0; breaking
+changes bump the minor version until then.
+
+## License
+
+[MIT](LICENSE). Version 0.2.0 on npm was published under GPL-2.0-or-later;
+later versions are MIT.

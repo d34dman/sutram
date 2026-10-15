@@ -46,8 +46,8 @@ for (const { name, text } of order) {
 const api = order.find((m) => m.name === "index");
 const exported = [...api.text.matchAll(/^export\s*\{([^}]*)\}/gm)].flatMap(([, l]) => l.split(",").map((n) => n.trim()).filter(Boolean));
 const out = [
-  `// sutram ${pkg.version}: src/browser.js bundled by scripts/build.mjs. Do not edit; run npm run build.`,
-  `// ${pkg.repository.url.replace(/^git\+ssh:\/\/git@/, "https://").replace(/\.git$/, "")} · ${pkg.license}`,
+  `// ${pkg.name} ${pkg.version}: src/browser.js bundled by scripts/build.mjs. Do not edit; run npm run build.`,
+  `// ${pkg.homepage.replace(/#.*$/, "")} · ${pkg.license}`,
   ...chunks,
   `export default __browser.default;`,
   `export const { ${exported.join(", ")} } = __index;`,

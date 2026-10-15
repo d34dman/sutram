@@ -1,6 +1,6 @@
 // sutram: the registry, the command line parser and the formatter.
 // No DOM. The console, the WebMCP bridge and events are separate entry points:
-//   sutram/console, sutram/webmcp, sutram/events, sutram/browser
+//   @d34dman/sutram/console, /webmcp, /events, /browser
 
 export {
   EXIT, RESERVED_WORDS, CLIENT_OPTIONS, CommandError,
