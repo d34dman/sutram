@@ -68,3 +68,13 @@ test("agents get each page-defined format explained once, and none of JSON Schem
   }, f);
   assert.equal(tool.description, "Add a product. Returns { sku: sku }. sku: a product code such as V60-02.");
 });
+
+test("date and date-time check RFC 3339, and a bad value shows as written", () => {
+  const f = createFormats();
+  for (const v of ["2026-10-15", "2024-02-29", "2000-02-29"]) assert.ok(f.valid("date", v), v);
+  for (const v of ["2026-02-31", "2023-02-29", "1900-02-29", "2026-13-01", "May 5", "2026-1-5", "2026-10-15T00:00:00Z"]) assert.ok(!f.valid("date", v), v);
+  for (const v of ["2026-10-15T14:30:00Z", "2026-10-15t14:30:00.123+02:00", "2016-12-31T23:59:60Z"]) assert.ok(f.valid("date-time", v), v);
+  for (const v of ["2026-10-15", "2026-10-15T14:30Z", "2026-10-15 14:30:00Z", "2026-02-30T00:00:00Z", "2026-10-15T24:00:00Z", "May 5, 2026 10:00", "2026-10-15T10:00:00+25:00"]) assert.ok(!f.valid("date-time", v), v);
+  assert.equal(formatValue("soon", { format: "date-time" }, { formats: f }), "soon");
+  assert.equal(formatValue("2026-99-99", { format: "date" }, { formats: f }), "2026-99-99");
+});

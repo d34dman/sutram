@@ -91,6 +91,10 @@ breaking changes bump the minor version.
   after the command had run.
 - Pasting is linear in the length of the text: a long HTML paste took
   seconds before.
+- **`date` and `date-time` are checked as RFC 3339**, with a calendar check:
+  `2026-02-31`, `"May 5"` and a date-time without seconds or an offset are
+  refused. Before, anything `Date.parse` read passed. A bad value is shown as
+  written instead of "Invalid Date".
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

@@ -32,5 +32,7 @@ getFormats().define("money", {
 - A format nobody defined is left alone.
 - A name can be defined only once per page, so two modules cannot disagree
   about what `money` means.
-- `date-time` and `date` are shown in the console's locale out of the box.
+- `date-time` and `date` are defined out of the box: checked as RFC 3339
+  (`2026-10-15`, `2026-10-15T14:30:00Z`; a date must be on the calendar) and
+  shown in the console's locale. A value that is not a date shows as written.
 - Agents read the format's `description` in `man` and in tool descriptions.

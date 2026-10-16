@@ -30,19 +30,38 @@ function checkFormat(name, def) {
   if (def.align !== undefined && !["left", "right"].includes(def.align)) throw new TypeError(`formats: "${name}".align must be left or right`);
 }
 
-/** Display rules for JSON Schema's own date formats. Checking them is left to the schema's author. */
+/** True for a full date, YYYY-MM-DD, that is on the calendar: 2026-02-31 is not. */
+function isFullDate(v) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (!m) return false;
+  const [y, mo, d] = m.slice(1).map(Number);
+  const days = [31, y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return mo >= 1 && mo <= 12 && d >= 1 && d <= days[mo - 1];
+}
+
+/** True for an RFC 3339 date-time: a full date, T, a time with seconds, and Z or an offset. */
+function isDateTime(v) {
+  const m = /^(\d{4}-\d{2}-\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(\.\d+)?([Zz]|[+-](\d{2}):(\d{2}))$/.exec(v);
+  if (!m || !isFullDate(m[1])) return false;
+  const [h, min, sec] = [m[2], m[3], m[4]].map(Number);
+  const offset = m[6].length > 1 ? Number(m[7]) <= 23 && Number(m[8]) <= 59 : true;
+  return h <= 23 && min <= 59 && sec <= 60 && offset; // 60: a leap second
+}
+
+/** JSON Schema's own date formats: RFC 3339, checked, and shown in the reader's locale. */
 const STANDARD = {
   "date-time": {
     type: "string",
-    description: "a date and time, RFC 3339",
-    validate: (v) => !Number.isNaN(Date.parse(v)),
-    display: (v, { locale } = {}) => new Date(v).toLocaleString(locale),
+    description: "a date and time, RFC 3339, such as 2026-10-15T14:30:00Z",
+    validate: isDateTime,
+    // A value that is not a date shows as written, never as "Invalid Date".
+    display: (v, { locale } = {}) => { const d = new Date(v); return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString(locale); },
   },
   date: {
     type: "string",
     description: "a full date, RFC 3339, such as 2026-10-15",
-    validate: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)),
-    display: (v, { locale } = {}) => new Date(`${v}T00:00:00`).toLocaleDateString(locale),
+    validate: isFullDate,
+    display: (v, { locale } = {}) => { const d = new Date(`${v}T00:00:00`); return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString(locale); },
   },
 };
 
