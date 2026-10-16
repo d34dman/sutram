@@ -17,110 +17,34 @@ breaking changes bump the minor version.
   `@d34dman/sutram/internals`, which makes no semver promise.
 - **`globalThis.Sutram` no longer copies every export.** It keeps its
   helpers plus `EXIT` and `CommandError`; the client functions are under
-  `Sutram.client` (for example `Sutram.client.parse`).
+  `Sutram.client` (for example `Sutram.client.parse`). Gone from it:
+  `getRegistry` (use `Sutram.registry`), `createRegistry`, `getFormats`,
+  `createFormats`, `STANDARD_FORMATS` and `commandLine` (import them from the
+  bundle or the package), the client functions (`parse`, `tokenize`,
+  `highlight`, `suggest`, `checkInput`, `checkOutput`, `checkFields`,
+  `selectFields`, `runStatus`, `isStatusCommand`, `formatResult`,
+  `formatHelp`, `formatUsage`, `formatMan`, `blocksToText`,
+  `RESERVED_WORDS`, `CLIENT_OPTIONS`: now `Sutram.client.*`), and the
+  internals below.
+- **`dist/sutram.js` exports** what the main entry, `/client`, `/events`,
+  `/webmcp` and `/console` export. It no longer exports `annotationLabel`,
+  `deref`, `describeShape`, `distance`, `formatTable`, `formatValue`,
+  `formatsUsed`, `longSynopsis`, `sentence` or `synopsis`; import them from
+  `@d34dman/sutram/internals`.
+- **`Sutram.tools()` lists `sutram_batch`** after `sutram_status`, before
+  the page's own tools.
 
 - **WebMCP calls now ask in the page.** Every agent call goes through the
-  page's policy; with a console, the person is asked there. Before, a
-  consequential tool relied on the WebMCP host to ask.
-- The console's input is a textarea: <kbd>Enter</kbd> inside quotes and
-  <kbd>Shift</kbd>+<kbd>Enter</kbd> start a new line.
+  page's policy, `sutram_status` included; with a console, the person is
+  asked there. Before, a consequential tool relied on the WebMCP host to ask.
+- **WebMCP input is checked strictly.** An agent's JSON arrives typed, so
+  `"off"` for a boolean is a usage error. `Sutram.call()` still converts
+  strings, so `call(name, Sutram.client.parse(line).input)` works.
 - **Only strings are converted.** A value of another type must already have
   the declared type: `true` for an integer, or an object for a string, is a
   usage error instead of `1` or `"[object Object]"`. Strings are converted
   as console text is (`"2"` → `2`), except from WebMCP and in event
   payloads, which are checked strictly.
-- **Only a `CommandError` sets the exit code**, and never to 0. Anything
-  else thrown is exit 1. Before, any integer `err.code` was used, so a
-  `DOMException` (legacy `code` 0) counted as success and a batch committed.
-- **What was approved is what runs.** A batch runs the definitions it
-  checked; a step whose command was replaced by an earlier step does not run
-  (130), and the batch rolls back. WebMCP and the console pass the definition
-  they asked the user about (`run(name, input, { expect })`, `def` on a batch
-  step), so a command swapped in during the question does not run.
-- **Questions show the checked value.** `confirm()`, the policy's asker and
-  the command lines in a question get the input after checking (converted,
-  defaults filled), which is what runs. Before, `{ all: "false" }` was asked
-  as `--all` and ran with `all: false`. A `confirm()` that throws gets the
-  generic question.
-- **`commandLine()` writes every value so that it reads back the same.**
-  Objects, and lists whose items hold commas or objects, are written as JSON
-  (`--meta='{"a":1}'`); `null` is left out; `true` for a non-boolean is
-  `--key=true`, not a flag. Console text accepts a JSON list for an array
-  (`--tags='["a,b"]'`). Before, an object became `[object Object]`.
-- A nullable boolean (`type: ["boolean", "null"]`) is a flag: `--key`
-  and `--no-key`.
-- **Batches take turns.** A second batch waits for the first to commit or
-  roll back, and console and agent runs of a provider in a running batch
-  wait too. Before, two batches at once could interleave their hooks and lose
-  edits. Always finish a `startBatch()` batch.
-- **WebMCP input is checked strictly.** An agent's JSON arrives typed, so
-  `"off"` for a boolean is a usage error. `Sutram.call()` still converts
-  strings, so `call(name, parse(line).input)` works.
-- `sutram_batch` refuses a call that is not `{ tool, input }`, or an
-  `input` that is not an object. Before, `input: "item=a"` ran with no
-  arguments.
-- Command names cannot start with `sutram`, so no command can shadow
-  `sutram_status` or `sutram_batch`. `sutram_status` follows the policy
-  like every tool.
-- **The page's registry has a new key** (`sutram.registry@2`). 0.4 does not
-  share a registry with 0.3 or earlier, and warns when both are on a page.
-  Before, a 0.2 registry crashed a 0.4 client.
-- `connectWebMCP()` registers every other tool when the browser refuses
-  one, and refreshes a tool whose definition changed in place (at its next
-  call, or when the same definition is registered again).
-- Object and array defaults reach `run()` as copies, so a handler that
-  changes its input no longer changes the default for the next run.
-- Output checks accept a list of types (`["string", "null"]`) instead of
-  warning, check the type before the format, follow `$ref: "#"`, and stop
-  32 levels deep, so cyclic data cannot overflow the stack after `run()`.
-- **An abort settles the call.** `run()` resolves 130 as soon as its signal
-  aborts, even when the handler ignores the signal. WebMCP passes the
-  signal to the asker (`request.signal`), and the console withdraws the
-  question (`MESSAGES.withdrawn`).
-- Checking a number is linear: a long non-number (40,000 digits and a
-  letter, which an agent can send) took seconds on the main thread.
-- `enum`, `const` and `uniqueItems` compare objects and lists by value,
-  whatever the key order. `registry.batch()` refuses a step that is not
-  `{ name, input }` with a usage result instead of throwing. The event
-  buffer keeps a copy of each payload.
-- `register()` refuses a name of more than six words, which no command
-  line could reach.
-- Completion suggests for the positional key that parse would fill: after
-  `--from=x`, the next word completes `to`. `--no-key` counts as given.
-- `--json=fields` on an empty list prints `[]`. Before, it printed an error
-  after the command had run.
-- Pasting is linear in the length of the text: a long HTML paste took
-  seconds before.
-- **`date` and `date-time` are checked as RFC 3339**, with a calendar check:
-  `2026-02-31`, `"May 5"` and a date-time without seconds or an offset are
-  refused. Before, anything `Date.parse` read passed. A bad value is shown as
-  written instead of "Invalid Date".
-- A multi-line description: `help` and `-h` show its first line, `man`
-  shows the rest under DESCRIPTION. Before, one newline made the console's
-  `help` throw.
-- Wording: "1 item" and "1 command"; a description ending in `!` or `?`
-  gets no extra full stop; an empty list prints "Nothing to show."; `man`
-  prints object defaults as JSON; usage lines and `man` show a nullable
-  type as `<string>` and "string or null".
-- **Questions end with their console.** Removing a console answers its open
-  and queued questions with no, and another console on the page takes over
-  asking. Before, the agent's call waited forever.
-- `clear` keeps an open question on screen, and the lines of a pasted batch
-  are never taken as answers to it. Before, a batch's `clear` hid a question
-  that then caught every line.
-- The console runs one line at a time: a line submitted while a command
-  runs waits its turn, so each output follows its own line. Answers to an
-  open question do not wait. `help`, `man` and `status` fail like commands
-  instead of rejecting `submit()`.
-- Console keys: <kbd>ArrowDown</kbd> past the newest history line brings
-  back what you were typing; keys pressed while an input method composes
-  (IME) are left to it; the hotkey does not fire on key repeat or in a
-  `role="textbox"` editor, and only the first drop-down console answers it.
-- The console resets the text styles it would inherit from the page
-  (`text-transform`, letter and word spacing, indent, alignment, font
-  style), so the highlighting stays under the caret on any page.
-- The build and docs scripts run on every Node 20, as `engines` says; they
-  needed 20.11 before.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches
@@ -129,8 +53,21 @@ breaking changes bump the minor version.
 - **More of the schema is checked**: `const`, `exclusiveMinimum`,
   `exclusiveMaximum`, `multipleOf`, `minLength`, `maxLength`, `pattern`,
   array `items` (one level), `minItems`, `maxItems`, `uniqueItems`, and
-  `type: [T, "null"]`. `register()` warns once about keywords it does not
-  check, and refuses a `pattern` that is not a valid regular expression.
+  `type: [T, "null"]`. `enum`, `const` and `uniqueItems` compare objects and
+  lists by value. `register()` warns once about keywords it does not check,
+  and refuses a `pattern` that is not a valid regular expression.
+- **`date` and `date-time` are checked as RFC 3339**, with a calendar check:
+  `2026-02-31`, `"May 5"` and a date-time without seconds or an offset are
+  refused. Before, anything `Date.parse` read passed.
+- **Only a `CommandError` sets the exit code**, and never to 0. Anything
+  else thrown is exit 1. Before, any integer `err.code` was used, so a
+  `DOMException` (legacy `code` 0) counted as success.
+- **`register()` refuses more names**: a name of more than six words, which
+  no command line could reach, and a name starting with `sutram`, which
+  Sutram's own tools use.
+- **The page's registry has a new key** (`sutram.registry@2`). 0.4 does not
+  share a registry with 0.3 or earlier, and warns when both are on a page.
+  Load one version.
 - **Positional words are never dropped.** They fill the positional keys not
   given as options; a word with no key left is a usage error.
 - Only own properties count, in both directions: `--constructor` is unknown
@@ -138,44 +75,65 @@ breaking changes bump the minor version.
   is "not given" until the input has it (in checks, output checks, tables,
   `--json=` fields and event payloads).
 - Event payloads are checked strictly (nothing is converted) and delivered
-  as emitted.
+  as emitted; the buffer behind `events recent` keeps a copy.
 - **`sutram_status` returns `{ code: 0, data: { providers } }`**, the same
   shape as every other call. Before, `providers` was at the top level.
+- **`commandLine()` writes every value so that it reads back the same.**
+  Objects, and lists whose items hold commas or objects, are written as JSON
+  (`--meta='{"a":1}'`); `null` is left out; `true` for a non-boolean is
+  `--key=true`, not a flag. Console text accepts a JSON list for an array
+  (`--tags='["a,b"]'`). Before, an object became `[object Object]`.
 - **The console's hotkey**: the key left of 1, found by position (`` ` `` on US,
   `^` on German, `²` on French keyboards), outside text fields, and Ctrl
   with it anywhere. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> is gone: it is
-  Firefox's Web Console. Set your own with `mountConsole({ hotkey })`.
-- While the console asks a question, a line that is not y, n (or a) asks
-  again instead of meaning no. A second question waits for the first.
+  Firefox's Web Console. Set your own with `mountConsole({ hotkey })`. It
+  does not fire on key repeat or in a `role="textbox"` editor, and only the
+  first drop-down console on a page answers it.
+- The console's input is a textarea: <kbd>Enter</kbd> inside quotes and
+  <kbd>Shift</kbd>+<kbd>Enter</kbd> start a new line.
 - `--flag true` and `--flag false` are usage errors. Before, the word became
-  an argument and the flag was set to true.
+  an argument and the flag was set to true. A nullable boolean
+  (`type: ["boolean", "null"]`) is a flag too.
+- A multi-line description: `help` and `-h` show its first line, `man`
+  shows the rest under DESCRIPTION.
 
 ### Added
 
 - `registry.policy`: who is asked before a command runs, per kind of caller
   (person, agent) and level (`none`, `consequential`, `changes`), and
-  `policy.setAsker()` for your own dialog.
+  `policy.setAsker()` for your own dialog. What the user is asked about is
+  what runs: `confirm()`, the asker and the question's command lines get the
+  checked input (converted, defaults filled), and clients pass the definition
+  they asked about (`run(name, input, { expect })`), so a command swapped in
+  during the question does not run (130). A `confirm()` that throws gets the
+  generic question. An aborted call withdraws its question
+  (`request.signal`).
 - Batches: `registry.defineBatch()`, `registry.batch()`,
   `registry.startBatch()`, and the `sutram_batch` WebMCP tool. Pasted blocks
-  run as one batch.
+  run as one batch. Every step is checked first and runs the definition that
+  was checked; one batch runs at a time, and console and agent runs of a
+  provider in a running batch wait for it, so a rollback never undoes their
+  edits. Always finish a `startBatch()` batch.
 - <kbd>Tab</kbd> completion in the console, and `suggest()` on commands.
 - `mountConsole(options, container)` for an inline console in your own panel.
 - `MESSAGES`: the console's own texts, translatable.
+- The console asks questions in place: a line that is not y, n (or a) asks
+  again, a second question waits for the first, `clear` keeps an open
+  question, and removing a console answers its questions with no while
+  another console on the page takes over asking.
 - Heredocs: `--value <<END`, then the text, then a line holding only `END`.
   The text is taken as written, so HTML needs no escaping. `commandLine()`
   writes multi-line values as heredocs, and the agent prompt mentions them.
 - TypeScript declarations in `types/`. A `Result` names the other side's
   fields as `never`, so `if (r.code === 0) r.text` type-checks and
   `"message" in r` narrows; `ExitCode` keeps its named codes and allows a
-  `CommandError`'s own.
-  `types/dist.d.ts` types the two bundles: every entry point's exports plus
-  the default `Sutram` object.
+  `CommandError`'s own. `types/dist.d.ts` types the two bundles.
 - `run()` may return a string, used as its text. Returning any other
   non-object is now exit 1 with a message saying what to return.
 - `dist/sutram.min.js`: the bundle without comments and indentation (no
-  renaming, no dependency). Both bundles are marked as side effects, so a
-  bundler keeps `import "@d34dman/sutram/dist/sutram.js"`. It keeps the
-  banner with the license notice.
+  renaming, no dependency), with the same license banner. Both bundles are
+  marked as side effects, so a bundler keeps
+  `import "@d34dman/sutram/dist/sutram.js"`.
 - `checkInput(schema, input, formats, { strict })`.
 - `input` is optional: a command with no arguments may leave it out.
 - A backslash at the end of a line joins the next line, in the console,
@@ -186,7 +144,8 @@ breaking changes bump the minor version.
 - `mountConsole({ hotkey })`, `parseHotkey()`, `matchHotkey()` and
   `DEFAULT_HOTKEY`.
 - Console history survives navigation in the tab (`sessionStorage`, last
-  100 lines); `history: "off"` keeps it in memory.
+  100 lines); `history: "off"` keeps it in memory. <kbd>ArrowDown</kbd> past
+  the newest line brings back what you were typing.
 - The drop-down console is a modal dialog: `aria-modal`, <kbd>Tab</kbd> stays
   inside, and focus returns to where it was on close.
 - Client words are case-insensitive in the console: `Help` works.
@@ -195,6 +154,35 @@ breaking changes bump the minor version.
 - Documentation site with `llms.txt` and `llms-full.txt`, every page also as
   Markdown; two agent skills in `skills/`; a forms example with progressive
   disclosure; `scripts/measure.mjs`.
+
+### Fixed
+
+- `run()` resolves 130 as soon as its signal aborts, even when the handler
+  ignores the signal.
+- Object and array defaults reach `run()` as copies, so a handler that
+  changes its input no longer changes the default for the next run.
+- Output checks accept a list of types (`["string", "null"]`) instead of
+  warning, check the type before the format, follow `$ref: "#"`, and stop
+  32 levels deep, so cyclic data cannot overflow the stack after `run()`.
+- Checking a number is linear: a long non-number (40,000 digits and a
+  letter, which an agent can send) took seconds on the main thread. Pasting
+  is linear in the length of the text too.
+- `connectWebMCP()` registers every other tool when the browser refuses
+  one, and refreshes a tool whose definition changed in place (at its next
+  call, or when the same definition is registered again).
+- The console runs one line at a time, so each output follows its own line;
+  `help`, `man` and `status` fail like commands instead of rejecting
+  `submit()`; keys pressed while an input method composes (IME) are left to
+  it; and it resets the text styles it would inherit from the page, so the
+  highlighting stays under the caret.
+- `--json=fields` on an empty list prints `[]` instead of an error.
+- `date` and `date-time` values that are not dates are shown as written,
+  not as "Invalid Date".
+- Wording: "1 item" and "1 command"; a description ending in `!` or `?`
+  gets no extra full stop; an empty list prints "Nothing to show."; `man`
+  prints object defaults as JSON; usage lines and `man` show a nullable
+  type as `<string>` and "string or null".
+- The build and docs scripts run on every Node 20, as `engines` says.
 
 ## 0.3.0 (2026-10-16)
 
