@@ -293,3 +293,19 @@ test("connectWebMCP survives a tool the browser refuses, and refreshes a tool ch
   r.register(good); // registering the same definition again refreshes it too
   assert.deepEqual(mc.tools.get("good_go").annotations, { readOnlyHint: true, consequentialHint: true });
 });
+
+test("an aborted WebMCP call withdraws its question", async () => {
+  const { r, log } = counter();
+  const mc = fakeModelContext();
+  connectWebMCP(r, mc);
+  let seen = null;
+  r.policy.setAsker((req) => { seen = req.signal; return new Promise(() => {}); }); // the user never answers
+  const ctrl = new AbortController();
+  const pending = mc.tools.get("doc_clear").execute({}, { signal: ctrl.signal });
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.ok(seen && !seen.aborted);
+  ctrl.abort();
+  assert.equal((await pending).code, EXIT.CANCELLED);
+  assert.ok(seen.aborted);
+  assert.deepEqual(log, []);
+});

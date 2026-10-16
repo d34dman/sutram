@@ -250,10 +250,12 @@ export interface Completion { value: string; label: string; description: string 
 ```ts
 export type Level = "none" | "consequential" | "changes";
 export type Who = "person" | "agent";
+/** `signal` aborts when the call is withdrawn: the question can go, and its answer no longer counts. */
 export interface AskRequest {
   who: Who;
   caller: Caller;
   steps: Array<{ def: CommandDefinition; input: Record<string, unknown> }>;
+  signal?: AbortSignal;
 }
 export type Answer = boolean | "always";
 
@@ -453,6 +455,8 @@ export interface Messages {
   answered: (answer: Answer) => string;
   run: (name: string) => string;
   cancelled: string;
+  /** Shown after a question whose call was cancelled before anyone answered. */
+  withdrawn: string;
   answerHint: (always: boolean) => string;
   manWhich: string;
   manMissing: (name: string) => string;

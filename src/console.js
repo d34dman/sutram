@@ -31,6 +31,7 @@ export const MESSAGES = Object.freeze({
   answered: (answer) => (answer === "always" ? "yes, and stop asking" : answer ? "yes" : "no"),
   run: (name) => `Run ${name}?`,
   cancelled: "Cancelled. Nothing changed.",
+  withdrawn: "withdrawn",
   answerHint: (always) => (always ? "Answer y (yes), a (yes, and stop asking) or n (no)." : "Answer y (yes) or n (no)."),
   manWhich: "What manual page do you want?\nFor example, try: man help",
   manMissing: (name) => `No manual entry for ${name}. See help.`,
@@ -596,9 +597,18 @@ export class SutramConsole extends Base {
    * question asked while another is open waits its turn; `lead` prints what
    * it is about when its turn comes.
    */
-  ask(message, { always = false, lead = null } = {}) {
+  ask(message, { always = false, lead = null, signal } = {}) {
     return new Promise((resolve) => {
-      const show = () => this.showAsk(message, always, lead, resolve);
+      if (signal && signal.aborted) { resolve(false); return; }
+      let done = null; // set once the question is shown
+      const show = () => { done = this.showAsk(message, always, lead, resolve); };
+      // A withdrawn question goes: from the queue, or answered "withdrawn" on screen.
+      if (signal) {
+        signal.addEventListener("abort", () => {
+          if (done) done(false, this.messages.withdrawn);
+          else { this.askQueue = this.askQueue.filter((s) => s !== show); resolve(false); }
+        }, { once: true });
+      }
       if (this.pendingAsk) this.askQueue.push(show);
       else show();
     });
@@ -609,11 +619,14 @@ export class SutramConsole extends Base {
     const m = this.messages;
     if (lead) lead();
     const el = this.print(message + " ", "ask");
-    const done = (answer) => {
+    let answered = false;
+    const done = (answer, label) => {
+      if (answered) return;
+      answered = true;
       if (answer === "always" && !always) answer = true;
-      this.pendingAsk = null;
+      if (this.pendingAsk === done) this.pendingAsk = null;
       el.querySelectorAll("button").forEach((b) => b.remove());
-      el.append(m.answered(answer));
+      el.append(label || m.answered(answer));
       resolve(answer);
       this.input.focus();
       const next = this.askQueue.shift();
@@ -630,6 +643,7 @@ export class SutramConsole extends Base {
       el.append(b);
     }
     this.pendingAsk = done;
+    return done;
   }
 
   /** Whether "stop asking" can be offered: only about ordinary changes, never consequential ones. */
@@ -638,7 +652,7 @@ export class SutramConsole extends Base {
   }
 
   /** The policy's asker: shows what an agent wants to run, and asks. */
-  async askForAgent({ who, steps }) {
+  async askForAgent({ who, steps, signal }) {
     const m = this.messages;
     this.open();
     const lead = () => {
@@ -646,7 +660,7 @@ export class SutramConsole extends Base {
       for (const { def, input } of steps) this.echo(commandLine(def, input), "input agent");
     };
     const question = steps.length === 1 ? (ownQuestion(steps[0].def, steps[0].input) || m.run(steps[0].def.name)) : m.agentBatch(steps.length);
-    return this.ask(question, { always: this.canStopAsking(who, steps.map((s) => s.def)), lead });
+    return this.ask(question, { always: this.canStopAsking(who, steps.map((s) => s.def)), lead, signal });
   }
 
   // ---- running -----------------------------------------------------------

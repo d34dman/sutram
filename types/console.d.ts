@@ -19,6 +19,8 @@ export interface Messages {
   answered: (answer: Answer) => string;
   run: (name: string) => string;
   cancelled: string;
+  /** Shown after a question whose call was cancelled before anyone answered. */
+  withdrawn: string;
   answerHint: (always: boolean) => string;
   manWhich: string;
   manMissing: (name: string) => string;

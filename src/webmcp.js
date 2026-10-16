@@ -103,15 +103,16 @@ function question(steps) {
  * browser's confirm() when there is none; Sutram.call() cannot ask, so it
  * tells its caller to ask and call again with { confirmed: true }.
  */
-async function approve(registry, steps, { confirmed = false, interactive = false, caller = "agent" } = {}, label = steps.length === 1 ? toolName(steps[0].def) : BATCH_TOOL.name) {
+async function approve(registry, steps, { confirmed = false, interactive = false, caller = "agent", signal } = {}, label = steps.length === 1 ? toolName(steps[0].def) : BATCH_TOOL.name) {
   const policy = registry.policy;
   const needing = steps.filter((s) => policy.needs(s.def, "agent"));
   if (!needing.length || confirmed) return null;
   if (interactive) {
     let yes;
-    if (policy.hasAsker()) yes = await policy.ask({ who: "agent", caller, steps });
+    if (policy.hasAsker()) yes = await policy.ask({ who: "agent", caller, steps, signal });
     else if (typeof globalThis.confirm === "function") yes = globalThis.confirm(`An agent on this page wants to act.\n\n${question(steps)}`);
     else return { code: EXIT.CANCELLED, message: `${label} needs the user's approval, and this page has no way to ask, so it did not run.` };
+    if (signal && signal.aborted) return { code: EXIT.CANCELLED, message: `${label}: cancelled` };
     return yes ? null : { code: EXIT.CANCELLED, message: `The user declined ${label}, so nothing ran.` };
   }
   const why = needing.some((s) => s.def.annotations.consequential)

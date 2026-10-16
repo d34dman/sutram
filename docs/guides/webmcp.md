@@ -48,7 +48,8 @@ change the user's page. So every call goes through the page's
 approval, the console shows what the agent wants to run and asks the person.
 Without a console, the page's asker or the browser's `confirm()` asks. That includes
 `sutram_status`: its commands are read-only, but a page may mark one
-consequential.
+consequential. When the agent's host cancels a call while the person is
+deciding, the question is withdrawn and nothing runs.
 
 ## Without WebMCP
 

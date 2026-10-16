@@ -270,3 +270,12 @@ test("checkOutput accepts nullable types and stops at a depth limit on cyclic da
   a.next = a;
   assert.equal(checkOutput(node, a), null);
 });
+
+test("an abort settles run() with 130 even when the handler ignores the signal", async () => {
+  const r = createRegistry();
+  r.register(def({ run: () => new Promise(() => {}) }));
+  const ctrl = new AbortController();
+  const pending = r.run("cart add", { sku: "x" }, { signal: ctrl.signal });
+  setTimeout(() => ctrl.abort(), 5);
+  assert.deepEqual(await pending, { code: EXIT.CANCELLED, message: "cart add: cancelled" });
+});

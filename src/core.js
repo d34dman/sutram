@@ -282,6 +282,13 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
       promise.then(() => { signal.removeEventListener("abort", onAbort); resolve(true); });
     });
   };
+  /** The promise's value, or undefined as soon as the signal aborts. */
+  const raceAbort = (promise, signal) => {
+    if (!signal) return promise;
+    let onAbort;
+    const aborted = new Promise((resolve) => { onAbort = () => resolve(undefined); signal.addEventListener("abort", onAbort, { once: true }); });
+    return Promise.race([promise, aborted]).finally(() => signal.removeEventListener("abort", onAbort));
+  };
   const cancelled = (name) => ({ code: EXIT.CANCELLED, message: `${name}: cancelled` });
 
   async function execute(name, input, { caller = "code", signal, expect } = {}, inBatch) {
@@ -304,7 +311,9 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
     notify(runFns, { name, input: value, caller });
     const result = await (async () => {
       try {
-        let res = await def.run(value, { caller, signal });
+        // An abort settles the call even when the handler ignores the signal.
+        let res = await raceAbort(def.run(value, { caller, signal }), signal);
+        if (signal && signal.aborted) return cancelled(name);
         if (typeof res === "string") res = { text: res };
         else if (res === undefined || res === null) res = {};
         else if (!isPlainObject(res)) {

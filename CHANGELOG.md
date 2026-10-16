@@ -73,6 +73,10 @@ breaking changes bump the minor version.
 - Output checks accept a list of types (`["string", "null"]`) instead of
   warning, check the type before the format, follow `$ref: "#"`, and stop
   32 levels deep, so cyclic data cannot overflow the stack after `run()`.
+- **An abort settles the call.** `run()` resolves 130 as soon as its signal
+  aborts, even when the handler ignores the signal. WebMCP passes the
+  signal to the asker (`request.signal`), and the console withdraws the
+  question (`MESSAGES.withdrawn`).
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

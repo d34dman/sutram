@@ -50,8 +50,9 @@ export function createPolicy({ person = "consequential", agent = "consequential"
 
     /**
      * Sets the function that asks the user, for callers that cannot ask
-     * themselves (an agent through WebMCP). It gets { who, caller, steps },
-     * where steps is [{ def, input }], and resolves to true, false, or
+     * themselves (an agent through WebMCP). It gets { who, caller, steps,
+     * signal? }, where steps is [{ def, input }]; when the signal aborts, the
+     * call is withdrawn and the question can go. It resolves to true, false, or
      * "always": yes, and stop asking this kind of caller about ordinary
      * changes for the rest of the page's life. A console sets itself as the
      * asker when it connects and none is set. Returns a function that removes it.
@@ -72,8 +73,15 @@ export function createPolicy({ person = "consequential", agent = "consequential"
      */
     async ask(request) {
       if (!asker) return false;
+      const { signal } = request;
+      if (signal && signal.aborted) return false;
       let answer;
-      try { answer = await asker(request); } catch (err) { console.error(err); return false; }
+      try {
+        // An aborted call withdraws its question: the answer is no.
+        const aborted = signal && new Promise((resolve) => signal.addEventListener("abort", () => resolve(false), { once: true }));
+        answer = await (aborted ? Promise.race([asker(request), aborted]) : asker(request));
+      } catch (err) { console.error(err); return false; }
+      if (signal && signal.aborted) return false;
       if (answer === "always" && !request.steps.some((s) => s.def.annotations.consequential)) policy.relax(request.who);
       return answer === true || answer === "always";
     },

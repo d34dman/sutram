@@ -173,7 +173,8 @@ export interface Completion { value: string; label: string; description: string 
 
 export type Level = "none" | "consequential" | "changes";
 export type Who = "person" | "agent";
-export interface AskRequest { who: Who; caller: Caller; steps: Array<{ def: CommandDefinition; input: Record<string, unknown> }> }
+/** `signal` aborts when the call is withdrawn: the question can go, and its answer no longer counts. */
+export interface AskRequest { who: Who; caller: Caller; steps: Array<{ def: CommandDefinition; input: Record<string, unknown> }>; signal?: AbortSignal }
 export type Answer = boolean | "always";
 
 export interface Policy {
