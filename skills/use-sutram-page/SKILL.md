@@ -18,9 +18,12 @@ and they ask the person before anything consequential.
   `cart add` is `cart_add`.
 - **JavaScript in the page**, if you can evaluate code:
   `Sutram.tools()` lists the tools (the same list WebMCP gets), and
-  `await Sutram.call("cart_add", { sku: "V60-02" })` calls one.
-- **Command lines** in the page's console (press ` or Ctrl+Shift+K), or from
-  JavaScript: `const p = Sutram.parse(Sutram.registry, "help")`.
+  `await Sutram.call("cart_add", { sku: "V60-02" })` calls one. `call()` takes
+  the command name too: `Sutram.call("cart add", …)`.
+- **Command lines** in the page's console (press the key left of 1, or Ctrl
+  with it), or from JavaScript:
+  `const { def, input } = Sutram.client.parse(Sutram.registry, "cart add V60-02")`,
+  then `Sutram.call(def.name, input)`.
 
 ## Rules
 

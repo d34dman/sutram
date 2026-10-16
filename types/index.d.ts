@@ -35,9 +35,6 @@ export interface Schema {
 export declare const EXIT: Readonly<{ OK: 0; FAILED: 1; USAGE: 2; NOT_FOUND: 127; CANCELLED: 130 }>;
 export type ExitCode = 0 | 1 | 2 | 127 | 130 | number;
 
-export declare const RESERVED_WORDS: readonly ["help", "man", "status", "clear"];
-export declare const CLIENT_OPTIONS: readonly ["help", "json", "wide"];
-
 export declare class CommandError extends Error {
   constructor(message: string, code?: ExitCode);
   code: ExitCode;
@@ -74,7 +71,8 @@ export interface CommandDefinition<I extends Record<string, any> = Record<string
   /** Who owns it; help groups by this. */
   provider: string;
   description: string;
-  input: Schema;
+  /** JSON Schema for the input. Leave it out for a command with no arguments. */
+  input?: Schema;
   output?: Schema;
   /** Input keys that can be given without --, in order. The last takes the rest of the line. */
   positional?: string[];
@@ -145,12 +143,6 @@ export interface Registry {
 
 export declare function createRegistry(options?: { checkResults?: boolean; formats?: Formats; policy?: Policy }): Registry;
 export declare function getRegistry(): Registry;
-/** With { strict: true }, strings are not converted to the declared types (for values from code, such as event payloads). */
-export declare function checkInput(schema: Schema, input?: Record<string, unknown> | null, formats?: Formats, options?: { strict?: boolean }): { errors: string[]; value: Record<string, unknown> };
-export declare function checkOutput(schema: Schema, data: unknown, root?: Schema, formats?: Formats): string | null;
-export declare function deref(schema: Schema, root: Schema): Schema | undefined;
-export declare function isStatusCommand(def: CommandDefinition): boolean;
-export declare function runStatus(registry: Registry, options?: { caller?: Caller; signal?: AbortSignal }): Promise<Array<{ provider: string } & Result>>;
 
 // ---- parse ----------------------------------------------------------------
 
@@ -165,16 +157,6 @@ export interface Parsed {
 }
 export type SpanKind = "space" | "command" | "client" | "unknown" | "option" | "bad-option" | "value" | "string" | "arg";
 export interface Completion { value: string; label: string; description: string }
-
-export declare function tokenize(line: string): Token[];
-export declare function parse(registry: Registry, line: string): Parsed;
-export declare function suggest(registry: Registry, words: string[]): string | null;
-export declare function distance(a: string, b: string): number;
-export declare function highlight(registry: Registry, line: string): Array<{ text: string; kind: SpanKind }>;
-export declare function complete(registry: Registry, line: string, options?: { signal?: AbortSignal; limit?: number }): Promise<{ start: number; end: number; items: Completion[] }>;
-export declare function splitLines(text: string): string[];
-/** What the text leaves open at its end: a quote, `<<TAG` for a heredoc, or null. */
-export declare function openQuote(text: string): '"' | "'" | `<<${string}` | null;
 
 // ---- policy ---------------------------------------------------------------
 
@@ -195,8 +177,6 @@ export interface Policy {
 
 export declare const LEVELS: readonly Level[];
 export declare function createPolicy(levels?: Partial<{ person: Level; agent: Level }>): Policy;
-export declare function whoIs(caller: Caller): Who | null;
-export declare function ownQuestion(def: CommandDefinition, input: Record<string, unknown>): string | null;
 
 // ---- formats --------------------------------------------------------------
 
@@ -225,21 +205,6 @@ export declare function getFormats(): Formats;
 export interface Block { kind: string; text: string; head?: string; code?: ExitCode; commands?: CommandDefinition[] }
 export interface FormatOptions { locale?: string; formats?: Formats; json?: boolean; wide?: boolean; fields?: string[] | null }
 
-export declare function formatResult(result: Result, def?: Partial<CommandDefinition>, options?: FormatOptions): Block[];
-export declare function formatValue(value: unknown, prop?: Schema, options?: FormatOptions): string;
-export declare function formatTable(rows: Record<string, unknown>[], itemSchema: Schema, root?: Schema, options?: FormatOptions & { columns?: string[]; maxWidth?: number }): { head: string; rows: string[] };
-export declare function blocksToText(blocks: Block[]): string;
-export declare function formatHelp(registry: Registry, prefix?: string): Block[];
-export declare function formatUsage(def: CommandDefinition): Block[];
-export declare function formatMan(def: CommandDefinition | undefined, name?: string, formats?: Formats): Block[];
-export declare function synopsis(def: CommandDefinition): string;
-export declare function longSynopsis(def: CommandDefinition): string | null;
-export declare function annotationLabel(annotations?: Annotations): "read-only" | "consequential" | "navigates" | null;
-export declare function describeShape(schema: Schema, root?: Schema, depth?: number): string;
-export declare function sentence(s: string): string;
-export declare function checkFields(def: CommandDefinition, fields: string[]): string | null;
-export declare function selectFields(data: unknown, fields: string[], schema?: Schema): { data?: unknown; error?: string };
-export declare function formatsUsed(def: CommandDefinition, formats?: Formats): Array<{ name: string } & FormatDefinition>;
 export declare function commandLine(def: CommandDefinition, input?: Record<string, unknown>): string;
 
 /**

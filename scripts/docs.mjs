@@ -97,11 +97,13 @@ const wrapDeclarations = (text) => text.split("\n").map((l) => wrapDeclaration(l
 
 function apiReference() {
   const entries = [
-    ["@d34dman/sutram", "index", "The registry, the parser, the formatter, policy, formats and agentPrompt(). No DOM."],
+    ["@d34dman/sutram", "index", "What app authors use: the registry, formats, the policy, commandLine() and agentPrompt(), and the types every entry point shares. No DOM."],
+    ["@d34dman/sutram/client", "client", "For building a client of your own (a terminal, a console, a test harness): parse and complete command lines, check input, run status, format results. Covered by semver. No DOM."],
     ["@d34dman/sutram/console", "console", "The console, <sutram-console>."],
     ["@d34dman/sutram/webmcp", "webmcp", "Commands as WebMCP tools, tools() and callTool()."],
     ["@d34dman/sutram/events", "events", "Declared events, and the events list and events recent commands."],
-    ["@d34dman/sutram/browser", "browser", "globalThis.Sutram: everything above in one object. Also dist/sutram.js."],
+    ["@d34dman/sutram/browser", "browser", "globalThis.Sutram: the registry and its helpers in one object, with /client as Sutram.client. Also dist/sutram.js."],
+    ["@d34dman/sutram/internals", "internals", "Helpers Sutram uses itself. No semver promise: any release may change them."],
   ];
   const out = [
     "---",
@@ -159,9 +161,12 @@ and they ask the person before anything consequential.
   \`cart add\` is \`cart_add\`.
 - **JavaScript in the page**, if you can evaluate code:
   \`Sutram.tools()\` lists the tools (the same list WebMCP gets), and
-  \`await Sutram.call("cart_add", { sku: "V60-02" })\` calls one.
-- **Command lines** in the page's console (press \` or Ctrl+Shift+K), or from
-  JavaScript: \`const p = Sutram.parse(Sutram.registry, "help")\`.
+  \`await Sutram.call("cart_add", { sku: "V60-02" })\` calls one. \`call()\` takes
+  the command name too: \`Sutram.call("cart add", …)\`.
+- **Command lines** in the page's console (press the key left of 1, or Ctrl
+  with it), or from JavaScript:
+  \`const { def, input } = Sutram.client.parse(Sutram.registry, "cart add V60-02")\`,
+  then \`Sutram.call(def.name, input)\`.
 
 ## Rules
 

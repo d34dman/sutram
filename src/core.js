@@ -20,7 +20,7 @@ export const RESERVED_WORDS = Object.freeze(["help", "man", "status", "clear"]);
 /** Options that belong to clients: -h/--help, --json[=fields] and --wide. */
 export const CLIENT_OPTIONS = Object.freeze(["help", "json", "wide"]);
 
-const REQUIRED_FIELDS = ["name", "provider", "description", "input", "annotations"];
+const REQUIRED_FIELDS = ["name", "provider", "description", "annotations"];
 const NAME = /^[a-z][a-z0-9-]*( [a-z][a-z0-9-]*)*$/;
 
 export class CommandError extends Error {
@@ -266,6 +266,11 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
      * Registering a name another definition owns is refused.
      */
     register(def) {
+      // A command without arguments may leave out input.
+      if (def && def.input === undefined) {
+        const input = { type: "object", properties: {} };
+        def = Object.isExtensible(def) ? Object.assign(def, { input }) : { ...def, input };
+      }
       checkDefinition(def);
       const existing = commands.get(def.name);
       if (existing && existing !== def) {

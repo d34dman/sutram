@@ -1,9 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  formatResult, blocksToText, formatMan, describeShape, createRegistry, formatHelp,
-  checkFields, createFormats,
-} from "../src/index.js";
+import { createRegistry, createFormats } from "../src/index.js";
+import { formatResult, blocksToText, formatMan, formatHelp, checkFields } from "../src/client.js";
+import { describeShape } from "../src/internals.js";
 
 // Money is the app's format, not Sutram's: this test defines it the way a commerce module would.
 const formats = createFormats();

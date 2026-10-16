@@ -1,9 +1,12 @@
 import type * as core from "./index.js";
+import type * as client from "./client.js";
 import type { Events } from "./events.js";
 import type { mountConsole } from "./console.js";
 import type { Tool, callTool } from "./webmcp.js";
 
-export type SutramGlobal = typeof core & {
+export type SutramGlobal = {
+  EXIT: typeof core.EXIT;
+  CommandError: typeof core.CommandError;
   registry: core.Registry;
   events: Events;
   formats: core.Formats;
@@ -15,6 +18,8 @@ export type SutramGlobal = typeof core & {
   agentPrompt(task?: string, page?: { title?: string; url?: string }): string;
   mountConsole: typeof mountConsole;
   connectWebMCP(): () => void;
+  /** @d34dman/sutram/client, for pages that build a client of their own. */
+  client: typeof client;
 };
 
 declare global {

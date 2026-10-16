@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry, complete, splitLines, openQuote, parse } from "../src/index.js";
+import { createRegistry } from "../src/index.js";
+import { complete, splitLines, openQuote, parse } from "../src/client.js";
 
 const r = createRegistry();
 r.register({

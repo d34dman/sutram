@@ -14,7 +14,7 @@ test("the build bundles browser.js into one module with the same API", async () 
 
   const bundle = await import(join(dir, "dist/sutram.js"));
   assert.deepEqual(Object.keys(api).filter((k) => !(k in bundle)), []);
-  for (const entry of ["events", "webmcp", "console"]) {
+  for (const entry of ["client", "events", "webmcp", "console"]) {
     const mod = await import(`../src/${entry}.js`);
     assert.deepEqual(Object.keys(mod).filter((k) => !(k in bundle)), [], `${entry} exports`);
   }
@@ -29,4 +29,32 @@ test("the build bundles browser.js into one module with the same API", async () 
   assert.equal(bundle.default.run, undefined);
   assert.ok(bundle.default.tools().some((t) => t.name === "build_check"));
   assert.equal((await bundle.default.call("build_check")).text, "hello");
+});
+
+test("the stripped build keeps every string, template and regex as written", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sutram-min-"));
+  for (const part of ["src", "scripts", "package.json"]) cpSync(part, join(dir, part), { recursive: true });
+  execFileSync(process.execPath, [join(dir, "scripts/build.mjs")]);
+  // Each bundle sets globalThis.Sutram once, so each runs in its own process.
+  const probe = (file) => execFileSync(process.execPath, ["--input-type=module", "-e", `
+    const m = await import(${JSON.stringify(join(dir, "dist", file))});
+    const { client } = m.default;
+    const r = m.createRegistry();
+    r.register({ name: "note set", provider: "n", description: "Set a note", positional: ["field", "value"], annotations: {},
+      input: { type: "object", properties: { field: { type: "string", pattern: "^[a-z]+$" }, value: { type: "string" } } }, run: (i) => ({ data: i }) });
+    const line = 'note set title --value <<END\\n<p class="a">// not a comment /* nor this */ \\\`x\\\` \${y}</p>\\nEND';
+    const out = {
+      prompt: m.agentPrompt("Fix the title", { title: "Page", url: "https://example.org/a//b" }),
+      parsed: client.parse(r, line).input,
+      line: m.commandLine(r.get("note set"), { field: "title", value: "a // b\\n/* c */" }),
+      spans: client.highlight(r, "note set ti\\\\\\ntle --value='x // y'"),
+      checked: await r.run("note set", { field: "Ti" }),
+      messages: Object.keys(m.MESSAGES).length,
+      hotkey: m.parseHotkey(m.DEFAULT_HOTKEY),
+    };
+    console.log(JSON.stringify(out));
+  `], { encoding: "utf8" });
+  const full = probe("sutram.js");
+  assert.equal(probe("sutram.min.js"), full);
+  assert.match(full, /Fix the title/);
 });

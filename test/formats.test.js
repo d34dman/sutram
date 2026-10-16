@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createFormats, createRegistry, checkInput, checkOutput, formatValue, formatResult, blocksToText, EXIT } from "../src/index.js";
+import { createFormats, createRegistry, EXIT } from "../src/index.js";
+import { checkInput, checkOutput, formatResult, blocksToText } from "../src/client.js";
+import { formatValue } from "../src/internals.js";
 import { toTool } from "../src/webmcp.js";
 
 const sku = {

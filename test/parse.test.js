@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry, parse, tokenize, splitLines, openQuote, EXIT, commandLine, highlight } from "../src/index.js";
+import { createRegistry, EXIT, commandLine } from "../src/index.js";
+import { parse, tokenize, splitLines, openQuote, highlight } from "../src/client.js";
 
 const r = createRegistry();
 r.register({

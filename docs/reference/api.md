@@ -11,7 +11,7 @@ Version 0.3.0. This page is generated from the TypeScript declarations in `types
 
 ## `@d34dman/sutram`
 
-The registry, the parser, the formatter, policy, formats and agentPrompt(). No DOM.
+What app authors use: the registry, formats, the policy, commandLine() and agentPrompt(), and the types every entry point shares. No DOM.
 
 ```ts
 export type SchemaType =
@@ -61,9 +61,6 @@ export declare const EXIT: Readonly<{
 }>;
 export type ExitCode = 0 | 1 | 2 | 127 | 130 | number;
 
-export declare const RESERVED_WORDS: readonly ["help", "man", "status", "clear"];
-export declare const CLIENT_OPTIONS: readonly ["help", "json", "wide"];
-
 export declare class CommandError extends Error {
   constructor(message: string, code?: ExitCode);
   code: ExitCode;
@@ -104,7 +101,8 @@ export interface CommandDefinition<I extends Record<string, any> = Record<string
   /** Who owns it; help groups by this. */
   provider: string;
   description: string;
-  input: Schema;
+  /** JSON Schema for the input. Leave it out for a command with no arguments. */
+  input?: Schema;
   output?: Schema;
   /** Input keys that can be given without --, in order. The last takes the rest of the line. */
   positional?: string[];
@@ -201,25 +199,6 @@ export declare function createRegistry(options?: {
   policy?: Policy;
 }): Registry;
 export declare function getRegistry(): Registry;
-/** With { strict: true }, strings are not converted to the declared types (for values from code, such as event payloads). */
-export declare function checkInput(
-  schema: Schema,
-  input?: Record<string, unknown> | null,
-  formats?: Formats,
-  options?: { strict?: boolean },
-): { errors: string[]; value: Record<string, unknown> };
-export declare function checkOutput(
-  schema: Schema,
-  data: unknown,
-  root?: Schema,
-  formats?: Formats,
-): string | null;
-export declare function deref(schema: Schema, root: Schema): Schema | undefined;
-export declare function isStatusCommand(def: CommandDefinition): boolean;
-export declare function runStatus(
-  registry: Registry,
-  options?: { caller?: Caller; signal?: AbortSignal },
-): Promise<Array<{ provider: string } & Result>>;
 ```
 
 ### parse
@@ -245,23 +224,6 @@ export type SpanKind =
   | "string"
   | "arg";
 export interface Completion { value: string; label: string; description: string }
-
-export declare function tokenize(line: string): Token[];
-export declare function parse(registry: Registry, line: string): Parsed;
-export declare function suggest(registry: Registry, words: string[]): string | null;
-export declare function distance(a: string, b: string): number;
-export declare function highlight(
-  registry: Registry,
-  line: string,
-): Array<{ text: string; kind: SpanKind }>;
-export declare function complete(
-  registry: Registry,
-  line: string,
-  options?: { signal?: AbortSignal; limit?: number },
-): Promise<{ start: number; end: number; items: Completion[] }>;
-export declare function splitLines(text: string): string[];
-/** What the text leaves open at its end: a quote, `<<TAG` for a heredoc, or null. */
-export declare function openQuote(text: string): '"' | "'" | `<<${string}` | null;
 ```
 
 ### policy
@@ -291,11 +253,6 @@ export declare function createPolicy(levels?: Partial<{
   person: Level;
   agent: Level;
 }>): Policy;
-export declare function whoIs(caller: Caller): Who | null;
-export declare function ownQuestion(
-  def: CommandDefinition,
-  input: Record<string, unknown>,
-): string | null;
 ```
 
 ### formats
@@ -340,56 +297,6 @@ export interface FormatOptions {
   fields?: string[] | null;
 }
 
-export declare function formatResult(
-  result: Result,
-  def?: Partial<CommandDefinition>,
-  options?: FormatOptions,
-): Block[];
-export declare function formatValue(
-  value: unknown,
-  prop?: Schema,
-  options?: FormatOptions,
-): string;
-export declare function formatTable(
-  rows: Record<string, unknown>[],
-  itemSchema: Schema,
-  root?: Schema,
-  options?: FormatOptions & { columns?: string[]; maxWidth?: number },
-): { head: string; rows: string[] };
-export declare function blocksToText(blocks: Block[]): string;
-export declare function formatHelp(registry: Registry, prefix?: string): Block[];
-export declare function formatUsage(def: CommandDefinition): Block[];
-export declare function formatMan(
-  def: CommandDefinition | undefined,
-  name?: string,
-  formats?: Formats,
-): Block[];
-export declare function synopsis(def: CommandDefinition): string;
-export declare function longSynopsis(def: CommandDefinition): string | null;
-export declare function annotationLabel(annotations?: Annotations):
-  | "read-only"
-  | "consequential"
-  | "navigates"
-  | null;
-export declare function describeShape(
-  schema: Schema,
-  root?: Schema,
-  depth?: number,
-): string;
-export declare function sentence(s: string): string;
-export declare function checkFields(
-  def: CommandDefinition,
-  fields: string[],
-): string | null;
-export declare function selectFields(
-  data: unknown,
-  fields: string[],
-  schema?: Schema,
-): { data?: unknown; error?: string };
-export declare function formatsUsed(
-  def: CommandDefinition,
-  formats?: Formats,
-): Array<{ name: string } & FormatDefinition>;
 export declare function commandLine(
   def: CommandDefinition,
   input?: Record<string, unknown>,
@@ -404,6 +311,102 @@ export declare function agentPrompt(
   task?: string,
   page?: { title?: string; url?: string },
 ): string;
+```
+
+## `@d34dman/sutram/client`
+
+For building a client of your own (a terminal, a console, a test harness): parse and complete command lines, check input, run status, format results. Covered by semver. No DOM.
+
+```ts
+// Declarations for @d34dman/sutram/client: what a client of the registry
+// needs. Covered by semver.
+
+  Annotations, Answer, AskRequest, Batch, BatchEnd, BatchHooks, BatchResult, Block, Caller, ChangeEvent, CommandDefinition, CommandOutput, Completion, ExitCode, FormatDefinition, FormatOptions, Formats, Level, Parsed, Policy, Registry, Result, ResultEvent, RunContext, RunEvent, Schema, SchemaType, SpanKind, Suggestion, Token, Who,
+} from "./index.js";
+
+export declare const RESERVED_WORDS: readonly ["help", "man", "status", "clear"];
+
+export declare const CLIENT_OPTIONS: readonly ["help", "json", "wide"];
+
+/** With { strict: true }, strings are not converted to the declared types (for values from code, such as event payloads). */
+export declare function checkInput(
+  schema: Schema,
+  input?: Record<string, unknown> | null,
+  formats?: Formats,
+  options?: { strict?: boolean },
+): { errors: string[]; value: Record<string, unknown> };
+
+export declare function checkOutput(
+  schema: Schema,
+  data: unknown,
+  root?: Schema,
+  formats?: Formats,
+): string | null;
+
+export declare function isStatusCommand(def: CommandDefinition): boolean;
+
+export declare function runStatus(
+  registry: Registry,
+  options?: { caller?: Caller; signal?: AbortSignal },
+): Promise<Array<{ provider: string } & Result>>;
+
+export declare function tokenize(line: string): Token[];
+
+export declare function parse(registry: Registry, line: string): Parsed;
+
+export declare function suggest(registry: Registry, words: string[]): string | null;
+
+export declare function highlight(
+  registry: Registry,
+  line: string,
+): Array<{ text: string; kind: SpanKind }>;
+
+export declare function complete(
+  registry: Registry,
+  line: string,
+  options?: { signal?: AbortSignal; limit?: number },
+): Promise<{ start: number; end: number; items: Completion[] }>;
+
+export declare function splitLines(text: string): string[];
+
+/** What the text leaves open at its end: a quote, `<<TAG` for a heredoc, or null. */
+export declare function openQuote(text: string): '"' | "'" | `<<${string}` | null;
+
+export declare function whoIs(caller: Caller): Who | null;
+
+export declare function ownQuestion(
+  def: CommandDefinition,
+  input: Record<string, unknown>,
+): string | null;
+
+export declare function formatResult(
+  result: Result,
+  def?: Partial<CommandDefinition>,
+  options?: FormatOptions,
+): Block[];
+
+export declare function blocksToText(blocks: Block[]): string;
+
+export declare function formatHelp(registry: Registry, prefix?: string): Block[];
+
+export declare function formatUsage(def: CommandDefinition): Block[];
+
+export declare function formatMan(
+  def: CommandDefinition | undefined,
+  name?: string,
+  formats?: Formats,
+): Block[];
+
+export declare function checkFields(
+  def: CommandDefinition,
+  fields: string[],
+): string | null;
+
+export declare function selectFields(
+  data: unknown,
+  fields: string[],
+  schema?: Schema,
+): { data?: unknown; error?: string };
 ```
 
 ## `@d34dman/sutram/console`
@@ -612,10 +615,12 @@ export declare function getEvents(registry?: Registry): Events;
 
 ## `@d34dman/sutram/browser`
 
-globalThis.Sutram: everything above in one object. Also dist/sutram.js.
+globalThis.Sutram: the registry and its helpers in one object, with /client as Sutram.client. Also dist/sutram.js.
 
 ```ts
-export type SutramGlobal = typeof core & {
+export type SutramGlobal = {
+  EXIT: typeof core.EXIT;
+  CommandError: typeof core.CommandError;
   registry: core.Registry;
   events: Events;
   formats: core.Formats;
@@ -631,6 +636,8 @@ export type SutramGlobal = typeof core & {
   agentPrompt(task?: string, page?: { title?: string; url?: string }): string;
   mountConsole: typeof mountConsole;
   connectWebMCP(): () => void;
+  /** @d34dman/sutram/client, for pages that build a client of their own. */
+  client: typeof client;
 };
 
 declare global {
@@ -640,4 +647,56 @@ declare global {
 
 declare const Sutram: SutramGlobal;
 export default Sutram;
+```
+
+## `@d34dman/sutram/internals`
+
+Helpers Sutram uses itself. No semver promise: any release may change them.
+
+```ts
+// Declarations for @d34dman/sutram/internals: helpers Sutram uses itself.
+// No semver promise.
+
+  Annotations, Answer, AskRequest, Batch, BatchEnd, BatchHooks, BatchResult, Block, Caller, ChangeEvent, CommandDefinition, CommandOutput, Completion, ExitCode, FormatDefinition, FormatOptions, Formats, Level, Parsed, Policy, Registry, Result, ResultEvent, RunContext, RunEvent, Schema, SchemaType, SpanKind, Suggestion, Token, Who,
+} from "./index.js";
+
+export declare function deref(schema: Schema, root: Schema): Schema | undefined;
+
+export declare function distance(a: string, b: string): number;
+
+export declare function formatValue(
+  value: unknown,
+  prop?: Schema,
+  options?: FormatOptions,
+): string;
+
+export declare function formatTable(
+  rows: Record<string, unknown>[],
+  itemSchema: Schema,
+  root?: Schema,
+  options?: FormatOptions & { columns?: string[]; maxWidth?: number },
+): { head: string; rows: string[] };
+
+export declare function synopsis(def: CommandDefinition): string;
+
+export declare function longSynopsis(def: CommandDefinition): string | null;
+
+export declare function annotationLabel(annotations?: Annotations):
+  | "read-only"
+  | "consequential"
+  | "navigates"
+  | null;
+
+export declare function describeShape(
+  schema: Schema,
+  root?: Schema,
+  depth?: number,
+): string;
+
+export declare function sentence(s: string): string;
+
+export declare function formatsUsed(
+  def: CommandDefinition,
+  formats?: Formats,
+): Array<{ name: string } & FormatDefinition>;
 ```

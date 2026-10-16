@@ -1,17 +1,11 @@
-// sutram: the registry, the command line parser and the formatter.
-// No DOM. The console, the WebMCP bridge and events are separate entry points:
-//   @d34dman/sutram/console, /webmcp, /events, /browser
+// sutram: what app authors use. The registry, formats, the policy, and
+// helpers to describe a command line or prompt a chat assistant. No DOM.
+// Building a client of your own (a terminal, a console, a test harness)?
+// See @d34dman/sutram/client. The console, the WebMCP bridge and events are
+// separate entry points: /console, /webmcp, /events, /browser.
 
-export {
-  EXIT, RESERVED_WORDS, CLIENT_OPTIONS, CommandError,
-  createRegistry, getRegistry, checkInput, checkOutput, deref, isStatusCommand, runStatus,
-} from "./core.js";
-export { tokenize, parse, suggest, distance, highlight, complete, splitLines, openQuote } from "./parse.js";
-export { createPolicy, LEVELS, whoIs, ownQuestion } from "./policy.js";
+export { EXIT, CommandError, createRegistry, getRegistry } from "./core.js";
 export { createFormats, getFormats, STANDARD_FORMATS } from "./formats.js";
-export {
-  formatResult, formatValue, formatTable, blocksToText, formatHelp, formatUsage, formatMan,
-  synopsis, longSynopsis, annotationLabel, describeShape, sentence,
-  checkFields, selectFields, formatsUsed, commandLine,
-} from "./format.js";
+export { createPolicy, LEVELS } from "./policy.js";
+export { commandLine } from "./format.js";
 export { agentPrompt } from "./prompt.js";

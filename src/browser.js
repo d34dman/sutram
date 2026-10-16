@@ -2,7 +2,8 @@
 // <sutram-console>, connects WebMCP when the browser has it, and exposes
 // the shared API as globalThis.Sutram. Headless browsers and tests use
 // Sutram.tools() and Sutram.call() from there; chat assistants get
-// Sutram.agentPrompt().
+// Sutram.agentPrompt(). Sutram.client is @d34dman/sutram/client, for pages
+// that build a client of their own.
 //
 //   <script type="module" src=".../sutram/src/browser.js"></script>
 //   <script type="module">
@@ -11,6 +12,7 @@
 //   </script>
 
 import * as core from "./index.js";
+import * as client from "./client.js";
 import { getEvents } from "./events.js";
 import { connectWebMCP, findModelContext, listTools, callTool } from "./webmcp.js";
 import { defineConsole, mountConsole } from "./console.js";
@@ -21,7 +23,8 @@ defineConsole();
 
 if (!globalThis.Sutram) {
   globalThis.Sutram = Object.freeze({
-    ...core,
+    EXIT: core.EXIT,
+    CommandError: core.CommandError,
     registry,
     events,
     formats: registry.formats,
@@ -36,6 +39,7 @@ if (!globalThis.Sutram) {
     agentPrompt: (task, page = { title: document.title, url: location.href }) => core.agentPrompt(task, page),
     mountConsole,
     connectWebMCP: () => connectWebMCP(registry, findModelContext()),
+    client: Object.freeze({ ...client }),
   });
   connectWebMCP(registry, findModelContext());
 }

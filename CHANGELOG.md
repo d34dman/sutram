@@ -7,6 +7,18 @@ breaking changes bump the minor version.
 
 ### Changed, and may need your attention
 
+- **The main entry point exports less.** It keeps what app authors use:
+  `getRegistry`, `createRegistry`, `CommandError`, `EXIT`, `getFormats`,
+  `createFormats`, `STANDARD_FORMATS`, `createPolicy`, `LEVELS`,
+  `commandLine`, `agentPrompt`. Parsing, completion, input checks, status
+  and result formatting moved to **`@d34dman/sutram/client`**. `deref`,
+  `distance`, `formatValue`, `formatTable`, `synopsis`, `longSynopsis`,
+  `annotationLabel`, `describeShape`, `sentence` and `formatsUsed` moved to
+  `@d34dman/sutram/internals`, which makes no semver promise.
+- **`globalThis.Sutram` no longer copies every export.** It keeps its
+  helpers plus `EXIT` and `CommandError`; the client functions are under
+  `Sutram.client` (for example `Sutram.client.parse`).
+
 - **WebMCP calls now ask in the page.** Every agent call goes through the
   page's policy; with a console, the person is asked there. Before, a
   consequential tool relied on the WebMCP host to ask.
@@ -59,7 +71,10 @@ breaking changes bump the minor version.
 - TypeScript declarations in `types/`.
 - `run()` may return a string, used as its text. Returning any other
   non-object is now exit 1 with a message saying what to return.
+- `dist/sutram.min.js`: the bundle without comments and indentation (no
+  renaming, no dependency).
 - `checkInput(schema, input, formats, { strict })`.
+- `input` is optional: a command with no arguments may leave it out.
 - A backslash at the end of a line joins the next line, in the console,
   pasted blocks and `parse()`.
 - `Sutram.call()` and `sutram_batch` accept command names (`cart add`) as

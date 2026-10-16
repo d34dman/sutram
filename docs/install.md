@@ -46,16 +46,21 @@ and WebMCP and exposes everything as `globalThis.Sutram`:
 From a CDN, pin the minor version:
 `https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.3/dist/sutram.js`.
 
+`dist/sutram.min.js` is the same code without comments and indentation,
+about a quarter smaller. Names are not shortened, so stack traces still read.
+
 ## Entry points
 
 | Import | What it is | Needs a DOM |
 |---|---|---|
-| `@d34dman/sutram` | The registry, the command line parser, the formatter, `agentPrompt()` | no |
+| `@d34dman/sutram` | What app authors use: the registry, formats, the policy, `commandLine()`, `agentPrompt()` | no |
+| `@d34dman/sutram/client` | For a client of your own: parse and complete command lines, check input, run status, format results | no |
 | `@d34dman/sutram/console` | `<sutram-console>`, the console, as a web component | yes |
 | `@d34dman/sutram/webmcp` | Mirrors the registry into `document.modelContext` as WebMCP tools | no |
 | `@d34dman/sutram/events` | Events your app declares and emits, and the `events list` and `events recent` commands | no |
-| `@d34dman/sutram/browser` | All of the above, as `globalThis.Sutram` | yes |
-| `@d34dman/sutram/dist/sutram.js` | The same as `browser`, bundled into one file | yes |
+| `@d34dman/sutram/browser` | `globalThis.Sutram`: the registry and its helpers, with `/client` as `Sutram.client` | yes |
+| `@d34dman/sutram/dist/sutram.js` | The same as `browser`, bundled into one file; `sutram.min.js` stripped | yes |
+| `@d34dman/sutram/internals` | Helpers Sutram uses itself. No semver promise | no |
 
 ## Several copies on one page
 

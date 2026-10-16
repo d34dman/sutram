@@ -8,6 +8,14 @@
       "types": "./types/index.d.ts",
       "default": "./src/index.js"
     },
+    "./client": {
+      "types": "./types/client.d.ts",
+      "default": "./src/client.js"
+    },
+    "./internals": {
+      "types": "./types/internals.d.ts",
+      "default": "./src/internals.js"
+    },
     "./events": {
       "types": "./types/events.d.ts",
       "default": "./src/events.js"
@@ -28,6 +36,10 @@
     "./dist/sutram.js": {
       "types": "./types/browser.d.ts",
       "default": "./dist/sutram.js"
+    },
+    "./dist/sutram.min.js": {
+      "types": "./types/browser.d.ts",
+      "default": "./dist/sutram.min.js"
     }
   },
   "files": [

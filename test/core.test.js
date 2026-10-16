@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry, checkInput, checkOutput, runStatus, EXIT } from "../src/index.js";
+import { createRegistry, EXIT } from "../src/index.js";
+import { checkInput, checkOutput, runStatus } from "../src/client.js";
 
 const def = (over = {}) => ({
   name: "cart add",
@@ -179,4 +180,15 @@ test("run may return a string as its text; other non-objects fail", async () => 
   assert.deepEqual(await r.run("say", { sku: "a" }), { code: 0, text: "Saved." });
   assert.deepEqual(await r.run("nothing", { sku: "a" }), { code: 0 });
   assert.deepEqual(await r.run("number", { sku: "a" }), { code: EXIT.FAILED, message: "number: run returned a number; return { text?, data? } or a string" });
+});
+
+test("a command without arguments may leave out input", async () => {
+  const r = createRegistry();
+  const { input, ...rest } = def({ name: "cart clear", positional: [], run: () => "Cleared." });
+  r.register(rest);
+  assert.deepEqual(r.get("cart clear").input, { type: "object", properties: {} });
+  assert.deepEqual(await r.run("cart clear"), { code: 0, text: "Cleared." });
+  assert.equal((await r.run("cart clear", { x: 1 })).code, EXIT.USAGE);
+  r.register(Object.freeze(def({ name: "cart frozen", input: undefined, positional: [] })));
+  assert.ok(r.get("cart frozen").input);
 });
