@@ -70,6 +70,9 @@ breaking changes bump the minor version.
   call, or when the same definition is registered again).
 - Object and array defaults reach `run()` as copies, so a handler that
   changes its input no longer changes the default for the next run.
+- Output checks accept a list of types (`["string", "null"]`) instead of
+  warning, check the type before the format, follow `$ref: "#"`, and stop
+  32 levels deep, so cyclic data cannot overflow the stack after `run()`.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

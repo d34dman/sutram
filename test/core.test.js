@@ -260,3 +260,13 @@ test("only own properties count, for input, parsing, output checks, tables, fiel
   ev.define("doc.named", { description: "Named", payload: { type: "object", properties: props } });
   assert.doesNotThrow(() => ev.emit("doc.named", {}));
 });
+
+test("checkOutput accepts nullable types and stops at a depth limit on cyclic data", () => {
+  const nullable = { type: "object", properties: { note: { type: ["string", "null"], format: "date" } } };
+  assert.equal(checkOutput(nullable, { note: null }), null);
+  assert.equal(checkOutput(nullable, { note: 3 }), "note: expected string or null, got integer");
+  const node = { type: "object", properties: { next: { $ref: "#" } } };
+  const a = {};
+  a.next = a;
+  assert.equal(checkOutput(node, a), null);
+});

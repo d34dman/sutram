@@ -34,6 +34,7 @@ export class CommandError extends Error {
 /** Resolves a local `$ref` such as `#/$defs/item` against the schema it came from. */
 export function deref(schema, root) {
   if (!schema || !schema.$ref) return schema;
+  if (schema.$ref === "#") return root;
   const path = schema.$ref.replace(/^#\//, "").split("/");
   return path.reduce((node, key) => (node ? node[key] : undefined), root);
 }
@@ -189,28 +190,36 @@ function uncheckedKeywords(input) {
   return found;
 }
 
+/** How deep checkOutput follows data, so cyclic or very deep data cannot overflow the stack. */
+const OUTPUT_DEPTH = 32;
+
 /**
- * A shallow check of a result against an output schema: types, required keys
- * and defined formats, following arrays into their first item. Returns null
+ * A shallow check of a result against an output schema: types (a list of
+ * types too, such as ["string", "null"]), required keys and defined formats,
+ * following arrays into their first item, up to 32 levels deep. Returns null
  * when it matches, or a message naming the first field that does not.
  */
-export function checkOutput(schema, data, root = schema, formats = getFormats()) {
+export function checkOutput(schema, data, root = schema, formats = getFormats(), depth = 0) {
+  if (depth > OUTPUT_DEPTH) return null;
   schema = deref(schema, root);
-  if (schema && schema.format && !formats.valid(schema.format, data)) return `expected ${formatError(formats, schema.format)}`;
-  if (!schema || !schema.type) return null;
+  if (!schema) return null;
   const t = typeOf(data);
-  const ok = t === schema.type || (schema.type === "number" && t === "integer");
-  if (!ok) return `expected ${schema.type}, got ${t}`;
+  if (schema.type) {
+    const types = [].concat(schema.type);
+    if (!types.includes(t) && !(types.includes("number") && t === "integer")) return `expected ${types.join(" or ")}, got ${t}`;
+  }
+  if (schema.format && data !== null && !formats.valid(schema.format, data)) return `expected ${formatError(formats, schema.format)}`;
+  if (!schema.type) return null;
   if (t === "object") {
     for (const key of schema.required || []) if (!own(data, key)) return `${key} is missing`;
     for (const [key, prop] of Object.entries(schema.properties || {})) {
       if (!own(data, key) || data[key] === undefined) continue;
-      const err = checkOutput(prop, data[key], root, formats);
+      const err = checkOutput(prop, data[key], root, formats, depth + 1);
       if (err) return `${key}: ${err}`;
     }
   }
   if (t === "array" && schema.items && data.length) {
-    const err = checkOutput(schema.items, data[0], root, formats);
+    const err = checkOutput(schema.items, data[0], root, formats, depth + 1);
     if (err) return `[0]: ${err}`;
   }
   return null;
