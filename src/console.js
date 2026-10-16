@@ -644,7 +644,7 @@ export class SutramConsole extends Base {
       if (answered) return;
       answered = true;
       if (answer === "always" && !always) answer = true;
-      if (this.pendingAsk === done) this.pendingAsk = null;
+      if (this.pendingAsk === done) { this.pendingAsk = null; this.askEl = null; }
       el.querySelectorAll("button").forEach((b) => b.remove());
       el.append(label || m.answered(answer));
       resolve(answer);
@@ -663,6 +663,7 @@ export class SutramConsole extends Base {
       el.append(b);
     }
     this.pendingAsk = done;
+    this.askEl = el;
     return done;
   }
 
@@ -697,7 +698,11 @@ export class SutramConsole extends Base {
       this.printBlocks(formatMan(def, name, this.registry.formats));
       return EXIT.OK;
     }
-    if (first === "clear" && !rest.length) { this.out.replaceChildren(); return EXIT.OK; }
+    if (first === "clear" && !rest.length) {
+      // An open question stays: it is still waiting for its answer.
+      this.out.replaceChildren(...(this.pendingAsk && this.askEl ? [this.askEl] : []));
+      return EXIT.OK;
+    }
     if (first === "status" && (!rest.length || (rest.length === 1 && rest[0] === "--json"))) {
       const results = await runStatus(this.registry, { caller: "console" });
       if (rest.length) { this.print(JSON.stringify(results.map(({ provider, data }) => ({ provider, data })), null, 2), "json"); return EXIT.OK; }
@@ -716,7 +721,8 @@ export class SutramConsole extends Base {
   async submit(line, { confirmed = false } = {}) {
     line = String(line).trim();
     if (!line) return EXIT.OK;
-    if (this.pendingAsk) {
+    // A typed line answers an open question. A batch's own lines (confirmed) never do.
+    if (this.pendingAsk && !confirmed) {
       this.print(line, "input");
       const always = this.pendingAsk.always;
       const answer = /^y(es)?$/i.test(line) ? true : /^n(o)?$/i.test(line) ? false : always && /^a(lways)?$/i.test(line) ? "always" : null;

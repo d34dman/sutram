@@ -105,6 +105,9 @@ breaking changes bump the minor version.
 - **Questions end with their console.** Removing a console answers its open
   and queued questions with no, and another console on the page takes over
   asking. Before, the agent's call waited forever.
+- `clear` keeps an open question on screen, and the lines of a pasted batch
+  are never taken as answers to it. Before, a batch's `clear` hid a question
+  that then caught every line.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches
