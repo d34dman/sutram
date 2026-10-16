@@ -589,24 +589,24 @@ invoice set.</pre>
         </div>
         <p class="alt-install">Or <code>npm i @d34dman/sutram</code> · on Drupal, <code>composer require drupal/sutram</code></p>
       </div>
-      <div class="codebox"><pre class="code" id="snippet-start">&lt;script type="module"&gt;
-  import Sutram from
-    "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.4/dist/sutram.js";
+      <div class="codebox"><pre class="code" id="snippet-start">&lt;<span class="k">script</span> <span class="o">type</span>=<span class="s">"module"</span>&gt;
+  <span class="k">import</span> Sutram <span class="k">from</span>
+    <span class="s">"https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.4/dist/sutram.js"</span>;
 
-  Sutram.register({
-    name: "hello world",
-    provider: "hello",
-    description: "Say hello",
+  <span class="k">Sutram</span>.register({
+    name: <span class="s">"hello world"</span>,
+    provider: <span class="s">"hello"</span>,
+    description: <span class="s">"Say hello"</span>,
     input: {
-      type: "object",
-      properties: { who: { type: "string", default: "you" } },
+      type: <span class="s">"object"</span>,
+      properties: { who: { type: <span class="s">"string"</span>, default: <span class="s">"you"</span> } },
     },
-    positional: ["who"],
-    annotations: { readOnly: true },
-    run: ({ who }) =&gt; ({ text: `Hello, ${who}.` }),
+    positional: [<span class="s">"who"</span>],
+    annotations: { readOnly: <span class="k">true</span> },
+    run: ({ who }) =&gt; ({ text: <span class="s">`Hello, </span><span class="o">${who}</span><span class="s">.`</span> }),
   });
-  Sutram.mountConsole();
-&lt;/script&gt;</pre><button class="copy" type="button" data-copy-from="snippet-start">Copy</button></div>
+  <span class="k">Sutram</span>.mountConsole();
+&lt;/<span class="k">script</span>&gt;</pre><button class="copy" type="button" data-copy-from="snippet-start">Copy</button></div>
     </div>
   </section>
 </main>
