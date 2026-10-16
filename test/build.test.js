@@ -58,3 +58,14 @@ test("the stripped build keeps every string, template and regex as written", () 
   assert.equal(probe("sutram.min.js"), full);
   assert.match(full, /Fix the title/);
 });
+
+test("the minifier keeps regular expressions after keywords and with escaped slashes", async () => {
+  const { strip } = await import("../scripts/strip.mjs");
+  const run = (code) => new Function(strip(code))();
+  assert.equal(run("return /a  b/.test('a  b'); // comment"), true);
+  assert.equal(run("const x = 1;\nreturn typeof /a/;"), "object");
+  assert.equal(run("return /\\/\\/*b/.source; /* c */"), "\\/\\/*b");
+  assert.equal(run("const t = 4, g = 2;\nreturn t / g / 2;"), 1);
+  assert.equal(run("const s = `a ${ 1 + 1 } b`; // x\nreturn s"), "a 2 b");
+  assert.equal(strip("if (a)  {\n    b();   // c\n}\n"), "if (a) {\nb();\n}\n");
+});
