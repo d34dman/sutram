@@ -480,8 +480,8 @@ Sutram.call(<span class="s">"cart_add"</span>, { sku: <span class="s">"V60-02"</
   <section id="why">
     <div class="wrap">
       <span class="kicker">Why commands</span>
-      <h2>Small commands beat one big schema</h2>
-      <p class="sub">One JSON schema for a whole form makes an agent write the whole form in one go, blind. With commands it looks, changes one thing, sees what changed, and fixes only what failed. Each command still has its own JSON Schema: schemas the size of one change.</p>
+      <h2>A standard interface, not screenshots</h2>
+      <p class="sub">Without Sutram, an agent reads the page, guesses which elements to click, and reads it again to see whether it worked. With Sutram, every part of the app hooks in the same way, and agents get one short list of commands, in the user's own logged-in session.</p>
       <div class="shapes">
 <pre class="code" style="align-self: start"><span class="c"># the form grows as it is filled in</span>
 <span class="k">›</span> form request set topic billing
@@ -492,9 +492,9 @@ topic set. The form now also asks for: invoice, amount.
 <span class="k">›</span> form request set invoice INV-20417
 invoice set.</pre>
         <div class="who-gets">
-          <div><p class="label">Precise edits</p><p>One field per command. Nothing the agent did not mean to touch is sent.</p></div>
-          <div><p class="label">Forms that change</p><p>The result names the fields that appeared. A schema written up front cannot describe them.</p></div>
-          <div><p class="label">Cheap corrections</p><p>On a real Drupal form, fixing one wrong value costs 3 to 6 times fewer tokens than resending the form, and <code>help</code> is a third of the full tool list.</p></div>
+          <div><p class="label">In the user's session</p><p>The person logs in, the agent takes over. It can do exactly what the person could, through no new API.</p></div>
+          <div><p class="label">The same everywhere</p><p>Headless browser, WebMCP, JavaScript in the page or a chat assistant: the same commands and the same answers.</p></div>
+          <div><p class="label">Cheaper by far</p><p>On Drupal's article form, reading the page costs a browser agent 2.5 to 5 times more, and correcting one wrong value about 3,300 tokens against 17 to 44 with Sutram.</p></div>
           <div class="assist-actions">
             <a class="btn primary" href="./docs/why.html">Why commands</a>
             <a class="btn" href="./example/forms.html">Try the forms example</a>

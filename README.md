@@ -96,11 +96,13 @@ WebMCP and exposes everything as `globalThis.Sutram`. For Drupal, use the
 [`drupal/sutram`](https://www.drupal.org/project/sutram) module. TypeScript
 declarations are included. See [Install](docs/install.md).
 
-## Why commands, not one big schema
+## Why commands
 
-Giving an agent one JSON schema for a whole form makes it write the whole
-form in one go, blind. Sutram gives it small commands it can discover and run
-one at a time:
+Without Sutram, an agent reads the page (screenshots, snapshots, HTML), works
+out which elements to click, and reads the page again to see whether it
+worked. Sutram gives every part of the app (forms, navigation, editors,
+modules) one standard way to hook in, and gives agents one short list of
+commands:
 
 ```sh
 form node-article-form fields
@@ -109,20 +111,19 @@ form node-article-form set status false
 form node-article-form save
 ```
 
-- **Precise edits:** one field per command; nothing else is touched.
-- **Forms that change as you fill them:** the result says which fields
-  appeared, and the agent looks again. One schema cannot describe fields that
-  do not exist yet.
-- **Errors to act on:** a failure names one command and what is wrong; the
-  agent fixes one line instead of resending everything.
-- **Cheap discovery:** `help` costs one line per command, `man` only when
-  needed.
+- **In the user's session:** the person logs in, the agent takes over, and
+  it can do exactly what the person could. No new API, no extra login.
+- **The same everywhere:** headless browser, WebMCP, JavaScript in the page,
+  or a chat assistant: the same commands, the same answers.
+- **Errors to act on:** a failure names the field and the fix. The agent
+  corrects one value, whether it sent one field or the whole form at once.
+- **Forms that change:** `fields` lists fields the page hides behind toggles,
+  and results say which fields appeared.
 
-Measured on a real Drupal form, a correction costs 3 to 6 times fewer tokens
-than resending the whole form, and `help` is a third of the size of the full
-tool list. The first fill of a small form is cheaper with one schema; we say
-so too. Read [Why commands](docs/why.md) and the
-[measurements](docs/measurements.md).
+Measured on Drupal's article form: reading the page costs a browser agent
+2.5 to 5 times more than reading Sutram's commands, and correcting one wrong
+value costs about 3,300 tokens without Sutram against 17 to 44 with it. Read
+[Why commands](docs/why.md) and the [measurements](docs/measurements.md).
 
 ## Documentation
 
