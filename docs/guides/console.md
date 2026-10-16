@@ -43,7 +43,8 @@ back to where it was when it closes.
   keyboard types, so `mod+k` stays K on any layout; other keys are named by
   position, as `KeyboardEvent.code` in lowercase: `backquote`, `slash`, `f2`.
   A binding without `ctrl`, `alt` or `meta` never fires in a text field.
-  `"none"` turns the hotkey off; open the console with `console.open()`.
+  `"none"` turns the hotkey off; open the console from your own button with
+  the element `mountConsole()` returns: `const el = mountConsole({ hotkey: "none" }); el.open()`.
 - `history: "off"`: keep history in memory only.
 
 If your app has its own command palette on <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>K</kbd>,

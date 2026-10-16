@@ -41,8 +41,9 @@ Place an order for 2 items, €48.00? Yes No
   Schema and hints such as "read-only" or "ask first", with or without WebMCP.
 - **No new way into your server.** Commands run in the browser with the
   user's own session, so they can do exactly what the user could already do.
-- **Small and dependency-free.** Plain ES modules, about 110 kB unminified
-  (32 kB gzipped), no runtime dependencies, TypeScript declarations included.
+- **Small and dependency-free.** Plain ES modules, or one file of about
+  148 kB (45 kB gzipped; minified 107 kB, 31 kB gzipped), no runtime
+  dependencies, TypeScript declarations included.
 
 ## Quick start
 

@@ -124,7 +124,8 @@ function apiReference() {
     const text = read(`types/${file}.d.ts`);
     out.push(`## \`${name}\``, "", about, "");
     // Sections are marked "// ---- name ----"; the part before the first is the start.
-    const body = text.split("\n").filter((l) => !/^import type /.test(l)).join("\n")
+    // Imports are for the compiler, not the reader; an import may span lines.
+    const body = text.replace(/^import type [\s\S]*?from "[^"]+";\n/gm, "")
       .replace(/^\/\/ Type declarations[^\n]*\n(\/\/[^\n]*\n)*/, "").trim();
     const parts = body.split(/^\/\/ ---- (.+?) -+$/m);
     const first = parts.shift().trim();

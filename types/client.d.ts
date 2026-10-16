@@ -2,7 +2,7 @@
 // needs. Covered by semver.
 
 import type {
-  Annotations, Answer, AskRequest, Batch, BatchEnd, BatchHooks, BatchResult, Block, Caller, ChangeEvent, CommandDefinition, CommandOutput, Completion, ExitCode, FormatDefinition, FormatOptions, Formats, Level, Parsed, Policy, Registry, Result, ResultEvent, RunContext, RunEvent, Schema, SchemaType, SpanKind, Suggestion, Token, Who,
+  Block, Caller, CommandDefinition, Completion, FormatOptions, Formats, Parsed, Registry, Result, Schema, SpanKind, Token, Who,
 } from "./index.js";
 
 export declare const RESERVED_WORDS: readonly ["help", "man", "status", "clear"];

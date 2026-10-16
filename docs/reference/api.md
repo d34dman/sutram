@@ -348,8 +348,6 @@ For building a client of your own (a terminal, a console, a test harness): parse
 // Declarations for @d34dman/sutram/client: what a client of the registry
 // needs. Covered by semver.
 
-  Annotations, Answer, AskRequest, Batch, BatchEnd, BatchHooks, BatchResult, Block, Caller, ChangeEvent, CommandDefinition, CommandOutput, Completion, ExitCode, FormatDefinition, FormatOptions, Formats, Level, Parsed, Policy, Registry, Result, ResultEvent, RunContext, RunEvent, Schema, SchemaType, SpanKind, Suggestion, Token, Who,
-} from "./index.js";
 
 export declare const RESERVED_WORDS: readonly ["help", "man", "status", "clear"];
 
@@ -693,8 +691,6 @@ Helpers Sutram uses itself. No semver promise: any release may change them.
 // Declarations for @d34dman/sutram/internals: helpers Sutram uses itself.
 // No semver promise.
 
-  Annotations, Answer, AskRequest, Batch, BatchEnd, BatchHooks, BatchResult, Block, Caller, ChangeEvent, CommandDefinition, CommandOutput, Completion, ExitCode, FormatDefinition, FormatOptions, Formats, Level, Parsed, Policy, Registry, Result, ResultEvent, RunContext, RunEvent, Schema, SchemaType, SpanKind, Suggestion, Token, Who,
-} from "./index.js";
 
 export declare function deref(schema: Schema, root: Schema): Schema | undefined;
 

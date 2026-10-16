@@ -72,8 +72,8 @@ To test what a person types, parse a line and run it:
 
 ```js
 await page.evaluate(async () => {
-  const { registry, parse } = Sutram;
-  const p = parse(registry, 'cart add V60-02 --qty=2');
+  const { registry, client } = Sutram;
+  const p = client.parse(registry, 'cart add V60-02 --qty=2');
   return registry.run(p.def.name, p.input);
 });
 ```

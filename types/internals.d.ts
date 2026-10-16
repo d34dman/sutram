@@ -2,7 +2,7 @@
 // No semver promise.
 
 import type {
-  Annotations, Answer, AskRequest, Batch, BatchEnd, BatchHooks, BatchResult, Block, Caller, ChangeEvent, CommandDefinition, CommandOutput, Completion, ExitCode, FormatDefinition, FormatOptions, Formats, Level, Parsed, Policy, Registry, Result, ResultEvent, RunContext, RunEvent, Schema, SchemaType, SpanKind, Suggestion, Token, Who,
+  Annotations, CommandDefinition, FormatDefinition, FormatOptions, Formats, Schema,
 } from "./index.js";
 
 export declare function deref(schema: Schema, root: Schema): Schema | undefined;
