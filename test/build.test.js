@@ -11,6 +11,13 @@ test("the build bundles browser.js into one module with the same API", async () 
   const dir = mkdtempSync(join(tmpdir(), "sutram-build-"));
   for (const part of ["src", "scripts", "package.json"]) cpSync(part, join(dir, part), { recursive: true });
   execFileSync(process.execPath, [join(dir, "scripts/build.mjs")]);
+  // Both bundles keep the banner with the license notice.
+  const { readFileSync } = await import("node:fs");
+  for (const file of ["sutram.js", "sutram.min.js"]) {
+    const [title, notice] = readFileSync(join(dir, "dist", file), "utf8").split("\n");
+    assert.match(title, /^\/\/ @d34dman\/sutram \d+\.\d+\.\d+/, file);
+    assert.match(notice, /^\/\/ https:\/\/.* · \(MIT OR GPL-2\.0-or-later\)$/, file);
+  }
 
   const bundle = await import(join(dir, "dist/sutram.js"));
   assert.deepEqual(Object.keys(api).filter((k) => !(k in bundle)), []);

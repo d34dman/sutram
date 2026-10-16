@@ -50,9 +50,12 @@ for (const { name, text } of order) {
 
 const api = order.find((m) => m.name === "index");
 const exported = [...api.text.matchAll(/^export\s*\{([^}]*)\}/gm)].flatMap(([, l]) => l.split(",").map((n) => n.trim()).filter(Boolean));
-const out = [
+// Both bundles start with this; the license line is the notice MIT asks for.
+const banner = [
   `// ${pkg.name} ${pkg.version}: src/browser.js bundled by scripts/build.mjs. Do not edit; run npm run build.`,
   `// ${pkg.homepage.replace(/#.*$/, "")} · ${pkg.license}`,
+].join("\n");
+const body = [
   ...chunks,
   `export default __browser.default;`,
   `export const { ${exported.join(", ")} } = __index;`,
@@ -61,8 +64,8 @@ const out = [
   "",
 ].join("\n\n");
 
-const banner = out.split("\n").slice(0, 2).join("\n");
-const min = `${banner}\n${strip(out.split("\n").slice(2).join("\n"))}`;
+const out = `${banner}\n\n${body}`;
+const min = `${banner}\n${strip(body)}`;
 const dist = resolve(root, "dist");
 mkdirSync(dist, { recursive: true });
 writeFileSync(resolve(dist, "sutram.js"), out);

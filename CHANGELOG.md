@@ -172,7 +172,8 @@ breaking changes bump the minor version.
   non-object is now exit 1 with a message saying what to return.
 - `dist/sutram.min.js`: the bundle without comments and indentation (no
   renaming, no dependency). Both bundles are marked as side effects, so a
-  bundler keeps `import "@d34dman/sutram/dist/sutram.js"`.
+  bundler keeps `import "@d34dman/sutram/dist/sutram.js"`. It keeps the
+  banner with the license notice.
 - `checkInput(schema, input, formats, { strict })`.
 - `input` is optional: a command with no arguments may leave it out.
 - A backslash at the end of a line joins the next line, in the console,
