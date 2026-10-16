@@ -9,6 +9,26 @@ A command is a name, a JSON Schema for its input, annotations, and a
 function. Sutram turns it into a tool for agents and a command line for
 people and agents. Your function never knows who called it.
 
+## What you decide
+
+Most commands need only these:
+
+- **`name`**: lowercase words, starting with the part of the app that owns
+  it: `cart add`, `cart status`. Agents get it as `cart_add`.
+- **`description`**: one line that says what it does. Agents choose
+  commands by it, so [write it for them](../guides/descriptions.md).
+- **`input`**: a JSON Schema, checked before your function runs. Leave it
+  out when there are no arguments.
+- **`annotations`**: does it change anything? `{ readOnly: true }` if not,
+  `{ consequential: true }` if it is hard to undo (the person is asked
+  first), `{}` for an ordinary change.
+- **`run`**: your function. Return `{ text, data }`, or throw to fail.
+
+`provider` names the owner too, usually the first word of the name; `help`
+groups commands by it. Everything else below is optional.
+
+## Every field
+
 ```js
 import { getRegistry } from "@d34dman/sutram";
 
@@ -66,7 +86,7 @@ const remove = getRegistry().register({
 });
 ```
 
-## The fields
+## Field reference
 
 | Field | Required | What it is for |
 |---|---|---|

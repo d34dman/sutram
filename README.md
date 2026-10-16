@@ -128,20 +128,17 @@ value costs about 3,300 tokens without Sutram against 17 to 44 with it. Read
 
 ## Documentation
 
-**[d34dman.github.io/sutram/docs](https://d34dman.github.io/sutram/docs/index.html)**, also in [`docs/`](docs/index.md):
+**[d34dman.github.io/sutram/docs](https://d34dman.github.io/sutram/docs/index.html)**, also in [`docs/`](docs/index.md).
+Most apps need only the first four:
 
-- Start: [Why commands](docs/why.md) · [Quick start](docs/quick-start.md) · [Install](docs/install.md)
-- Concepts: [Commands and providers](docs/concepts/commands.md) ·
-  [Discovery](docs/concepts/discovery.md) ·
-  [Annotations and the policy](docs/concepts/annotations-and-policy.md) ·
-  [Batches](docs/concepts/batches.md) · [Results and exit codes](docs/concepts/results.md) ·
-  [Formats](docs/concepts/formats.md) · [Events](docs/concepts/events.md)
-- Guides: [Write a provider](docs/guides/write-a-provider.md) · [Forms](docs/guides/forms.md) ·
-  [Drafts and saving](docs/guides/drafts-and-saving.md) · [Errors](docs/guides/errors.md) ·
-  [Descriptions agents can use](docs/guides/descriptions.md) · [Testing](docs/guides/testing.md) ·
-  [Chat assistants](docs/guides/chat-assistants.md) · [WebMCP](docs/guides/webmcp.md) ·
-  [The console](docs/guides/console.md)
-- Reference: [API](docs/reference/api.md) · [The command line](docs/reference/command-line.md) · [Drupal](docs/drupal.md)
+1. [Quick start](docs/quick-start.md): one command in five minutes
+2. [Install](docs/install.md): a script tag, npm, or [Drupal](docs/drupal.md)
+3. [Write a provider](docs/guides/write-a-provider.md): a real set of commands, with a checklist
+4. [Descriptions](docs/guides/descriptions.md) and [errors](docs/guides/errors.md) agents can use
+
+Then, when you need them: [forms](docs/guides/forms.md), [batches](docs/concepts/batches.md),
+[formats](docs/concepts/formats.md), [events](docs/concepts/events.md), and the
+[API reference](docs/reference/api.md). The [docs index](docs/index.md) lists every page.
 
 ## For AI agents
 

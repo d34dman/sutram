@@ -28,11 +28,12 @@ const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
 const read = (p) => readFileSync(resolve(root, p), "utf8");
 
 const NAV = [
-  { title: "Start", pages: ["index", "why", "measurements", "quick-start", "install"] },
-  { title: "Concepts", pages: ["concepts/commands", "concepts/discovery", "concepts/annotations-and-policy", "concepts/batches", "concepts/results", "concepts/formats", "concepts/events"] },
-  { title: "Guides", pages: ["guides/write-a-provider", "guides/forms", "guides/drafts-and-saving", "guides/errors", "guides/descriptions", "guides/testing", "guides/chat-assistants", "guides/webmcp", "guides/console"] },
+  { title: "Get started", pages: ["index", "quick-start", "install", "drupal"] },
+  { title: "Build commands", pages: ["guides/write-a-provider", "concepts/commands", "guides/descriptions", "guides/errors", "concepts/annotations-and-policy", "guides/testing"] },
+  { title: "How agents reach them", pages: ["guides/webmcp", "guides/console", "guides/chat-assistants", "concepts/discovery"] },
+  { title: "Going further", pages: ["guides/forms", "guides/drafts-and-saving", "concepts/batches", "concepts/results", "concepts/formats", "concepts/events"] },
   { title: "Reference", pages: ["reference/api", "reference/command-line"] },
-  { title: "More", pages: ["drupal", "design"], optional: ["design"] },
+  { title: "About", pages: ["why", "measurements", "design"], optional: ["design"] },
 ];
 const ORDER = NAV.flatMap((s) => s.pages);
 

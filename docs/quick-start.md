@@ -59,43 +59,27 @@ completion with <kbd>Tab</kbd>, and "did you mean" come from the definition.
 
 ## 3. What an agent sees
 
-Open the browser's developer tools and run:
+There is nothing more to set up. In a browser with WebMCP, `hello_world` is
+already a tool. To see it the way an agent does, open the browser's developer
+tools and run:
 
 ```js
-Sutram.tools()
-// → [
-//     { name: "sutram_status", … },
-//     { name: "sutram_batch", … },
-//     {
-//       name: "hello_world",
-//       description: "Say hello.",
-//       inputSchema: {…},
-//       annotations: { readOnlyHint: true },
-//     },
-//   ]
-
 await Sutram.call("hello_world", { who: "Ada" })
 // → { code: 0, text: "Hello, Ada." }
+
+Sutram.tools()
+// → [ …, { name: "hello_world", description: "Say hello.",
+//          inputSchema: {…}, annotations: { readOnlyHint: true } } ]
 ```
 
-That is the list an agent gets through WebMCP, and the call a headless
-browser or a test makes. In a browser with WebMCP, the command is already
-registered as a tool.
-
-## 4. A chat assistant
-
-No WebMCP and no browser automation? Copy a prompt for ChatGPT or Claude:
-
-```js
-copy(Sutram.agentPrompt("Greet Ada, then Grace."))
-```
-
-Paste it into the chat. The assistant answers with command lines; paste them
-into the console, and paste what it prints back into the chat.
+`Sutram.call()` is also how a headless browser, a browser agent or a test
+calls your commands. The list starts with two tools of Sutram's own,
+`sutram_status` and `sutram_batch`; you don't need to do anything for them.
 
 ## Next
 
-- [Write a provider](guides/write-a-provider.md): a real set of commands,
-  with status, output schemas and a consequential command.
-- [Why commands](why.md): why this is better than one big schema.
-- [Install](install.md): npm and bundlers.
+- Write the commands for one part of your app:
+  [Write a provider](guides/write-a-provider.md).
+- Using npm and a bundler: [Install](install.md). On Drupal: [Drupal](drupal.md).
+- No WebMCP and no browser automation? A chat assistant can still use the
+  page: [Chat assistants](guides/chat-assistants.md).
