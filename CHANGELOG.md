@@ -77,6 +77,8 @@ breaking changes bump the minor version.
   aborts, even when the handler ignores the signal. WebMCP passes the
   signal to the asker (`request.signal`), and the console withdraws the
   question (`MESSAGES.withdrawn`).
+- Checking a number is linear: a long non-number (40,000 digits and a
+  letter, which an agent can send) took seconds on the main thread.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

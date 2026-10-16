@@ -54,7 +54,8 @@ const formatError = (formats, name) => {
 
 const own = (obj, key) => !!obj && Object.hasOwn(obj, key);
 const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
-const NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+// Linear: each digit can match only one way, so a long non-number fails fast.
+const NUMBER = /^[+-]?(\d+(\.\d*)?|\.\d+)(e[+-]?\d+)?$/i;
 
 /** The type a property declares. `["string", "null"]` is a nullable string: null already means "not given". */
 function typeOfProp(prop) {

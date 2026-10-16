@@ -279,3 +279,14 @@ test("an abort settles run() with 130 even when the handler ignores the signal",
   setTimeout(() => ctrl.abort(), 5);
   assert.deepEqual(await pending, { code: EXIT.CANCELLED, message: "cart add: cancelled" });
 });
+
+test("a long non-number is refused quickly", () => {
+  const prop = { type: "object", properties: { n: { type: "number" } } };
+  const started = performance.now();
+  assert.deepEqual(checkInput(prop, { n: "1".repeat(40000) + "x" }).errors, ["n must be a number"]);
+  assert.ok(performance.now() - started < 200, `took ${Math.round(performance.now() - started)} ms`);
+  for (const [text, n] of [["2", 2], ["-1.5", -1.5], [".5", 0.5], ["3.", 3], ["1e3", 1000], ["+2E-1", 0.2]]) {
+    assert.equal(checkInput(prop, { n: text }).value.n, n);
+  }
+  assert.equal(checkInput(prop, { n: "1.2.3" }).errors.length, 1);
+});
