@@ -110,3 +110,15 @@ test("--json=fields on an empty list gives an empty list", async () => {
   assert.match(selectFields([], ["nope"], schema).error, /unknown field "nope"/);
   assert.deepEqual(selectFields([], ["sku"]), { data: [] });
 });
+
+test("help shows the first line of a multi-line description; man shows all of it", () => {
+  const r = createRegistry();
+  r.register({ name: "doc fix", provider: "doc", description: "Fix the document\n\nRuns every check, then\n  fixes what it can.", annotations: {}, run: () => ({}) });
+  r.register({ name: "doc show", provider: "doc", description: "Show it", annotations: { readOnly: true }, run: () => ({}) });
+  const help = formatHelp(r);
+  assert.equal(help[0].text.split("\n").length, help[0].commands.length);
+  assert.match(help[0].text, /doc fix\s+Fix the document\n/);
+  const man = blocksToText(formatMan(r.get("doc fix"), "doc fix", r.formats));
+  assert.match(man, /doc fix - Fix the document\n/);
+  assert.match(man, /DESCRIPTION\n\n?     Runs every check, then\n       fixes what it can\./);
+});

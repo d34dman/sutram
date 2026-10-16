@@ -16,6 +16,9 @@ const own = (obj, key) => !!obj && Object.hasOwn(obj, key);
 const isRecord = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const isRecords = (v) => Array.isArray(v) && v.length > 0 && v.every(isRecord);
 
+/** The first line of a description, for one-line lists: man pages have a one-line summary too. */
+export const summary = (s) => String(s).trim().split(/\r?\n/)[0].trim();
+
 /** Ends a description with exactly one full stop. */
 export const sentence = (s) => String(s).replace(/\.?\s*$/, ".");
 
@@ -276,7 +279,7 @@ export function formatHelp(registry, prefix = "") {
   const w = Math.min(40, Math.max(...usages.map((u) => u.length)));
   const lines = list.map((d, i) => {
     const label = annotationLabel(d.annotations);
-    return `${usages[i].padEnd(w)}  ${d.description}${label ? `  [${label}]` : ""}`;
+    return `${usages[i].padEnd(w)}  ${summary(d.description)}${label ? `  [${label}]` : ""}`;
   });
   const blocks = [{ kind: "text", text: lines.join("\n"), commands: list }];
   if (!prefix) blocks.push({ kind: "dim", text: "help <provider> · man <command> · <command> -h · <command> --json[=fields] · <command> --wide · status · clear" });
@@ -290,7 +293,7 @@ export function formatUsage(def) {
   if (long && long !== synopsis(def)) lines.push(`   or: ${long}`);
   return [
     { kind: "text", text: lines.join("\n") },
-    { kind: "dim", text: `${sentence(def.description)} See man ${def.name} for more.` },
+    { kind: "dim", text: `${sentence(summary(def.description))} See man ${def.name} for more.` },
   ];
 }
 
@@ -317,9 +320,12 @@ export function formatMan(def, name = def && def.name, formats = getFormats()) {
   const required = def.input.required || [];
   const head = def.name.toUpperCase();
   const right = `provided by ${def.provider}`;
-  const L = [head + " ".repeat(Math.max(2, 64 - head.length - right.length)) + right, "", "NAME", `     ${def.name} - ${def.description}`, "", "SYNOPSIS", `     ${synopsis(def)}`];
+  const L = [head + " ".repeat(Math.max(2, 64 - head.length - right.length)) + right, "", "NAME", `     ${def.name} - ${summary(def.description)}`, "", "SYNOPSIS", `     ${synopsis(def)}`];
   const long = longSynopsis(def);
   if (long && long !== synopsis(def)) L.push(`     ${long}`);
+  // The rest of a multi-line description, as written.
+  const more = String(def.description).trim().split(/\r?\n/).slice(1);
+  if (more.some((l) => l.trim())) L.push("", "DESCRIPTION", ...more.map((l) => (l.trim() ? `     ${l.trimEnd()}` : "")));
 
   L.push("", "ARGUMENTS");
   if (!Object.keys(props).length) L.push("     none");

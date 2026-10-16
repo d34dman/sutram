@@ -72,7 +72,7 @@ const remove = getRegistry().register({
 |---|---|---|
 | `name` | yes | Lowercase words separated by single spaces. Start with the provider: `cart add`, `form node-article-form set`. |
 | `provider` | yes | Who owns the command. `help <provider>` lists one group. |
-| `description` | yes | One line: what it does. `help` shows it; agents read it. See [descriptions](../guides/descriptions.md). |
+| `description` | yes | What it does, in one line first. `help` shows the first line, `man` all of it; agents read all of it. See [descriptions](../guides/descriptions.md). |
 | `input` | no | JSON Schema for the input, checked before `run()`. Leave it out for a command with no arguments. |
 | `annotations` | yes | Hints such as `readOnly` and `consequential`. See [annotations](annotations-and-policy.md). |
 | `positional` | no | Input keys that can be given without `--name=`, in order. The last takes the rest of the line. |

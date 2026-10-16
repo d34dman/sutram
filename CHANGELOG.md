@@ -95,6 +95,9 @@ breaking changes bump the minor version.
   `2026-02-31`, `"May 5"` and a date-time without seconds or an offset are
   refused. Before, anything `Date.parse` read passed. A bad value is shown as
   written instead of "Invalid Date".
+- A multi-line description: `help` and `-h` show its first line, `man`
+  shows the rest under DESCRIPTION. Before, one newline made the console's
+  `help` throw.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches
