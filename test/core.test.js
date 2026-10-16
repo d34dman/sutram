@@ -231,3 +231,14 @@ test("getRegistry keeps its own registry next to an older Sutram's, and warns", 
     if (saved) globalThis[key] = saved; else delete globalThis[key];
   }
 });
+
+test("object and array defaults reach run() as copies", async () => {
+  const r = createRegistry();
+  const input = { type: "object", properties: { tags: { type: "array", default: ["a"] }, meta: { type: "object", default: { n: 1 } } } };
+  r.register(def({ name: "doc tag", positional: [], input, run: ({ tags, meta }) => { tags.push("x"); meta.n++; return { data: { tags, meta } }; } }));
+  await r.run("doc tag");
+  const res = await r.run("doc tag");
+  assert.deepEqual(res.data, { tags: ["a", "x"], meta: { n: 2 } });
+  assert.deepEqual(input.properties.tags.default, ["a"]);
+  assert.deepEqual(input.properties.meta.default, { n: 1 });
+});

@@ -156,7 +156,8 @@ export function checkInput(schema, input = {}, formats = getFormats(), { strict 
         if (required.includes(key)) errors.push(`${key} is required`);
         continue;
       }
-      v = prop.default;
+      // A copy, so a handler that changes its input cannot change the schema.
+      v = prop.default !== null && typeof prop.default === "object" ? structuredClone(prop.default) : prop.default;
     }
     const before = errors.length;
     v = checkValue(key, prop, v, errors, formats, strict);
