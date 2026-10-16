@@ -1,16 +1,20 @@
-// Compares two ways an agent can fill in a form, on a real one: Drupal's
-// "Create Article" form, captured from the demo site in
-// docs/measurements/drupal-article-form.json.
+// Compares how an agent fills in a real form, Drupal's "Create Article"
+// form, captured from the demo site in docs/measurements/.
 //
-//   A. One tool for the whole form. Its input schema describes every field,
-//      and the agent sends the filled-in form as one JSON object.
-//   B. Sutram's form commands: the agent discovers them, sets one field per
-//      command and saves. Through WebMCP (B1) or as command lines typed into
-//      the console (B2).
+//   C.  A browser agent without Sutram. It reads the page (an accessibility
+//       snapshot, the cheapest view a browser agent gets), then clicks and
+//       types field by field.
+//   B.  Sutram's form commands, one field per call: through WebMCP (B1), as
+//       command lines in the console (B2), or every field in one sutram_batch
+//       call first, then corrections one at a time (B3).
+//   A.  For reference: a form-wide tool with one JSON schema. Drupal has no
+//       such tool. It is built here from the field data Sutram's form module
+//       already provides, as small as it can be, and it is fed to the agent
+//       for free. Even this best case resends everything after one mistake.
 //
 // The task is the same for each: create an unpublished article with a title,
 // a summary, a short body and two tags. The agent gets one value wrong (the
-// published flag as "draft") and has to send a correction.
+// published flag as "draft") and has to correct it.
 //
 // Prints sizes in bytes and an estimate in tokens (bytes ÷ 4; real tokenizers
 // differ, the ratios between the rows hold). Run:
@@ -92,6 +96,29 @@ const lines = [...steps.map(([k, v]) => setLine(k, v)), `${base} save`];
 const calls = [...steps.map(([k, v]) => setCall(k, v)), JSON.stringify({ tool: `${base.replace(/ /g, "_")}_save`, input: {} })];
 const errorText = fx.outputs.find((o) => o.code === 2).text;
 
+// --- C: a browser agent without Sutram ----------------------------------------
+// Playwright MCP calls with the element references from the snapshot. The
+// summary only appears after "Edit summary" is clicked, so its reference is
+// not known up front.
+const ba = fx.browserAgent;
+const snapshot = readFileSync(resolve(root, "docs/measurements", ba.snapshotFile), "utf8");
+const act = (tool, element, ref, text) => JSON.stringify({ tool, input: { element, ref, ...(text === undefined ? {} : { text }) } });
+const browserCalls = [
+  act("browser_type", "Title", ba.refs.title, task.title),
+  act("browser_click", "Edit summary", ba.refs.editSummary),
+  act("browser_type", "Summary", "e???", task["body.summary"]),
+  act("browser_type", "Rich Text Editor", ba.refs["body.value"], "Grind 15 g of coffee medium-fine. Rinse the filter, add the coffee, and pour 250 g of water at 94 °C in three pours over three minutes."),
+  act("browser_type", "Tags", ba.refs.field_tags, task.field_tags),
+  act("browser_click", "Published", ba.refs.status),
+  act("browser_click", "Save", ba.refs.save),
+];
+// A screenshot costs about width × height ÷ 750 tokens (Anthropic's guidance for images).
+const screenshot = Math.round((ba.viewport[0] * ba.viewport[1]) / 750);
+const screens = Math.ceil(ba.pageHeight / ba.viewport[1]);
+
+// --- B3: everything in one batch, then corrections ------------------------------
+const batchCall = (list) => JSON.stringify({ tool: "sutram_batch", input: { calls: list.map((c) => JSON.parse(c)) } });
+
 // What each side reads before it can act, writes, and writes again after the
 // mistake. A pasted batch stops at the failing line, so the console path
 // sends the corrected line and the lines after it again; a WebMCP call fails
@@ -99,20 +126,15 @@ const errorText = fx.outputs.find((o) => o.code === 2).text;
 const bytes = (s) => Buffer.byteLength(s, "utf8");
 const rows = [
   {
-    way: "A. One tool, the whole form",
-    reads: bytes(JSON.stringify(formTool)),
-    writes: bytes(wholeForm(withMistake)),
-    again: bytes(wholeForm(task)),
+    way: "C. Browser agent, no Sutram (accessibility snapshot)",
+    reads: bytes(snapshot),
+    writes: browserCalls.reduce((n, c) => n + bytes(c), 0),
+    // No error message: to see that a value is wrong, it reads the page again.
+    again: bytes(snapshot) + bytes(browserCalls[5]),
   },
   {
-    way: "A′. One tool, only the touched fields",
-    reads: bytes(JSON.stringify(formTool)),
-    writes: bytes(onlyTouched(withMistake)),
-    again: bytes(onlyTouched(task)),
-  },
-  {
-    way: "B1. Sutram through WebMCP",
-    reads: bytes(JSON.stringify(fx.formTools)),
+    way: "B1. Sutram through WebMCP, one call per field",
+    reads: fx.pageTools.bytes,
     writes: calls.reduce((n, c) => n + bytes(c), 0),
     again: bytes(setCall(WRONG.field, task[WRONG.field])) + bytes(calls.at(-1)),
   },
@@ -122,6 +144,25 @@ const rows = [
     writes: bytes(lines.join("\n")),
     again: bytes([setLine(WRONG.field, task[WRONG.field]), ...lines.slice(wrongAt + 1)].join("\n")),
   },
+  {
+    way: "B3. Sutram, every field in one sutram_batch, then corrections",
+    reads: fx.pageTools.bytes,
+    writes: bytes(batchCall(calls)),
+    // The batch stops at the wrong value; the fields before it stay set.
+    again: bytes(batchCall([setCall(WRONG.field, task[WRONG.field]), ...calls.slice(wrongAt + 1)])),
+  },
+  {
+    way: "A. For reference: a hand-made form-wide tool, whole form",
+    reads: bytes(JSON.stringify(formTool)),
+    writes: bytes(wholeForm(withMistake)),
+    again: bytes(wholeForm(task)),
+  },
+  {
+    way: "A′. The same, only the fields it changes",
+    reads: bytes(JSON.stringify(formTool)),
+    writes: bytes(onlyTouched(withMistake)),
+    again: bytes(onlyTouched(task)),
+  },
 ];
 const tokens = (n) => Math.round(n / 4);
 
@@ -129,12 +170,13 @@ const tokens = (n) => Math.round(n / 4);
 const page = { tools: fx.pageTools.bytes, count: fx.pageTools.count, help: bytes(fx.help) };
 
 if (process.argv.includes("--json")) {
-  console.log(JSON.stringify({ captured: fx.captured, errorText, page, rows: rows.map((r) => ({ ...r, tokens: { reads: tokens(r.reads), writes: tokens(r.writes), again: tokens(r.again) } })) }, null, 2));
+  console.log(JSON.stringify({ captured: fx.captured, errorText, page, html: ba.htmlBytes, screenshot: { tokens: screenshot, screens }, rows: rows.map((r) => ({ ...r, tokens: { reads: tokens(r.reads), writes: tokens(r.writes), again: tokens(r.again) } })) }, null, 2));
 } else {
   console.log(`Form: ${base}, ${supported.length} fields an agent can set. Captured ${fx.captured}.\n`);
-  console.log("| Way | Reads first | Writes | Writes again after one wrong value |");
+  console.log("| Way | Reads first | Writes | Correcting one wrong value |");
   console.log("|---|--:|--:|--:|");
   for (const r of rows) console.log(`| ${r.way} | ${r.reads} B (≈${tokens(r.reads)} tokens) | ${r.writes} B (≈${tokens(r.writes)}) | ${r.again} B (≈${tokens(r.again)}) |`);
   console.log(`\nDiscovering the whole page (${page.count} commands): the tool list is ${page.tools} B (≈${tokens(page.tools)} tokens), help is ${page.help} B (≈${tokens(page.help)}).`);
+  console.log(`\nThe same page as raw HTML is ${ba.htmlBytes} B (≈${tokens(ba.htmlBytes)} tokens). A screenshot of the ${ba.viewport.join("×")} viewport costs ≈${screenshot} tokens, and the form takes ${screens}. ${Object.keys(ba.hiddenUntilClicked).length} fields are hidden until clicked open (${Object.entries(ba.hiddenUntilClicked).map(([k, v]) => `${k}: ${v}`).join("; ")}); C's numbers count no extra reads for them.`);
   console.log(`\nThe wrong value, as the form command reports it: "${errorText}"`);
 }

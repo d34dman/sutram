@@ -1,0 +1,268 @@
+- generic [active] [ref=f104e1]:
+  - link "Skip to main content" [ref=f104e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - navigation [ref=f104e3]:
+    - heading "Administrative sidebar" [level=2] [ref=f104e4]
+    - generic [ref=f104e5]:
+      - link "Home page" [ref=f104e7] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f104e12]:
+        - heading "Content" [level=3] [ref=f104e13]
+        - list [ref=f104e14]:
+          - listitem [ref=f104e15]:
+            - button "Extend Create" [ref=f104e16] [cursor=pointer]:
+              - generic [ref=f104e19]: Extend
+              - generic [ref=f104e20]: Create
+            - generic [ref=f104e21]:
+              - link "Create" [ref=f104e22] [cursor=pointer]:
+                - /url: /node/add
+              - list [ref=f104e24]:
+                - listitem [ref=f104e25]:
+                  - link "Article" [ref=f104e26] [cursor=pointer]:
+                    - /url: /node/add/article
+                - listitem [ref=f104e28]:
+                  - link "Basic page" [ref=f104e29] [cursor=pointer]:
+                    - /url: /node/add/page
+          - listitem [ref=f104e31]:
+            - link "Blocks" [ref=f104e32] [cursor=pointer]:
+              - /url: /admin/content/block
+          - listitem [ref=f104e36]:
+            - link "Content" [ref=f104e37] [cursor=pointer]:
+              - /url: /admin/content
+          - listitem [ref=f104e41]:
+            - link "Files" [ref=f104e42] [cursor=pointer]:
+              - /url: /admin/content/files
+      - generic [ref=f104e46]:
+        - heading "Administration" [level=3] [ref=f104e47]
+        - list [ref=f104e48]:
+          - listitem [ref=f104e49]:
+            - button "Extend Structure" [ref=f104e50] [cursor=pointer]:
+              - generic [ref=f104e53]: Extend
+              - generic [ref=f104e54]: Structure
+            - generic [ref=f104e55]:
+              - link "Structure" [ref=f104e56] [cursor=pointer]:
+                - /url: /admin/structure
+              - list [ref=f104e58]:
+                - listitem [ref=f104e59]:
+                  - link "Block layout" [ref=f104e60] [cursor=pointer]:
+                    - /url: /admin/structure/block
+                - listitem [ref=f104e62]:
+                  - link "Block types" [ref=f104e63] [cursor=pointer]:
+                    - /url: /admin/structure/block-content
+                - listitem [ref=f104e65]:
+                  - link "Content types" [ref=f104e66] [cursor=pointer]:
+                    - /url: /admin/structure/types
+                - listitem [ref=f104e68]:
+                  - button "Display modes" [ref=f104e69] [cursor=pointer]
+                - listitem [ref=f104e73]:
+                  - link "Menus" [ref=f104e74] [cursor=pointer]:
+                    - /url: /admin/structure/menu
+                - listitem [ref=f104e76]:
+                  - link "Taxonomy" [ref=f104e77] [cursor=pointer]:
+                    - /url: /admin/structure/taxonomy
+                - listitem [ref=f104e79]:
+                  - link "Views" [ref=f104e80] [cursor=pointer]:
+                    - /url: /admin/structure/views
+          - listitem [ref=f104e82]:
+            - link "Appearance" [ref=f104e83] [cursor=pointer]:
+              - /url: /admin/appearance
+          - listitem [ref=f104e87]:
+            - link "Extend" [ref=f104e88] [cursor=pointer]:
+              - /url: /admin/modules
+          - listitem [ref=f104e92]:
+            - button "Extend Configuration" [ref=f104e93] [cursor=pointer]:
+              - generic [ref=f104e96]: Extend
+              - generic [ref=f104e97]: Configuration
+            - generic [ref=f104e98]:
+              - link "Configuration" [ref=f104e99] [cursor=pointer]:
+                - /url: /admin/config
+              - list [ref=f104e101]:
+                - listitem [ref=f104e102]:
+                  - button "People" [ref=f104e103] [cursor=pointer]
+                - listitem [ref=f104e107]:
+                  - button "System" [ref=f104e108] [cursor=pointer]
+                - listitem [ref=f104e112]:
+                  - button "Content authoring" [ref=f104e113] [cursor=pointer]
+                - listitem [ref=f104e117]:
+                  - button "User interface" [ref=f104e118] [cursor=pointer]
+                - listitem [ref=f104e122]:
+                  - button "Development" [ref=f104e123] [cursor=pointer]
+                - listitem [ref=f104e127]:
+                  - button "Media" [ref=f104e128] [cursor=pointer]
+                - listitem [ref=f104e132]:
+                  - button "Search and metadata" [ref=f104e133] [cursor=pointer]
+                - listitem [ref=f104e137]:
+                  - button "Region and language" [ref=f104e138] [cursor=pointer]
+                - listitem [ref=f104e142]:
+                  - button "Web services" [ref=f104e143] [cursor=pointer]
+          - listitem [ref=f104e147]:
+            - link "People" [ref=f104e148] [cursor=pointer]:
+              - /url: /admin/people
+          - listitem [ref=f104e152]:
+            - button "Extend Reports" [ref=f104e153] [cursor=pointer]:
+              - generic [ref=f104e156]: Extend
+              - generic [ref=f104e157]: Reports
+            - generic [ref=f104e158]:
+              - link "Reports" [ref=f104e159] [cursor=pointer]:
+                - /url: /admin/reports
+              - list [ref=f104e161]:
+                - listitem [ref=f104e162]:
+                  - link "Status report" [ref=f104e163] [cursor=pointer]:
+                    - /url: /admin/reports/status
+                - listitem [ref=f104e165]:
+                  - link "Available updates" [ref=f104e166] [cursor=pointer]:
+                    - /url: /admin/reports/updates
+                - listitem [ref=f104e168]:
+                  - link "Recent log messages" [ref=f104e169] [cursor=pointer]:
+                    - /url: /admin/reports/dblog
+                - listitem [ref=f104e171]:
+                  - link "Field list" [ref=f104e172] [cursor=pointer]:
+                    - /url: /admin/reports/fields
+                - listitem [ref=f104e174]:
+                  - link "Top 'access denied' errors" [ref=f104e175] [cursor=pointer]:
+                    - /url: /admin/reports/access-denied
+                - listitem [ref=f104e177]:
+                  - link "Top 'page not found' errors" [ref=f104e178] [cursor=pointer]:
+                    - /url: /admin/reports/page-not-found
+                - listitem [ref=f104e180]:
+                  - link "Views plugins" [ref=f104e181] [cursor=pointer]:
+                    - /url: /admin/reports/views-plugins
+          - listitem [ref=f104e183]:
+            - link "Announcements" [ref=f104e184] [cursor=pointer]:
+              - /url: /admin/announcements_feed
+    - generic [ref=f104e190]:
+      - generic [ref=f104e191]:
+        - heading "Help" [level=3] [ref=f104e192]
+        - list [ref=f104e193]:
+          - listitem [ref=f104e194]:
+            - link "Help" [ref=f104e195] [cursor=pointer]:
+              - /url: /admin/help
+      - generic [ref=f104e199]:
+        - heading "User" [level=3] [ref=f104e200]
+        - list [ref=f104e201]:
+          - listitem [ref=f104e202]:
+            - button "Extend admin" [ref=f104e203] [cursor=pointer]:
+              - generic [ref=f104e206]: Extend
+              - generic [ref=f104e207]: admin
+            - generic [ref=f104e208]:
+              - link "admin" [ref=f104e209] [cursor=pointer]:
+                - /url: /user
+              - list [ref=f104e211]:
+                - listitem [ref=f104e212]:
+                  - link "View profile" [ref=f104e213] [cursor=pointer]:
+                    - /url: /user
+                - listitem [ref=f104e215]:
+                  - link "Edit profile" [ref=f104e216] [cursor=pointer]:
+                    - /url: /user/edit
+                - listitem [ref=f104e218]:
+                  - link "Log out" [ref=f104e219] [cursor=pointer]:
+                    - /url: /user/logout?token=gN5EBHSrsEYEaRUWtAzIrh42CcMb0YDhJ4qGbLCVvNU
+      - button "Expand sidebar" [ref=f104e221] [cursor=pointer]
+  - main [ref=f104e226]:
+    - generic [ref=f104e229]:
+      - navigation [ref=f104e232]:
+        - heading "Breadcrumb" [level=2] [ref=f104e233]
+        - list [ref=f104e234]:
+          - listitem [ref=f104e235]:
+            - link "Home" [ref=f104e236] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=f104e237]:
+            - link "Add content item" [ref=f104e238] [cursor=pointer]:
+              - /url: /node/add
+      - heading "Create Article" [level=1] [ref=f104e241]
+    - generic [ref=f104e247]:
+      - generic [ref=f104e249]:
+        - generic [ref=f104e251]:
+          - generic [ref=f104e252] [cursor=pointer]: Title *
+          - textbox "Title *" [ref=f104e253]:
+            - /placeholder: ""
+        - group [ref=f104e256]:
+          - button "Image" [expanded] [ref=f104e257] [cursor=pointer]
+          - generic [ref=f104e259]:
+            - generic [ref=f104e260] [cursor=pointer]: Add a new file
+            - button "Add a new file" [ref=f104e263]
+            - generic [ref=f104e264]: "One file only.100 MB limit.Allowed types: png gif jpg jpeg webp."
+        - generic [ref=f104e266]:
+          - generic [ref=f104e267]:
+            - generic [ref=f104e268] [cursor=pointer]:
+              - text: Body
+              - generic [ref=f104e269]:
+                - text: (
+                - button "Edit summary" [ref=f104e270]
+                - text: )
+            - application "Rich Text Editor" [ref=f104e272]:
+              - toolbar "Editor toolbar" [ref=f104e275]:
+                - generic [ref=f104e276]:
+                  - button "Bold" [ref=f104e277]
+                  - button "Italic" [ref=f104e280]
+                  - button "Link" [ref=f104e284]
+                  - generic [ref=f104e289]:
+                    - button "Bulleted List" [ref=f104e290]
+                    - button "Bulleted List" [ref=f104e293]
+                  - generic [ref=f104e297]:
+                    - button "Numbered List" [ref=f104e298]
+                    - button "Numbered List" [ref=f104e301]
+                  - button "Block quote" [ref=f104e305]
+                  - button "Upload image from computer" [ref=f104e308]
+                  - button "Paragraph, Heading" [ref=f104e315]:
+                    - generic [ref=f104e316]: Paragraph
+                  - button "Code" [ref=f104e317]
+                  - button "Source" [ref=f104e321]
+              - 'textbox "Rich Text Editor. Editing area: main. Press ⌥0 for help." [ref=f104e326]':
+                - paragraph [ref=f104e327]
+          - generic [ref=f104e329]:
+            - generic [ref=f104e330] [cursor=pointer]: Text format
+            - combobox "Text format" [ref=f104e331]:
+              - option "Basic HTML" [selected]
+              - option "Restricted HTML"
+              - option "Full HTML"
+        - generic [ref=f104e333]:
+          - generic [ref=f104e334] [cursor=pointer]: Tags
+          - textbox "Tags" [ref=f104e336]:
+            - /placeholder: ""
+          - generic [ref=f104e337]: "Enter a comma-separated list. For example: Amsterdam, Mexico City, \"Cleveland, Ohio\""
+      - generic [ref=f104e340]:
+        - generic [ref=f104e341]:
+          - generic [ref=f104e342]:
+            - generic [ref=f104e343] [cursor=pointer]: "Last saved:"
+            - text: Not saved yet
+          - generic [ref=f104e344]:
+            - generic [ref=f104e345] [cursor=pointer]: "Author:"
+            - text: admin
+          - generic [ref=f104e348]:
+            - generic [ref=f104e349] [cursor=pointer]: Revision log message
+            - textbox "Revision log message" [ref=f104e351]:
+              - /placeholder: ""
+            - generic [ref=f104e352]: Briefly describe the changes you have made.
+        - group [ref=f104e353]:
+          - button "Menu settings Not in menu" [ref=f104e354] [cursor=pointer]:
+            - text: Menu settings
+            - generic [ref=f104e355]: Not in menu
+        - group [ref=f104e356]:
+          - button "URL alias No alias" [ref=f104e357] [cursor=pointer]:
+            - text: URL alias
+            - generic [ref=f104e358]: No alias
+        - group [ref=f104e359]:
+          - button "Authoring information By admin (1) on 2026-10-16" [ref=f104e360] [cursor=pointer]:
+            - text: Authoring information
+            - generic [ref=f104e361]: By admin (1) on 2026-10-16
+        - group [ref=f104e362]:
+          - button "Promotion options Promoted to front page" [ref=f104e363] [cursor=pointer]:
+            - text: Promotion options
+            - generic [ref=f104e364]: Promoted to front page
+      - generic [ref=f104e366]:
+        - generic [ref=f104e369]:
+          - checkbox "Published" [checked] [ref=f104e370]
+          - text: Published
+        - generic [ref=f104e371]:
+          - button "Save" [ref=f104e372] [cursor=pointer]
+          - button "Preview" [ref=f104e373] [cursor=pointer]
+  - status [ref=f104e374]
+  - status [ref=f104e375]
+  - generic:
+    - application:
+      - generic:
+        - generic:
+          - list
+        - generic:
+          - list

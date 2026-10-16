@@ -257,5 +257,29 @@
   "count": 14,
   "bytes": 4938,
   "note": "JSON.stringify(Sutram.tools()) on the same page: every tool's name, description, input schema and annotations"
+ },
+ "browserAgent": {
+  "note": "The same page as a browser agent without Sutram sees it, captured with Playwright MCP on 2026-10-16 at a 1360×900 viewport.",
+  "snapshotFile": "drupal-article-form.snapshot.yml",
+  "htmlBytes": 324175,
+  "viewport": [
+   1360,
+   900
+  ],
+  "pageHeight": 1404,
+  "hiddenUntilClicked": {
+   "body.summary": "Edit summary",
+   "path.alias": "URL alias (collapsed)",
+   "promote": "Promotion options (collapsed)",
+   "sticky": "Promotion options (collapsed)"
+  },
+  "refs": {
+   "title": "f104e253",
+   "editSummary": "f104e270",
+   "body.value": "f104e326",
+   "field_tags": "f104e336",
+   "status": "f104e370",
+   "save": "f104e372"
+  }
  }
 }

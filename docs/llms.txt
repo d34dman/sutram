@@ -9,8 +9,8 @@ Agents using a page: start with `status` (or the `sutram_status` tool), then `he
 ## Start
 
 - [Documentation](https://d34dman.github.io/sutram/docs/index.md): Sutram lets AI agents use your web app through commands. Start here.
-- [Why commands](https://d34dman.github.io/sutram/docs/why.md): Why an agent does better with small commands it can discover than with one JSON schema for the whole thing.
-- [Measurements](https://d34dman.github.io/sutram/docs/measurements.md): How many tokens an agent spends filling a real Drupal form with one schema or with Sutram's commands, including a correction.
+- [Why commands](https://d34dman.github.io/sutram/docs/why.md): Why agents do better with a standard command interface than with screenshots, page snapshots or one big JSON schema.
+- [Measurements](https://d34dman.github.io/sutram/docs/measurements.md): How many tokens an agent spends filling a real Drupal form with and without Sutram, including a correction.
 - [Quick start](https://d34dman.github.io/sutram/docs/quick-start.md): Register one command, use it in the console, and call it the way an agent does.
 - [Install](https://d34dman.github.io/sutram/docs/install.md): Install Sutram from npm, load it as one script, or use the Drupal module.
 

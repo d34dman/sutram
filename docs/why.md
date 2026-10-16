@@ -1,17 +1,26 @@
 ---
 title: Why commands
-description: Why an agent does better with small commands it can discover than with one JSON schema for the whole thing.
+description: Why agents do better with a standard command interface than with screenshots, page snapshots or one big JSON schema.
 ---
 
-# Why commands, not one big schema
+# Why commands
 
-The obvious way to let an agent use a form is one tool: its input schema
-describes every field, and the agent sends the filled-in form as one JSON
-object. It works for small, fixed forms. It breaks down when the form is
-real.
+Without Sutram, an agent that wants to use a web app has two options.
 
-Sutram gives the agent small commands instead. It finds them with `help`,
-runs them one at a time, and corrects what goes wrong:
+- **Read the page.** Take screenshots or an accessibility snapshot, work out
+  what is on the page, find the right elements, click and type, and read the
+  page again to see whether it worked. It is slow, it costs tokens on every
+  step, and it breaks when the layout changes. A headless browser and the
+  user's own browser behave differently, so the experience is not the same
+  either.
+- **Call an API built for agents.** Someone writes a tool, with a schema, for
+  every action. That is work for every form and every page, and it usually
+  means a new way into the server, with its own login.
+
+Sutram is the third option: **a standard interface on the page itself.** Any
+part of the app (a form, the navigation, an editor, a module) hooks in the
+same way, by registering commands. Agents find them with `help`, run them one
+at a time or in one batch, and correct what goes wrong:
 
 ```sh
 form node-article-form fields
@@ -21,9 +30,23 @@ form node-article-form set status false
 form node-article-form save
 ```
 
-Each command still has a JSON Schema for its input, and agents with WebMCP get
-it as a tool. So this is not schemas against no schemas. It is schemas the
-size of one change, instead of one schema the size of everything.
+Each command has a JSON Schema for its input, and agents with WebMCP get it
+as a tool. So an agent can also send everything in one go first, and fix
+single values after.
+
+## In the user's session
+
+Commands run in the browser, as the logged-in user. A person can log in, then
+let an agent take over: it can do exactly what the person could already do,
+and nothing more. There is no new API, no extra login and no service account.
+Access checks stay on the server, where they are today.
+
+## The same everywhere
+
+The same commands answer the same way whether the agent drives a headless
+browser, uses WebMCP in the person's browser, runs JavaScript in the page, or
+works through a chat assistant and a person pasting command lines. Nothing
+depends on screen size, layout or how the page looks.
 
 ## Precise edits
 
@@ -86,30 +109,27 @@ command that ran and failed, `130` for one that was not allowed to run. See
 ## What it costs in tokens
 
 We measured on a real form, Drupal's "Create Article", with one wrong value.
-The full method and numbers are in [Measurements](measurements.md). In short:
+The method and all numbers are in [Measurements](measurements.md). In short:
 
-- **The first fill of a small form is cheaper with one schema.** The agent
-  reads one schema and writes one object. Sutram's agent reads the commands
-  and the field list first, and writes a command per field.
-- **Fixing a mistake is much cheaper with commands.** After one wrong value,
-  the console path sends about 17 tokens again, WebMCP about 32. One schema
-  sends the whole object again: 70 to 97 tokens on this form, and more on
-  every larger one.
-- **Discovering a whole page is cheaper with `help`.** On the same page,
-  `help` is about a third of the size of the full tool list (≈416 against
-  ≈1,235 tokens), because it costs one line per command and the details wait
-  in `man` until they are needed.
+- **Reading the page:** a browser agent reads about 3,300 tokens of
+  accessibility snapshot (about 81,000 as HTML, about 1,600 per screenshot).
+  With Sutram, the agent reads about 650 tokens of `help` and field list, or
+  about 1,200 through the full WebMCP tool list.
+- **Correcting one wrong value:** 17 to 44 tokens with Sutram. Without it,
+  about 3,300: the browser agent gets no error message, so it reads the page
+  again to find out what happened.
+- **Hidden fields:** four of the form's fields sit behind toggles. Sutram's
+  field list shows them; a browser agent has to find them and click them open.
 
-So the honest claim is not "fewer tokens, always". It is: cheap discovery,
-cheap corrections, and nothing to resend when one value is wrong. On a form
-that changes as it is filled in, one schema cannot do the job at all.
+A schema written by hand for this one form would read even less, but someone
+has to write it for every form, and it resends every value after one mistake.
 
 ## When one tool is enough
 
 For one simple action with a fixed input, a plain tool with a schema is fine.
-That is exactly what each Sutram command is through WebMCP. Sutram earns its
-keep when there is state to look at, several steps, forms that change, and
-mistakes to fix.
+That is exactly what each Sutram command is through WebMCP. Sutram adds the
+rest: one standard way for every part of the app to hook in, discovery, state
+to look at, forms that change, and mistakes that cost one line to fix.
 
 ## Next
 
