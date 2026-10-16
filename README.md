@@ -91,361 +91,67 @@ Then try:
 npm install @d34dman/sutram
 ```
 
-With a bundler, import what you need:
+Or load one file, `dist/sutram.js`, as a module: it sets up the console and
+WebMCP and exposes everything as `globalThis.Sutram`. For Drupal, use the
+[`drupal/sutram`](https://www.drupal.org/project/sutram) module. TypeScript
+declarations are included. See [Install](docs/install.md).
 
-```js
-import { getRegistry } from "@d34dman/sutram";
-import { mountConsole } from "@d34dman/sutram/console";
-import { connectWebMCP } from "@d34dman/sutram/webmcp";
+## Why commands, not one big schema
 
-const registry = getRegistry();
-registry.register({ /* a command, see below */ });
+Giving an agent one JSON schema for a whole form makes it write the whole
+form in one go, blind. Sutram gives it small commands it can discover and run
+one at a time:
 
-mountConsole();              // the console for people
-connectWebMCP(registry);     // the same commands as WebMCP tools, where the browser supports it
+```sh
+form node-article-form fields
+form node-article-form set title "Pour-over, step by step"
+form node-article-form set status false
+form node-article-form save
 ```
 
-TypeScript declarations ship with the package (`types/`), for every entry
-point and for `globalThis.Sutram`.
+- **Precise edits:** one field per command; nothing else is touched.
+- **Forms that change as you fill them:** the result says which fields
+  appeared, and the agent looks again. One schema cannot describe fields that
+  do not exist yet.
+- **Errors to act on:** a failure names one command and what is wrong; the
+  agent fixes one line instead of resending everything.
+- **Cheap discovery:** `help` costs one line per command, `man` only when
+  needed.
 
-Without a bundler, load one file: `dist/sutram.js` from the package (or from
-the CDN, as in the quick start). It sets up the console and WebMCP and exposes
-everything as `globalThis.Sutram`:
+Measured on a real Drupal form, a correction costs 3 to 6 times fewer tokens
+than resending the whole form, and `help` is a third of the size of the full
+tool list. The first fill of a small form is cheaper with one schema; we say
+so too. Read [Why commands](docs/why.md) and the
+[measurements](docs/measurements.md).
 
-```html
-<script type="module" src="/path/to/sutram.js"></script>
-<script type="module">
-  Sutram.register({ /* … */ });
-  Sutram.mountConsole();
-</script>
-```
+## Documentation
 
-| Import | What it is | Needs a DOM |
-|---|---|---|
-| `@d34dman/sutram` | The registry, the command line parser and the formatter | no |
-| `@d34dman/sutram/console` | `<sutram-console>`, the console, as a web component: a drop-down for the page, or inline in your own panel | yes |
-| `@d34dman/sutram/webmcp` | Mirrors the registry into `document.modelContext` as WebMCP tools | no |
-| `@d34dman/sutram/events` | Events your app declares and emits, and the `events list` and `events recent` commands | no |
-| `@d34dman/sutram/browser` | All of the above, as `globalThis.Sutram` | yes |
-| `@d34dman/sutram/dist/sutram.js` | The same as `browser`, bundled into one file | yes |
+**[d34dman.github.io/sutram/docs](https://d34dman.github.io/sutram/docs/index.html)**, also in [`docs/`](docs/index.md):
 
-## Write a command
-
-A command is a name, a JSON Schema for its input, and a function.
-
-```js
-import { getRegistry } from "@d34dman/sutram";
-
-const remove = getRegistry().register({
-  name: "cart add",                        // "<provider> <verb>", lowercase words
-  provider: "cart",                        // who owns it; help groups by this
-  description: "Add a product to the cart",
-  input: {                                 // JSON Schema: checked before run() is called
-    type: "object",
-    properties: {
-      sku: { type: "string", description: "Product code" },
-      qty: { type: "integer", minimum: 1, default: 1 },
-    },
-    required: ["sku"],
-  },
-  positional: ["sku", "qty"],              // cart add V60-02 2  ==  cart add --sku=V60-02 --qty=2
-  output: {                                // optional: drives tables, man and agents
-    type: "object",
-    properties: { count: { type: "integer" }, total: { type: "number" } },
-  },
-  annotations: {},                         // see "Annotations"
-  examples: ["cart add V60-02 --qty=2"],   // shown in man and given to agents
-  seeAlso: ["cart status"],
-  suggest: (key, partial) =>               // optional: values for Tab completion
-    key === "sku" ? catalog.search(partial).map((p) => ({ value: p.sku, description: p.name })) : [],
-  run: async ({ sku, qty }, { caller, signal }) => {
-    await cart.add(sku, qty);              // your app's own code and endpoints
-    return { text: `Added ${qty} × ${sku}.`, data: { count: cart.count, total: cart.total } };
-  },
-});
-
-// Later, when the command no longer makes sense on this page:
-remove();
-```
-
-Register commands when they make sense on the page, and remove them when they
-no longer do. The console, `help` and the agent's tool list follow along.
-
-`run()` gets the checked input, and a context with `caller` (`"console"`,
-`"agent"`, …) and an `AbortSignal`. Return `data` (and optionally a short
-`text`); the console formats the data for people and agents get it as is.
-Throw an error to fail.
-
-`suggest(key, partial, { input, signal })` offers values for an argument
-when someone presses <kbd>Tab</kbd>. It may be async, and returns strings or
-`{ value, label?, description? }`. Sutram completes command names, options,
-`enum` values, booleans and JSON Schema `examples` by itself.
-
-### Tell people where things stand: `<provider> status`
-
-Give each provider a read-only `<provider> status` command that returns a
-one-line `text`. A bare `status` runs all of them, so a person or an agent
-can see the state of the whole page with one word.
-
-### Annotations
-
-Annotations are hints. Clients decide what to do with them.
-
-| Annotation | Means | The console | Agents |
-|---|---|---|---|
-| *(none)* | An ordinary change | Runs it | Can call it, unless the page asks first (see below) |
-| `readOnly: true` | Changes nothing | Runs it; marks it read-only | Get `readOnlyHint` |
-| `consequential: true` | Significant or hard to undo | Asks first (a pasted batch asks once) | Get `consequentialHint`; the page asks the user first |
-| `navigates: true` | Leaves the page | Runs it | Told in the description that the page reloads |
-| `untrustedContent: true` | Its output contains text from outside, such as user content | | Get `untrustedContentHint` |
-
-Use `confirm: (input) => "Place an order for 2 items?"` to word the question
-for a consequential command.
-
-### Who is asked first: the policy
-
-Annotations describe a command; the page's policy decides who has to agree
-before it runs. There are two kinds of caller, a person at the console and
-an agent, and three levels:
-
-| Level | Asks before |
-|---|---|
-| `"none"` | nothing |
-| `"consequential"` (the default for both) | consequential commands |
-| `"changes"` | every command that is not read-only |
-
-```js
-// An editor where an agent never changes the document unseen,
-// while people at the console are only asked about consequential commands:
-getRegistry().policy.set({ agent: "changes" });
-```
-
-When an agent needs approval, the console shows the commands it wants to run
-and asks. With `"changes"`, the user can answer *Yes, and stop asking*,
-which lowers that caller to `"consequential"` for the rest of the page's
-life; it never covers a consequential command. To ask in your own dialog,
-call `policy.setAsker(async ({ who, steps }) => true | false | "always")`.
-Without a console or an asker, the browser's `confirm()` asks. App code that
-calls `registry.run()` is never asked.
-
-### Batches: several commands as one change
-
-A pasted block, a multi-line entry and an agent's `sutram_batch` call each
-run as one batch. Every line is checked before any runs, so a batch with a
-typo runs nothing; the user is asked at most once; and the batch stops at the
-first command that fails. A provider can make a batch one change, such as
-one undo step, with batch hooks:
-
-```js
-registry.defineBatch("editor", {
-  begin: () => history.startTransaction(),    // before the provider's first command in the batch
-  commit: () => history.commitTransaction(),  // every command succeeded
-  rollback: () => history.cancelTransaction(), // one failed: undo the provider's earlier commands
-});
-```
-
-Providers without hooks keep what their earlier commands did, and the
-console says so. App code can run a batch too:
-`registry.batch([{ name: "cart add", input: { sku: "V60" } }, …])`, or
-`registry.startBatch()` to run commands one by one and `commit()` or
-`rollback()` at the end.
-
-### Results and exit codes
-
-Every run resolves to a result shaped like a process exit, whoever called it:
-
-| Code | Means |
-|---|---|
-| `0` | Done: `{ code: 0, text?, data? }` |
-| `1` | Ran, but failed: `{ code: 1, message }`. Throw an `Error`, or a `CommandError` with your own message. |
-| `2` | Usage error: the input did not match the schema |
-| `127` | No such command |
-| `130` | Cancelled |
-
-### How results look
-
-You return data; the console decides how to show it:
-
-- a list of records becomes a table (pick columns with `view: { columns: [...] }`),
-- a record becomes `key: value` lines,
-- records with `children` become an indented tree.
-
-Every command also gets these options for free:
-
-| Option | Prints |
-|---|---|
-| `--json` | The data unchanged, exactly as an agent gets it |
-| `--json=sku,price` | Only those fields |
-| `--wide` | Every column, including those `view.columns` leaves out |
-| `-h`, `--help` | The command's usage |
-
-### Formats: money, sizes, durations
-
-`format` in a schema works as in JSON Schema, where apps define their own
-formats. Sutram defines no domain formats; the app that owns the data defines
-them, and the console uses them to check input and show values:
-
-```js
-import { getFormats } from "@d34dman/sutram";
-
-getFormats().define("money", {
-  type: "number",
-  description: "an amount in euros",       // for man and agents
-  validate: (v) => Number.isFinite(v),     // bad input is a usage error
-  display: (v, { locale }) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(v),
-  align: "right",                          // in tables
-});
-
-// then, in an output schema: total: { type: "number", format: "money" }
-```
-
-A format nobody defined is left alone. Names can be defined only once per page,
-so two modules cannot disagree about what `money` means. `date-time` and
-`date` are shown in the console's locale out of the box.
+- Start: [Why commands](docs/why.md) · [Quick start](docs/quick-start.md) · [Install](docs/install.md)
+- Concepts: [Commands and providers](docs/concepts/commands.md) ·
+  [Discovery](docs/concepts/discovery.md) ·
+  [Annotations and the policy](docs/concepts/annotations-and-policy.md) ·
+  [Batches](docs/concepts/batches.md) · [Results and exit codes](docs/concepts/results.md) ·
+  [Formats](docs/concepts/formats.md) · [Events](docs/concepts/events.md)
+- Guides: [Write a provider](docs/guides/write-a-provider.md) · [Forms](docs/guides/forms.md) ·
+  [Drafts and saving](docs/guides/drafts-and-saving.md) · [Errors](docs/guides/errors.md) ·
+  [Descriptions agents can use](docs/guides/descriptions.md) · [Testing](docs/guides/testing.md) ·
+  [Chat assistants](docs/guides/chat-assistants.md) · [WebMCP](docs/guides/webmcp.md) ·
+  [The console](docs/guides/console.md)
+- Reference: [API](docs/reference/api.md) · [The command line](docs/reference/command-line.md) · [Drupal](docs/drupal.md)
 
 ## For AI agents
 
-`connectWebMCP()` (or loading `dist/sutram.js`) registers every command as a
-WebMCP tool in browsers that support it, and keeps the tool list in step with
-the registry. Tool names are command names with underscores
-(`cart_add`). Each tool gets the input schema and the annotation hints, and
-its description says what it returns, whether it leaves the page, and what
-any app-defined formats mean. A `sutram_status` tool runs every
-`<provider> status` at once, so an agent can start there, and
-`sutram_batch` runs several tools as one change:
-`{ calls: [{ tool: "cart_add", input: { sku: "V60" } }, …] }`.
-
-WebMCP decides which sites' tools an agent may see, not whether a call may
-change the user's page, so every call goes through the page's policy first
-(see [Who is asked first](#who-is-asked-first-the-policy)).
-
-Agents cannot be notified, so they poll for what changed:
-`events recent --since=<id>` returns the events after an id. The page keeps
-the last 50 and forgets older ones when a `navigates` command leaves the page.
-Single-page apps that change page without such a command call
-`getEvents().clear()` themselves.
-
-### Without WebMCP: headless browsers, tests and scripts
-
-Code that can run JavaScript in the page gets the same tools from
-`window.Sutram`, with no console and no WebMCP. That covers Playwright,
-Puppeteer, raw Chrome DevTools Protocol, and agents that drive a browser:
-
-```js
-// Playwright; Puppeteer and CDP work the same way
-const tools = await page.evaluate(() => Sutram.tools());
-// → [{ name: "sutram_status", … }, { name: "cart_add", description, inputSchema, annotations }, …]
-
-await page.evaluate(() => Sutram.call("cart_add", { sku: "V60-02", qty: 2 }));
-// → { code: 0, text: "Added 2 × V60 dripper…", data: { count: 2, total: 48 } }
-
-await page.evaluate(() => Sutram.call("checkout"));
-// → { code: 130, message: "checkout is consequential, so it did not run. Ask the user …" }
-await page.evaluate(() => Sutram.call("checkout", {}, { confirmed: true }));
-```
-
-`tools()` is the list a WebMCP agent gets. `call()` takes the tool name and
-follows the page's policy like a careful host: a tool that needs approval
-(by default, a consequential one) runs only with `{ confirmed: true }`,
-which says the user agreed. Results and exit codes are
-the same as everywhere else. App code that needs no asking, such as the
-page's own buttons, calls `Sutram.registry.run("cart add", …)` with the
-command name.
-
-### Without browser access: a chat assistant
-
-An assistant such as ChatGPT or Claude can still drive the page through a
-person. Give it `Sutram.agentPrompt(task)`, paste the command lines it
-answers with into the console, and paste the output back:
-
-```js
-const prompt = Sutram.agentPrompt("Buy two V60 drippers, then check out.");
-// → "You are helping me use a web page through Sutram, … My task: Buy two V60 drippers, then check out."
-```
-
-The prompt is generic, like a skill: it lists no commands. The assistant
-starts with `help` and `status`, reads `man <command>` when it needs more,
-and runs `help` again when the page's state changes. One text works on
-every page and never goes out of date. In the browser it names the page
-(`document.title` and `location.href`). Pass `{ title, url }` as the second
-argument to name it yourself, or import `agentPrompt` from the package,
-which has no DOM. [The website](https://d34dman.github.io/sutram/#assist)
-uses it.
-
-## The console
-
-Open it with <kbd>`</kbd> (outside text fields) or
-<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>; close it with <kbd>Esc</kbd>.
-
-| Type | To |
-|---|---|
-| `help`, `help <provider>` | See the commands on this page |
-| `man <command>` | Read a command's full manual |
-| `<command> -h` | See a command's usage |
-| `status` | See every provider's status |
-| `clear` | Clear the screen |
-| <kbd>Tab</kbd> | Complete a command, an option or a value; with several choices, a list opens (<kbd>Tab</kbd> or ↑ / ↓ to choose, <kbd>Enter</kbd> to take one, <kbd>Esc</kbd> to close it) |
-| ↑ / ↓ | Walk through history |
-| <kbd>Enter</kbd> inside quotes | Start a new line of the value, for multi-line text such as a prompt |
-| <kbd>Shift</kbd>+<kbd>Enter</kbd> | Start a new line; several lines run as one batch |
-| Paste several lines | Run them as one batch (see [Batches](#batches-several-commands-as-one-change)). Pasted inside open quotes, they become part of the value instead. |
-| *Copy* (top bar) | Copy the output as text, for example to paste back to a chat assistant |
-
-`mountConsole({ greeting, locale })` sets a first line and the locale values
-are shown in. Restyle it with CSS custom properties on `sutram-console`:
-
-```css
-sutram-console {
-  --sutram-bg: #11131c;  --sutram-fg: #e6e8f0;  --sutram-dim: #8c93a8;
-  --sutram-accent: #9aa2ff;  --sutram-option: #7dcfff;  --sutram-string: #c3e88d;
-  --sutram-ok: #6fd69a;  --sutram-warn: #f5a35c;  --sutram-err: #ff7b7b;
-  --sutram-font: ui-monospace, monospace;  --sutram-font-size: 13px;  --sutram-height: 55vh;
-}
-```
-
-Parts can be styled with `::part()`: `panel`, `header`, `output`, `menu` and
-`prompt`. For example, `sutram-console::part(header) { display: none; }`
-hides the top bar.
-
-### In your own panel
-
-Give `mountConsole()` a container, and it adds an inline console there
-instead of the drop-down: it fills the container, has no hotkey and no close
-button, and the app decides when to show it.
-
-```js
-const el = mountConsole({ greeting: "Type help." }, document.querySelector("#editor-console"));
-```
-
-### In other languages
-
-Every text the console shows of its own is in `MESSAGES`. Assign the ones you
-translate; texts that take values are functions:
-
-```js
-el.messages = {
-  placeholder: "Befehl eingeben oder help",
-  count: (n) => `${n} Befehle auf dieser Seite`,
-  yes: "Ja", no: "Nein",
-};
-```
-
-What commands print is theirs to translate. `help` and `man` are still in
-English.
-
-### Several copies on one page
-
-If two scripts each bundle their own copy of Sutram, they still share one
-registry, one format registry and one event bus, so every command ends up in
-the same console.
-
-## Drupal
-
-The Drupal integration is being built in
-[drupal-sutram-demo](https://github.com/d34dman/drupal-sutram-demo) as the
-module `sutram`: menus as `nav` commands (access-checked on the server), page
-information, and `form <form-id> set/save` commands for node forms. It will
-move to drupal.org as `drupal/sutram`.
+- [`llms.txt`](https://d34dman.github.io/sutram/llms.txt) and
+  [`llms-full.txt`](https://d34dman.github.io/sutram/llms-full.txt); every
+  docs page is also published as Markdown.
+- Skills, in the package's [`skills/`](skills/) folder:
+  [use a Sutram page](skills/use-sutram-page/SKILL.md) (for agents that drive
+  a browser) and [add Sutram to an app](skills/add-sutram/SKILL.md) (for
+  coding agents).
+- `Sutram.agentPrompt(task)`: a generic prompt for a chat assistant without
+  browser access. It lists no commands; the assistant finds them with `help`.
 
 ## Develop
 
@@ -455,12 +161,12 @@ cd sutram
 npm test              # node --test, no dependencies to install
 npm run example       # a todo list to play with, at http://localhost:8080/example/
 npm run build         # dist/sutram.js
-npm run site          # the website, at http://localhost:8080/site/
+npm run site          # the website and docs, at http://localhost:8080/site/
+npm run docs          # regenerate the generated docs (API, measurements, skill, llms.txt)
 ```
 
-[docs/design.md](docs/design.md) is the first design note. Parts of it have
-changed since: `describe` became `status`, `help` and `man`; arguments use GNU
-long options only; results have exit codes; and formats are defined by apps.
+See [CONTRIBUTING.md](CONTRIBUTING.md). [docs/design.md](docs/design.md) is
+the first design note; parts of it have changed since.
 
 ## Why "Sutram"
 
@@ -471,7 +177,7 @@ one short line in place of clicks and screenshots.
 
 ## Status
 
-Version 0.3: early. The command contract may still change before 1.0; breaking
+Version 0.3: early. See the [changelog](CHANGELOG.md). The command contract may still change before 1.0; breaking
 changes bump the minor version until then.
 
 ## License
