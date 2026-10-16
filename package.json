@@ -34,11 +34,11 @@
     },
     "./package.json": "./package.json",
     "./dist/sutram.js": {
-      "types": "./types/browser.d.ts",
+      "types": "./types/dist.d.ts",
       "default": "./dist/sutram.js"
     },
     "./dist/sutram.min.js": {
-      "types": "./types/browser.d.ts",
+      "types": "./types/dist.d.ts",
       "default": "./dist/sutram.min.js"
     }
   },

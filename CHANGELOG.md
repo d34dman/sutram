@@ -166,6 +166,8 @@ breaking changes bump the minor version.
   fields as `never`, so `if (r.code === 0) r.text` type-checks and
   `"message" in r` narrows; `ExitCode` keeps its named codes and allows a
   `CommandError`'s own.
+  `types/dist.d.ts` types the two bundles: every entry point's exports plus
+  the default `Sutram` object.
 - `run()` may return a string, used as its text. Returning any other
   non-object is now exit 1 with a message saying what to return.
 - `dist/sutram.min.js`: the bundle without comments and indentation (no

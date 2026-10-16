@@ -71,13 +71,15 @@ export declare class SutramConsole extends HTMLElement {
   open(): void;
   close(): void;
   toggle(): void;
+  /** Replaces what is in the input field, for example to suggest a command. */
+  setInput(value: string): void;
   /** Runs one line as if it was typed. */
   submit(line: string, options?: { confirmed?: boolean }): Promise<ExitCode>;
   /** Runs several lines as one batch, as a paste does. */
   runBatch(text: string): Promise<ExitCode>;
   print(text: string, kind?: string): HTMLElement;
   /** Waits its turn when another question is open; `lead` prints what it is about when it shows. */
-  ask(message: string, options?: { always?: boolean; lead?: (() => void) | null }): Promise<Answer>;
+  ask(message: string, options?: { always?: boolean; lead?: (() => void) | null; signal?: AbortSignal }): Promise<Answer>;
   askForAgent(request: AskRequest): Promise<Answer>;
   /** The output as plain text. */
   transcript(): string;
