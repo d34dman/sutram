@@ -82,10 +82,38 @@ const remove = getRegistry().register({
 | `confirm` | no | `(input) => "Place an order for 2 items?"`: the question when the policy asks. |
 | `suggest` | no | `(key, partial, { input, signal })` returns values for completion. May be async. |
 | `view` | no | `{ columns: [...] }`: the columns a table shows. `--wide` shows all. |
-| `run` | yes | `(input, { caller, signal })`. Return `{ text?, data? }`; throw to fail. |
+| `run` | yes | `(input, { caller, signal })`. Return `{ text?, data? }`, or a string for text only; throw to fail. |
 
 Names starting with `help`, `man`, `status` or `clear` are refused: those
 words belong to clients. So are inputs named `help`, `json` or `wide`.
+
+## How input is checked
+
+Sutram checks input against the JSON Schema keywords that apply to one value,
+before `run()` is called:
+
+- `type`, `required`, `enum`, `const`, `format`;
+- numbers: `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`;
+- strings: `minLength`, `maxLength` (in characters), `pattern`;
+- arrays: `items` (one level), `minItems`, `maxItems`, `uniqueItems`;
+- `type: ["string", "null"]` and the like, for a value that may be left out.
+
+Keywords that combine schemas (`oneOf`, `anyOf`, `allOf`, `if`, `$ref`,
+properties of a nested object, …) are not checked, and `register()` warns
+about them once. Check those in `run()`. Arguments the schema does not
+declare are refused.
+
+Text typed in the console is converted to the declared type: `"2"` becomes
+`2`, `yes` becomes `true`, `a,b` becomes a list. Values that arrive typed,
+from an agent or from code, are not converted: `true` for an integer is a
+usage error, not `1`.
+
+`null` and a missing value mean "not given": the `default` applies, or a
+`required` key is reported. An empty string is a value for a string
+property, so `--title=""` clears a title and counts as present for
+`required`, as in JSON Schema. If your command needs non-empty text, add
+`minLength: 1`, or check it in `run()`. For numbers, booleans and lists, an
+empty value (`--qty=`) means "not given".
 
 ## Return data, not text
 

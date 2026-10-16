@@ -14,12 +14,12 @@ over.
 | Mistake | Exit | Message comes from |
 |---|---|---|
 | Unknown command | 127 | Sutram, with "did you mean" when a name is close |
-| Unknown option, wrong type, missing required input, value not in `enum` | 2 | Sutram, from the input schema |
+| Unknown option or argument, wrong type, missing required input, a value outside the schema's limits | 2 | Sutram, from the input schema ([what is checked](../concepts/commands.md#how-input-is-checked)) |
 | Needs approval it did not get | 130 | Sutram, with the question to ask |
 | Anything your `run()` throws | 1, or your code | You |
 
-So the schema is your first error message. A `minimum`, an `enum` or a
-`required` turns into a precise usage error without a line of code.
+So the schema is your first error message. A `minimum`, an `enum`, a
+`maxLength`, a `pattern` or a `required` turns into a precise usage error without a line of code.
 
 ## Writing your own
 

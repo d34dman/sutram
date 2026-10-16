@@ -18,12 +18,17 @@ export function createEvents(registry, { bufferSize = 50 } = {}) {
       defs.set(name, def);
     },
 
-    /** Emits an event. The payload is checked against its schema first. */
+    /**
+     * Emits an event. The payload is checked strictly against its schema
+     * first: an event comes from code, so nothing is converted, and a payload
+     * that does not match throws. Listeners get the payload as emitted; a
+     * `default` in a payload schema only documents.
+     */
     emit(name, payload = {}, { source = "code" } = {}) {
       const def = defs.get(name);
       if (!def) throw new Error(`events: "${name}" is not defined`);
       if (def.payload) {
-        const { errors } = checkInput(def.payload, payload, registry.formats);
+        const { errors } = checkInput(def.payload, payload, registry.formats, { strict: true });
         if (errors.length) throw new Error(`events: ${name}: ${errors.join("; ")}`);
       }
       const ls = [...(listeners.get(name) || []), ...(listeners.get("*") || [])];

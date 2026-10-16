@@ -4,6 +4,8 @@
 
 import { CommandError, EXIT, RESERVED_WORDS, CLIENT_OPTIONS } from "./core.js";
 
+const own = (obj, key) => !!obj && Object.hasOwn(obj, key);
+
 // A heredoc: <<END (or <<'END', <<"END") as the last word of a line. The lines
 // after it, up to a line holding only END, are one value, taken as written:
 // quotes and backslashes in it mean nothing, so HTML needs no escaping.
@@ -162,11 +164,11 @@ function parseArguments(def, rest) {
       if (!m) throw new CommandError(`${name}: cannot read option ${raw}`, EXIT.USAGE);
       let [, key, val] = m;
       const negated = key.startsWith("no-") ? key.slice(3) : null;
-      if (!props[key] && negated && props[negated] && props[negated].type === "boolean") {
+      if (!own(props, key) && negated && own(props, negated) && props[negated].type === "boolean") {
         input[negated] = false;
         continue;
       }
-      if (!props[key]) throw new CommandError(`${name}: unknown option --${key}. See ${name} -h`, EXIT.USAGE);
+      if (!own(props, key)) throw new CommandError(`${name}: unknown option --${key}. See ${name} -h`, EXIT.USAGE);
       if (val === undefined) {
         if (props[key].type === "boolean") { input[key] = true; continue; }
         if (i + 1 >= rest.length) throw new CommandError(`${name}: --${key} needs a value`, EXIT.USAGE);
@@ -183,11 +185,19 @@ function parseArguments(def, rest) {
   if (positional.length && !order.length) {
     throw new CommandError(`${name}: takes no positional arguments. See ${name} -h`, EXIT.USAGE);
   }
-  order.forEach((key, i) => {
-    if (i >= positional.length || input[key] !== undefined) return;
-    // The last positional takes the rest of the line, so `nav find pour over` works without quotes.
-    input[key] = i === order.length - 1 ? positional.slice(i).join(" ") : positional[i];
+  // Positional words fill the positional keys not given as options, in order.
+  // The last positional key takes the rest of the line, so `nav find pour over`
+  // works without quotes. A word with no key left is an error, never dropped.
+  const free = order.filter((key) => input[key] === undefined);
+  const last = order[order.length - 1];
+  free.forEach((key, i) => {
+    if (i >= positional.length) return;
+    input[key] = key === last ? positional.slice(i).join(" ") : positional[i];
   });
+  const taken = free.length && free[free.length - 1] === last ? positional.length : free.length;
+  if (positional.length > taken) {
+    throw new CommandError(`${name}: unexpected argument "${positional[taken]}". See ${name} -h`, EXIT.USAGE);
+  }
   return { def, input, help, json, wide, fields };
 }
 
@@ -316,8 +326,8 @@ export function highlight(registry, line) {
       if (raw === "--") { endOfOptions = true; push(raw, "option"); return; }
       const eq = raw.indexOf("=");
       const name = (eq < 0 ? raw : raw.slice(0, eq)).replace(/^--?/, "");
-      const known = raw === "-h" || CLIENT_OPTIONS.includes(name) || !def || props[name]
-        || (name.startsWith("no-") && props[name.slice(3)] && props[name.slice(3)].type === "boolean");
+      const known = raw === "-h" || CLIENT_OPTIONS.includes(name) || !def || own(props, name)
+        || (name.startsWith("no-") && own(props, name.slice(3)) && props[name.slice(3)].type === "boolean");
       push(eq < 0 ? raw : raw.slice(0, eq + 1), known ? "option" : "bad-option");
       if (eq >= 0) push(raw.slice(eq + 1), x.heredoc || /["']/.test(raw.slice(eq + 1)) ? "string" : "value");
       return;

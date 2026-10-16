@@ -1,9 +1,11 @@
 // Type declarations for @d34dman/sutram. The package is plain JavaScript;
 // these describe its public API for TypeScript users and editors.
 
+export type SchemaType = "object" | "array" | "string" | "number" | "integer" | "boolean" | "null";
+
 /** The subset of JSON Schema that command input and output use. */
 export interface Schema {
-  type?: "object" | "array" | "string" | "number" | "integer" | "boolean" | "null";
+  type?: SchemaType | [SchemaType, "null"] | ["null", SchemaType];
   title?: string;
   description?: string;
   properties?: Record<string, Schema>;
@@ -15,6 +17,16 @@ export interface Schema {
   format?: string;
   minimum?: number;
   maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  multipleOf?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  const?: unknown;
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
   $ref?: string;
   $defs?: Record<string, Schema>;
   [key: string]: unknown;
@@ -74,7 +86,8 @@ export interface CommandDefinition<I extends Record<string, any> = Record<string
   view?: { columns?: string[] };
   examples?: string[];
   seeAlso?: string[];
-  run: (input: I, context: RunContext) => CommandOutput<D> | void | Promise<CommandOutput<D> | void>;
+  /** Returns { text?, data? }, a string (the text), or nothing. */
+  run: (input: I, context: RunContext) => CommandOutput<D> | string | void | Promise<CommandOutput<D> | string | void>;
 }
 
 export type Result<D = unknown> =
@@ -132,7 +145,8 @@ export interface Registry {
 
 export declare function createRegistry(options?: { checkResults?: boolean; formats?: Formats; policy?: Policy }): Registry;
 export declare function getRegistry(): Registry;
-export declare function checkInput(schema: Schema, input?: Record<string, unknown>, formats?: Formats): { errors: string[]; value: Record<string, unknown> };
+/** With { strict: true }, strings are not converted to the declared types (for values from code, such as event payloads). */
+export declare function checkInput(schema: Schema, input?: Record<string, unknown> | null, formats?: Formats, options?: { strict?: boolean }): { errors: string[]; value: Record<string, unknown> };
 export declare function checkOutput(schema: Schema, data: unknown, root?: Schema, formats?: Formats): string | null;
 export declare function deref(schema: Schema, root: Schema): Schema | undefined;
 export declare function isStatusCommand(def: CommandDefinition): boolean;
@@ -213,7 +227,7 @@ export interface FormatOptions { locale?: string; formats?: Formats; json?: bool
 
 export declare function formatResult(result: Result, def?: Partial<CommandDefinition>, options?: FormatOptions): Block[];
 export declare function formatValue(value: unknown, prop?: Schema, options?: FormatOptions): string;
-export declare function formatTable(rows: Record<string, unknown>[], itemSchema: Schema, root?: Schema, options?: FormatOptions & { columns?: string[]; maxWidth?: number }): Block;
+export declare function formatTable(rows: Record<string, unknown>[], itemSchema: Schema, root?: Schema, options?: FormatOptions & { columns?: string[]; maxWidth?: number }): { head: string; rows: string[] };
 export declare function blocksToText(blocks: Block[]): string;
 export declare function formatHelp(registry: Registry, prefix?: string): Block[];
 export declare function formatUsage(def: CommandDefinition): Block[];

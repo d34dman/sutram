@@ -14,9 +14,18 @@ Version 0.3.0. This page is generated from the TypeScript declarations in `types
 The registry, the parser, the formatter, policy, formats and agentPrompt(). No DOM.
 
 ```ts
+export type SchemaType =
+  | "object"
+  | "array"
+  | "string"
+  | "number"
+  | "integer"
+  | "boolean"
+  | "null";
+
 /** The subset of JSON Schema that command input and output use. */
 export interface Schema {
-  type?: "object" | "array" | "string" | "number" | "integer" | "boolean" | "null";
+  type?: SchemaType | [SchemaType, "null"] | ["null", SchemaType];
   title?: string;
   description?: string;
   properties?: Record<string, Schema>;
@@ -28,6 +37,16 @@ export interface Schema {
   format?: string;
   minimum?: number;
   maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  multipleOf?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  const?: unknown;
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
   $ref?: string;
   $defs?: Record<string, Schema>;
   [key: string]: unknown;
@@ -101,10 +120,11 @@ export interface CommandDefinition<I extends Record<string, any> = Record<string
   view?: { columns?: string[] };
   examples?: string[];
   seeAlso?: string[];
+  /** Returns { text?, data? }, a string (the text), or nothing. */
   run: (
     input: I,
     context: RunContext,
-  ) => CommandOutput<D> | void | Promise<CommandOutput<D> | void>;
+  ) => CommandOutput<D> | string | void | Promise<CommandOutput<D> | string | void>;
 }
 
 export type Result<D = unknown> =
@@ -181,10 +201,12 @@ export declare function createRegistry(options?: {
   policy?: Policy;
 }): Registry;
 export declare function getRegistry(): Registry;
+/** With { strict: true }, strings are not converted to the declared types (for values from code, such as event payloads). */
 export declare function checkInput(
   schema: Schema,
-  input?: Record<string, unknown>,
+  input?: Record<string, unknown> | null,
   formats?: Formats,
+  options?: { strict?: boolean },
 ): { errors: string[]; value: Record<string, unknown> };
 export declare function checkOutput(
   schema: Schema,
@@ -333,7 +355,7 @@ export declare function formatTable(
   itemSchema: Schema,
   root?: Schema,
   options?: FormatOptions & { columns?: string[]; maxWidth?: number },
-): Block;
+): { head: string; rows: string[] };
 export declare function blocksToText(blocks: Block[]): string;
 export declare function formatHelp(registry: Registry, prefix?: string): Block[];
 export declare function formatUsage(def: CommandDefinition): Block[];

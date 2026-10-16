@@ -124,3 +124,16 @@ test("highlight marks a heredoc as a string", () => {
   assert.deepEqual(kinds("nav find <<END\n<p>\"x\"</p>\nEND"), ["command:nav", "command:find", 'string:<<END\n<p>"x"</p>\nEND']);
   assert.deepEqual(kinds("nav find --query=<<END\na\nEND"), ["command:nav", "command:find", "option:--query=", "string:<<END\na\nEND"]);
 });
+
+test("positional words fill the keys not given as options, and none is dropped", () => {
+  const r = createRegistry();
+  r.register({
+    name: "note set", provider: "note", description: "Set", positional: ["field", "value"], annotations: {}, run: () => {},
+    input: { type: "object", properties: { field: { type: "string" }, value: { type: "string" }, n: { type: "integer" } } },
+  });
+  assert.deepEqual(parse(r, "note set --field=t hello there").input, { field: "t", value: "hello there" });
+  assert.deepEqual(parse(r, "note set title some words").input, { field: "title", value: "some words" });
+  assert.throws(() => parse(r, "note set a --value=v b"), /note set: unexpected argument "b"/);
+  assert.throws(() => parse(r, "note set --field=a --value=v b"), /unexpected argument "b"/);
+  assert.throws(() => parse(r, "note set t --constructor=x"), /unknown option --constructor/);
+});

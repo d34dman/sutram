@@ -51,55 +51,140 @@ const formatError = (formats, name) => {
   return def && def.description ? `${name}, ${def.description}` : `a valid ${name}`;
 };
 
+const own = (obj, key) => !!obj && Object.hasOwn(obj, key);
+const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+const NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+
+/** The type a property declares. `["string", "null"]` is a nullable string: null already means "not given". */
+function typeOfProp(prop) {
+  const t = prop.type;
+  if (!Array.isArray(t)) return t;
+  const rest = t.filter((x) => x !== "null");
+  return rest.length === 1 ? rest[0] : undefined;
+}
+
+const TYPE_ERROR = {
+  integer: "a whole number", number: "a number", boolean: "true or false",
+  string: "a string", array: "a list", object: "an object",
+};
+
 /**
- * Checks input against the subset of JSON Schema commands use, and coerces
- * strings typed in a console into the declared types. A `format` is checked
- * when the format registry defines it. Returns { errors, value }.
+ * One value against one property: converts text typed in a console to the
+ * declared type (unless strict), then checks the constraints. Pushes errors
+ * and returns the value.
  */
-export function checkInput(schema, input = {}, formats = getFormats()) {
+function checkValue(name, prop, v, errors, formats, strict) {
+  const type = typeOfProp(prop);
+  const text = typeof v === "string" && !strict;
+  const fail = () => { errors.push(`${name} must be ${TYPE_ERROR[type]}`); return undefined; };
+
+  if (type === "integer" || type === "number") {
+    if (text && NUMBER.test(v.trim())) v = Number(v.trim());
+    if (typeof v !== "number" || !Number.isFinite(v) || (type === "integer" && !Number.isInteger(v))) return fail();
+  } else if (type === "boolean") {
+    if (text) {
+      const s = v.toLowerCase();
+      if (["true", "yes", "on", "1"].includes(s)) v = true;
+      else if (["false", "no", "off", "0"].includes(s)) v = false;
+    }
+    if (typeof v !== "boolean") return fail();
+  } else if (type === "string") {
+    if (typeof v !== "string") return fail();
+  } else if (type === "array") {
+    if (text) v = v.split(",").map((s) => s.trim()).filter(Boolean);
+    if (!Array.isArray(v)) return fail();
+    if (prop.items) v = v.map((item, i) => checkValue(`${name}[${i}]`, prop.items, item, errors, formats, strict));
+  } else if (type === "object") {
+    if (text && v.trim().startsWith("{")) { try { v = JSON.parse(v); } catch { /* reported below */ } }
+    if (!isPlainObject(v)) return fail();
+  }
+
+  const before = errors.length;
+  const err = (msg) => errors.push(`${name} ${msg}`);
+  if (prop.enum && !prop.enum.includes(v)) err(`must be one of: ${prop.enum.join(", ")}`);
+  if (own(prop, "const") && v !== prop.const) err(`must be ${JSON.stringify(prop.const)}`);
+  if (typeof v === "number") {
+    if (prop.minimum !== undefined && v < prop.minimum) err(`must be at least ${prop.minimum}`);
+    if (prop.maximum !== undefined && v > prop.maximum) err(`must be at most ${prop.maximum}`);
+    if (prop.exclusiveMinimum !== undefined && v <= prop.exclusiveMinimum) err(`must be more than ${prop.exclusiveMinimum}`);
+    if (prop.exclusiveMaximum !== undefined && v >= prop.exclusiveMaximum) err(`must be less than ${prop.exclusiveMaximum}`);
+    if (prop.multipleOf) {
+      const q = v / prop.multipleOf;
+      if (Math.abs(q - Math.round(q)) > 1e-9 * Math.max(1, Math.abs(q))) err(`must be a multiple of ${prop.multipleOf}`);
+    }
+  }
+  if (typeof v === "string") {
+    // JSON Schema counts characters (code points), not UTF-16 units.
+    const length = [...v].length;
+    if (prop.minLength !== undefined && length < prop.minLength) err(`must be at least ${prop.minLength} characters`);
+    if (prop.maxLength !== undefined && length > prop.maxLength) err(`must be at most ${prop.maxLength} characters`);
+    if (prop.pattern !== undefined && !new RegExp(prop.pattern, "u").test(v)) err(`must match ${prop.pattern}`);
+  }
+  if (Array.isArray(v)) {
+    if (prop.minItems !== undefined && v.length < prop.minItems) err(`must have at least ${prop.minItems} items`);
+    if (prop.maxItems !== undefined && v.length > prop.maxItems) err(`must have at most ${prop.maxItems} items`);
+    if (prop.uniqueItems && new Set(v.map((x) => (typeof x === "object" ? JSON.stringify(x) : x))).size !== v.length) err("must not repeat items");
+  }
+  if (errors.length === before && prop.format && !formats.valid(prop.format, v)) err(`must be ${formatError(formats, prop.format)}`);
+  return v;
+}
+
+/**
+ * Checks input against the JSON Schema keywords that apply to one value
+ * (type, enum, const, format, the number, string and array limits; items one
+ * level deep). Strings typed in a console are converted to the declared
+ * types; other values must already have them. `null` and `undefined` mean
+ * "not given"; so does "" for anything but a string, where "" is a value.
+ * With { strict: true }, no string is converted, for values that come from
+ * code, such as event payloads. Returns { errors, value }.
+ */
+export function checkInput(schema, input = {}, formats = getFormats(), { strict = false } = {}) {
   const errors = [];
   const value = {};
   const props = (schema && schema.properties) || {};
   const required = (schema && schema.required) || [];
+  input = input || {};
 
   for (const key of Object.keys(input)) {
-    if (!props[key]) errors.push(`unknown argument "${key}"`);
+    if (!own(props, key)) errors.push(`unknown argument "${key}"`);
   }
   for (const [key, prop] of Object.entries(props)) {
     let v = input[key];
-    if (v === undefined || v === "") {
-      if (prop.default !== undefined) v = prop.default;
-      else {
+    if (v === undefined || v === null || (v === "" && typeOfProp(prop) !== "string")) {
+      if (prop.default === undefined) {
         if (required.includes(key)) errors.push(`${key} is required`);
         continue;
       }
+      v = prop.default;
     }
-    if (prop.type === "integer" || prop.type === "number") {
-      const n = Number(v);
-      if (!Number.isFinite(n) || (prop.type === "integer" && !Number.isInteger(n))) {
-        errors.push(`${key} must be ${prop.type === "integer" ? "a whole number" : "a number"}`);
-        continue;
-      }
-      if (prop.minimum !== undefined && n < prop.minimum) errors.push(`${key} must be at least ${prop.minimum}`);
-      if (prop.maximum !== undefined && n > prop.maximum) errors.push(`${key} must be at most ${prop.maximum}`);
-      v = n;
-    } else if (prop.type === "boolean") {
-      if (typeof v !== "boolean") {
-        const s = String(v).toLowerCase();
-        if (["true", "yes", "on", "1"].includes(s)) v = true;
-        else if (["false", "no", "off", "0"].includes(s)) v = false;
-        else { errors.push(`${key} must be true or false`); continue; }
-      }
-    } else if (prop.type === "array") {
-      v = Array.isArray(v) ? v : String(v).split(",").map((s) => s.trim()).filter(Boolean);
-    } else if (prop.type === "string") {
-      v = String(v);
-    }
-    if (prop.enum && !prop.enum.includes(v)) errors.push(`${key} must be one of: ${prop.enum.join(", ")}`);
-    if (prop.format && !formats.valid(prop.format, v)) errors.push(`${key} must be ${formatError(formats, prop.format)}`);
-    value[key] = v;
+    const before = errors.length;
+    v = checkValue(key, prop, v, errors, formats, strict);
+    if (errors.length === before) value[key] = v;
   }
   return { errors, value };
+}
+
+/** Constraint keywords checkInput does not check. register() warns about them, once. */
+const UNCHECKED = [
+  "oneOf", "anyOf", "allOf", "not", "if", "then", "else", "$ref", "dependentRequired", "dependentSchemas",
+  "patternProperties", "propertyNames", "minProperties", "maxProperties", "unevaluatedProperties",
+  "unevaluatedItems", "prefixItems", "contains", "minContains", "maxContains",
+];
+
+/** "where keyword" for every constraint in an input schema that checkInput ignores. */
+function uncheckedKeywords(input) {
+  const found = [];
+  const look = (where, schema, depth) => {
+    if (!isPlainObject(schema)) return;
+    for (const k of UNCHECKED) if (own(schema, k)) found.push(`${where}${k}`);
+    if (Array.isArray(schema.type) && typeOfProp(schema) === undefined) found.push(`${where}type`);
+    if (depth > 0 && schema.properties) found.push(`${where}properties`);
+    if (schema.items) look(`${where}items.`, schema.items, depth + 1);
+  };
+  for (const k of UNCHECKED) if (own(input, k)) found.push(k);
+  if (own(input, "additionalProperties") && input.additionalProperties !== false) found.push("additionalProperties");
+  for (const [key, prop] of Object.entries(input.properties || {})) look(`${key}.`, prop, 1);
+  return found;
 }
 
 /**
@@ -137,12 +222,21 @@ function checkDefinition(def) {
   if (def.suggest !== undefined && typeof def.suggest !== "function") throw new TypeError(`register: "${def.name}" has a suggest that is not a function`);
   if (!NAME.test(def.name)) throw new TypeError(`register: "${def.name}" is not a valid name; use lowercase words separated by single spaces`);
   if (RESERVED_WORDS.includes(def.name.split(" ")[0])) throw new TypeError(`register: "${def.name}" starts with a word reserved for clients`);
+  const props = def.input.properties || {};
   for (const key of CLIENT_OPTIONS) {
-    if (def.input.properties && def.input.properties[key]) throw new TypeError(`register: "${def.name}" cannot declare --${key}; clients own it`);
+    if (own(props, key)) throw new TypeError(`register: "${def.name}" cannot declare --${key}; clients own it`);
   }
   for (const key of def.positional || []) {
-    if (!def.input.properties || !def.input.properties[key]) throw new TypeError(`register: "${def.name}" lists positional "${key}", which its input does not declare`);
+    if (!own(props, key)) throw new TypeError(`register: "${def.name}" lists positional "${key}", which its input does not declare`);
   }
+  for (const [key, prop] of Object.entries(props)) {
+    for (const [where, p] of [[key, prop], [`${key}.items`, prop && prop.items]]) {
+      if (!p || p.pattern === undefined) continue;
+      try { new RegExp(p.pattern, "u"); } catch (err) { throw new TypeError(`register: "${def.name}": ${where}.pattern is not a valid regular expression: ${err.message}`); }
+    }
+  }
+  const unchecked = uncheckedKeywords(def.input);
+  if (unchecked.length) console.warn(`sutram: ${def.name}: these input keywords are not checked: ${unchecked.join(", ")}. Check them in run().`);
 }
 
 /**
@@ -212,7 +306,12 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
       notify(runFns, { name, input: value, caller });
       const result = await (async () => {
         try {
-          const res = (await def.run(value, { caller, signal })) || {};
+          let res = await def.run(value, { caller, signal });
+          if (typeof res === "string") res = { text: res };
+          else if (res === undefined || res === null) res = {};
+          else if (!isPlainObject(res)) {
+            return { code: EXIT.FAILED, message: `${name}: run returned ${Array.isArray(res) ? "a list" : `a ${typeof res}`}; return { text?, data? } or a string` };
+          }
           if (checkResults && def.output && res.data !== undefined) {
             const err = checkOutput(def.output, res.data, def.output, formats);
             if (err) console.warn(`sutram: ${name} returned data that does not match its output schema: ${err}`);

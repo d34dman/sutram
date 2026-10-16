@@ -12,6 +12,25 @@ breaking changes bump the minor version.
   consequential tool relied on the WebMCP host to ask.
 - The console's input is a textarea: <kbd>Enter</kbd> inside quotes and
   <kbd>Shift</kbd>+<kbd>Enter</kbd> start a new line.
+- **Typed input is no longer converted.** Values from agents and code must
+  have the declared type: `true` for an integer, or an object for a string,
+  is a usage error instead of `1` or `"[object Object]"`. Text typed in the
+  console is still converted.
+- **`null` means "not given"**, like `undefined`: the default applies, or a
+  required key is reported. Before, it became `"null"` or `0`.
+- **An empty string is a value** for a string property: `--title=""` reaches
+  `run()` as `""` and counts as present for `required`. Before, it was
+  dropped. Add `minLength: 1` where you need non-empty text.
+- **More of the schema is checked**: `const`, `exclusiveMinimum`,
+  `exclusiveMaximum`, `multipleOf`, `minLength`, `maxLength`, `pattern`,
+  array `items` (one level), `minItems`, `maxItems`, `uniqueItems`, and
+  `type: [T, "null"]`. `register()` warns once about keywords it does not
+  check, and refuses a `pattern` that is not a valid regular expression.
+- **Positional words are never dropped.** They fill the positional keys not
+  given as options; a word with no key left is a usage error.
+- Only the schema's own properties are arguments: `--constructor` is unknown.
+- Event payloads are checked strictly (nothing is converted) and delivered
+  as emitted.
 
 ### Added
 
@@ -28,6 +47,9 @@ breaking changes bump the minor version.
   The text is taken as written, so HTML needs no escaping. `commandLine()`
   writes multi-line values as heredocs, and the agent prompt mentions them.
 - TypeScript declarations in `types/`.
+- `run()` may return a string, used as its text. Returning any other
+  non-object is now exit 1 with a message saying what to return.
+- `checkInput(schema, input, formats, { strict })`.
 - `agentPrompt(task, { title, url })` and `Sutram.agentPrompt(task)`: a
   generic prompt for chat assistants without browser access.
 - Documentation site with `llms.txt` and `llms-full.txt`, every page also as

@@ -21,9 +21,10 @@ option:  --name=value
 
 - **The command name** is one or more lowercase words: `cart add`,
   `form node-article-form set`. The longest registered name wins.
-- **Positional values** fill the keys listed in `positional`, in order. The
-  last one takes the rest of the line: `nav find menu settings` searches for
-  "menu settings".
+- **Positional values** fill the keys listed in `positional` that were not
+  given as options, in order. The last one takes the rest of the line:
+  `nav find menu settings` searches for "menu settings". A word with no key
+  left is a usage error (`unexpected argument`), never dropped.
 - **Options** are GNU long options: `--qty=2` or `--qty 2`. There are no
   short options except `-h`.
 - **Booleans**: `--all` sets true, `--no-all` sets false.

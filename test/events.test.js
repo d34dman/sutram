@@ -40,3 +40,12 @@ test("a successful navigates command clears the buffer, and ids keep counting", 
   ev.emit("cart.changed");
   assert.deepEqual((await r.run("events recent", { since: 2 })).data.events.map((e) => e.id), [3]);
 });
+
+test("event payloads are checked strictly and delivered as emitted", () => {
+  const r = createRegistry();
+  const events = createEvents(r);
+  events.define("form.saved", { payload: { type: "object", properties: { saved: { type: "integer" }, draft: { type: "boolean", default: false } } } });
+  assert.throws(() => events.emit("form.saved", { saved: "3" }), /saved must be a whole number/);
+  const payload = { saved: 3 };
+  assert.equal(events.emit("form.saved", payload).payload, payload);
+});
