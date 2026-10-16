@@ -1,6 +1,6 @@
 {
   "name": "@d34dman/sutram",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Let AI agents use your web app through commands, not clicks. Register commands once: agents call them through WebMCP, from JavaScript in a headless browser, or by typing into a console that people can use too.",
   "type": "module",
   "exports": {

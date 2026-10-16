@@ -3,7 +3,7 @@
 Sutram follows [semantic versioning](https://semver.org/). Before 1.0,
 breaking changes bump the minor version.
 
-## Unreleased (proposed as 0.4.0)
+## 0.4.0 (2026-10-16)
 
 ### Changed, and may need your attention
 

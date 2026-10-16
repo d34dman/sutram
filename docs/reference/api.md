@@ -7,7 +7,7 @@ description: Every export of every entry point, from the TypeScript declarations
 
 # API
 
-Version 0.3.0. This page is generated from the TypeScript declarations in `types/`, which a test keeps in step with `src/`. For what the pieces are for, start with [Commands and providers](../concepts/commands.md).
+Version 0.4.0. This page is generated from the TypeScript declarations in `types/`, which a test keeps in step with `src/`. For what the pieces are for, start with [Commands and providers](../concepts/commands.md).
 
 ## `@d34dman/sutram`
 

@@ -44,7 +44,7 @@ and WebMCP and exposes everything as `globalThis.Sutram`:
 ```
 
 From a CDN, pin the minor version:
-`https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.3/dist/sutram.js`.
+`https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.4/dist/sutram.js`.
 
 `dist/sutram.min.js` is the same code without comments and indentation,
 about a quarter smaller. Names are not shortened, so stack traces still read.
