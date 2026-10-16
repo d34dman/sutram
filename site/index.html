@@ -286,7 +286,7 @@ footer p { margin: 10px 0 0; max-width: 34rem; }
       <a class="hide-sm" href="#ways">Ways in</a>
       <a href="#demo">Demo</a>
       <a class="hide-xs" href="#start">Get started</a>
-      <a class="hide-sm" href="https://github.com/d34dman/sutram#readme">Docs</a>
+      <a class="hide-sm" href="./docs/index.html">Docs</a>
       <a class="hide-sm" href="https://www.npmjs.com/package/@d34dman/sutram">npm</a>
       <a class="gh" href="https://github.com/d34dman/sutram"><svg aria-hidden="true"><use href="#i-github"/></svg>GitHub</a>
     </nav>
@@ -477,6 +477,34 @@ Sutram.call(<span class="s">"cart_add"</span>, { sku: <span class="s">"V60-02"</
     </div>
   </section>
 
+  <section id="why">
+    <div class="wrap">
+      <span class="kicker">Why commands</span>
+      <h2>Small commands beat one big schema</h2>
+      <p class="sub">One JSON schema for a whole form makes an agent write the whole form in one go, blind. With commands it looks, changes one thing, sees what changed, and fixes only what failed. Each command still has its own JSON Schema: schemas the size of one change.</p>
+      <div class="shapes">
+<pre class="code" style="align-self: start"><span class="c"># the form grows as it is filled in</span>
+<span class="k">›</span> form request set topic billing
+topic set. The form now also asks for: invoice, amount.
+<span class="k">›</span> form request set invoice 2024-17
+<span class="c">form request set: "2024-17" is not a valid invoice number.</span>
+<span class="c">Use INV- and at least four digits, such as INV-20417.</span>
+<span class="k">›</span> form request set invoice INV-20417
+invoice set.</pre>
+        <div class="who-gets">
+          <div><p class="label">Precise edits</p><p>One field per command. Nothing the agent did not mean to touch is sent.</p></div>
+          <div><p class="label">Forms that change</p><p>The result names the fields that appeared. A schema written up front cannot describe them.</p></div>
+          <div><p class="label">Cheap corrections</p><p>On a real Drupal form, fixing one wrong value costs 3 to 6 times fewer tokens than resending the form, and <code>help</code> is a third of the full tool list.</p></div>
+          <div class="assist-actions">
+            <a class="btn primary" href="./docs/why.html">Why commands</a>
+            <a class="btn" href="./example/forms.html">Try the forms example</a>
+            <a class="btn" href="./docs/measurements.html">Measurements</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="start">
     <div class="wrap">
       <span class="kicker">Get started</span>
@@ -541,7 +569,7 @@ Sutram.mountConsole();</pre><button class="copy" type="button" data-copy-from="s
       <p><i>sūtram</i> (सूत्रम्) is Sanskrit for a thread, and for a short, exact rule; in Malayalam everyday speech, a clever little device. Each command is one: a short line in place of clicks and screenshots.</p>
     </div>
     <nav class="foot-links" aria-label="Footer">
-      <a href="https://github.com/d34dman/sutram#readme">Docs</a>
+      <a href="./docs/index.html">Docs</a>
       <a href="https://github.com/d34dman/sutram">GitHub</a>
       <a href="https://www.npmjs.com/package/@d34dman/sutram">npm</a>
       <a href="https://github.com/d34dman/drupal-sutram-demo">Drupal demo</a>
