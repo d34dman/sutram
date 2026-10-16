@@ -22,6 +22,8 @@ export const CLIENT_OPTIONS = Object.freeze(["help", "json", "wide"]);
 
 const REQUIRED_FIELDS = ["name", "provider", "description", "annotations"];
 const NAME = /^[a-z][a-z0-9-]*( [a-z][a-z0-9-]*)*$/;
+/** The most words a command name may have; the parser looks no further. */
+export const MAX_NAME_WORDS = 6;
 
 export class CommandError extends Error {
   constructor(message, code = EXIT.FAILED) {
@@ -242,6 +244,7 @@ function checkDefinition(def) {
   if (typeof def.run !== "function") throw new TypeError(`register: "${def.name}" has no run function`);
   if (def.suggest !== undefined && typeof def.suggest !== "function") throw new TypeError(`register: "${def.name}" has a suggest that is not a function`);
   if (!NAME.test(def.name)) throw new TypeError(`register: "${def.name}" is not a valid name; use lowercase words separated by single spaces`);
+  if (def.name.split(" ").length > MAX_NAME_WORDS) throw new TypeError(`register: "${def.name}" has more than ${MAX_NAME_WORDS} words, so no command line could reach it`);
   if (RESERVED_WORDS.includes(def.name.split(" ")[0])) throw new TypeError(`register: "${def.name}" starts with a word reserved for clients`);
   // sutram_status and sutram_batch are Sutram's own tools; a command must not shadow them.
   if (def.name.split(" ")[0] === "sutram") throw new TypeError(`register: "${def.name}" starts with "sutram", which Sutram's own tools use`);

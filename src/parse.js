@@ -2,7 +2,7 @@
 // end options. Sutram parses one command line. It is not a shell: no pipes,
 // redirection, variables or globbing.
 
-import { CommandError, EXIT, RESERVED_WORDS, CLIENT_OPTIONS } from "./core.js";
+import { CommandError, EXIT, RESERVED_WORDS, CLIENT_OPTIONS, MAX_NAME_WORDS } from "./core.js";
 
 const own = (obj, key) => !!obj && Object.hasOwn(obj, key);
 
@@ -134,7 +134,7 @@ export function parse(registry, line) {
   const tokens = tokenize(line);
   if (!tokens.length) throw new CommandError("nothing to run", EXIT.USAGE);
 
-  for (let k = Math.min(tokens.length, 6); k > 0; k--) {
+  for (let k = Math.min(tokens.length, MAX_NAME_WORDS); k > 0; k--) {
     if (tokens.slice(0, k).some((t) => t.quoted)) continue;
     const name = tokens.slice(0, k).map((t) => t.value).join(" ").toLowerCase();
     const def = registry.get(name);
@@ -328,7 +328,7 @@ export function highlight(registry, line) {
   // The command: the longest registered name the line starts with.
   let def = null;
   let k = 0;
-  for (let n = Math.min(words.length, 6); n > 0 && !def; n--) {
+  for (let n = Math.min(words.length, MAX_NAME_WORDS); n > 0 && !def; n--) {
     if (words.slice(0, n).some((x) => x.quoted)) continue;
     def = registry.get(words.slice(0, n).map((x) => x.value).join(" ").toLowerCase()) || null;
     if (def) k = n;
@@ -443,7 +443,7 @@ export async function complete(registry, line, { signal, limit = 50 } = {}) {
 
   let def = null;
   let k = 0;
-  for (let n = Math.min(before.length, 6); n > 0 && !def; n--) {
+  for (let n = Math.min(before.length, MAX_NAME_WORDS); n > 0 && !def; n--) {
     if (before.slice(0, n).some((x) => x.quoted)) continue;
     def = registry.get(lowered.slice(0, n).join(" ")) || null;
     if (def) k = n;

@@ -83,6 +83,8 @@ breaking changes bump the minor version.
   whatever the key order. `registry.batch()` refuses a step that is not
   `{ name, input }` with a usage result instead of throwing. The event
   buffer keeps a copy of each payload.
+- `register()` refuses a name of more than six words, which no command
+  line could reach.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

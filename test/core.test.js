@@ -19,6 +19,8 @@ test("register refuses incomplete, reserved and duplicate definitions", () => {
   assert.throws(() => r.register({ name: "x" }), /has no provider/);
   assert.throws(() => r.register(def({ name: "help me" })), /reserved/);
   assert.throws(() => r.register(def({ name: "Cart Add" })), /not a valid name/);
+  assert.throws(() => r.register(def({ name: "a b c d e f g", positional: [] })), /more than 6 words/);
+  assert.doesNotThrow(() => r.register(def({ name: "a b c d e f", positional: [] })));
   assert.throws(() => r.register(def({ input: { type: "object", properties: { json: { type: "boolean" } } } })), /clients own it/);
   r.register(def());
   assert.throws(() => r.register(def({ provider: "other" })), /already belongs to cart/);

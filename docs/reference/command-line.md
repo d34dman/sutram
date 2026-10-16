@@ -19,7 +19,7 @@ option:  --name=value
          --no-flag
 ```
 
-- **The command name** is one or more lowercase words: `cart add`,
+- **The command name** is one to six lowercase words: `cart add`,
   `form node-article-form set`. The longest registered name wins.
 - **Positional values** fill the keys listed in `positional` that were not
   given as options, in order. The last one takes the rest of the line:
