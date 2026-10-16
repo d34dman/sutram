@@ -43,6 +43,7 @@
     }
   },
   "files": [
+    "CHANGELOG.md",
     "LICENSE",
     "LICENSE-GPL-2.0",
     "LICENSE-MIT",

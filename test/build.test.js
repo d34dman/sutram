@@ -77,10 +77,11 @@ test("the minifier keeps regular expressions after keywords and with escaped sla
   assert.equal(strip("if (a)  {\n    b();   // c\n}\n"), "if (a) {\nb();\n}\n");
 });
 
-test("the modules that set up the page are marked as side effects, so bundlers keep them", async () => {
+test("package.json: side effects bundlers must keep, and the changelog ships", async () => {
   const { readFileSync } = await import("node:fs");
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.deepEqual(pkg.sideEffects, ["./src/browser.js", "./dist/sutram.js", "./dist/sutram.min.js"]);
+  assert.ok(pkg.files.includes("CHANGELOG.md"), "the changelog ships");
 });
 
 test("scripts avoid import.meta.dirname, which Node 20 before 20.11 lacks", async () => {
