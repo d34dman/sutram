@@ -119,6 +119,8 @@ breaking changes bump the minor version.
 - The console resets the text styles it would inherit from the page
   (`text-transform`, letter and word spacing, indent, alignment, font
   style), so the highlighting stays under the caret on any page.
+- The build and docs scripts run on every Node 20, as `engines` says; they
+  needed 20.11 before.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

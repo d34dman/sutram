@@ -19,8 +19,10 @@ import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { DISCOVERY_RULES } from "../src/prompt.js";
+import { fileURLToPath } from "node:url";
 
-const root = resolve(import.meta.dirname, "..");
+// From the module URL: the dirname shortcut needs Node 20.11, and engines says >=20.
+const root = fileURLToPath(new URL("..", import.meta.url));
 const SITE = "https://d34dman.github.io/sutram/";
 const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
 const read = (p) => readFileSync(resolve(root, p), "utf8");

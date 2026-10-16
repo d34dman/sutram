@@ -9,8 +9,10 @@ import { gzipSync } from "node:zlib";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { strip } from "./strip.mjs";
+import { fileURLToPath } from "node:url";
 
-const root = resolve(import.meta.dirname, "..");
+// From the module URL: the dirname shortcut needs Node 20.11, and engines says >=20.
+const root = fileURLToPath(new URL("..", import.meta.url));
 const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
 const FROM = /from\s*"\.\/(\w+)\.js";/;
 

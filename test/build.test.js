@@ -82,3 +82,10 @@ test("the modules that set up the page are marked as side effects, so bundlers k
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.deepEqual(pkg.sideEffects, ["./src/browser.js", "./dist/sutram.js", "./dist/sutram.min.js"]);
 });
+
+test("scripts avoid import.meta.dirname, which Node 20 before 20.11 lacks", async () => {
+  const { readdirSync, readFileSync } = await import("node:fs");
+  for (const file of readdirSync(new URL("../scripts/", import.meta.url)).filter((f) => f.endsWith(".mjs"))) {
+    assert.doesNotMatch(readFileSync(new URL(`../scripts/${file}`, import.meta.url), "utf8"), /import\.meta\.(dirname|filename)/, file);
+  }
+});

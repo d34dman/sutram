@@ -23,8 +23,10 @@
 //   node scripts/measure.mjs --json     the numbers
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = resolve(import.meta.dirname, "..");
+// From the module URL: the dirname shortcut needs Node 20.11, and engines says >=20.
+const root = fileURLToPath(new URL("..", import.meta.url));
 const fx = JSON.parse(readFileSync(resolve(root, "docs/measurements/drupal-article-form.json"), "utf8"));
 const base = fx.form;
 
