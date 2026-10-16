@@ -56,6 +56,9 @@ breaking changes bump the minor version.
 - **WebMCP input is checked strictly.** An agent's JSON arrives typed, so
   `"off"` for a boolean is a usage error. `Sutram.call()` still converts
   strings, so `call(name, parse(line).input)` works.
+- `sutram_batch` refuses a call that is not `{ tool, input }`, or an
+  `input` that is not an object. Before, `input: "item=a"` ran with no
+  arguments.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

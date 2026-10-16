@@ -138,12 +138,17 @@ async function runBatchTool(registry, input, options) {
   const calls = input && input.calls;
   if (!Array.isArray(calls) || !calls.length) return { code: EXIT.USAGE, message: "sutram_batch: calls must be a list of { tool, input }" };
   const steps = [];
+  const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
   for (const [i, call] of calls.entries()) {
-    const def = call && findTool(registry, call.tool);
-    if (!def) return { code: EXIT.NOT_FOUND, message: `${noSuchTool(registry, call && call.tool, `sutram_batch: call ${i + 1}: `)} Nothing ran.` };
-    const args = (call.input && typeof call.input === "object") ? call.input : {};
+    const where = `sutram_batch: call ${i + 1}`;
+    if (!isObject(call) || typeof call.tool !== "string") return { code: EXIT.USAGE, message: `${where}: each call must be { tool, input }. Nothing ran.` };
+    const def = findTool(registry, call.tool);
+    if (!def) return { code: EXIT.NOT_FOUND, message: `${noSuchTool(registry, call.tool, `${where}: `)} Nothing ran.` };
+    // No input means no arguments; anything else must be an object, never read as text.
+    if (call.input != null && !isObject(call.input)) return { code: EXIT.USAGE, message: `${where}: ${def.name}: input must be an object of arguments, such as { "item": "a" }. Nothing ran.` };
+    const args = call.input || {};
     const { errors, value } = checkInput(def.input, args, registry.formats, { strict: options.strict });
-    if (errors.length) return { code: EXIT.USAGE, message: `sutram_batch: call ${i + 1}: ${def.name}: ${errors.join("; ")}. Nothing ran.` };
+    if (errors.length) return { code: EXIT.USAGE, message: `${where}: ${def.name}: ${errors.join("; ")}. Nothing ran.` };
     steps.push({ def, input: value });
   }
   const refusal = await approve(registry, steps, options);

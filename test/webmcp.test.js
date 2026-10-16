@@ -243,3 +243,14 @@ test("WebMCP checks an agent's JSON strictly; callTool converts strings", async 
   assert.equal((await callTool("doc_show", { all: "off", n: "2" }, { registry: r })).code, 0);
   assert.deepEqual(ran, [{ all: false, n: 2 }]);
 });
+
+test("sutram_batch refuses a call or input that is not an object", async () => {
+  const { r, log } = counter();
+  const text = await callTool("sutram_batch", { calls: [{ tool: "doc_add", input: "item=a" }] }, { registry: r });
+  assert.equal(text.code, EXIT.USAGE);
+  assert.equal(text.message, 'sutram_batch: call 1: doc add: input must be an object of arguments, such as { "item": "a" }. Nothing ran.');
+  assert.equal((await callTool("sutram_batch", { calls: [{ tool: "doc_add", input: ["a"] }] }, { registry: r })).code, EXIT.USAGE);
+  assert.equal((await callTool("sutram_batch", { calls: ["doc_add"] }, { registry: r })).code, EXIT.USAGE);
+  assert.deepEqual(log, []);
+  assert.equal((await callTool("sutram_batch", { calls: [{ tool: "doc_clear", input: null }] }, { registry: r, confirmed: true })).code, 0);
+});
