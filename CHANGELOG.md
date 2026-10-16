@@ -62,6 +62,9 @@ breaking changes bump the minor version.
 - Command names cannot start with `sutram`, so no command can shadow
   `sutram_status` or `sutram_batch`. `sutram_status` follows the policy
   like every tool.
+- **The page's registry has a new key** (`sutram.registry@2`). 0.4 does not
+  share a registry with 0.3 or earlier, and warns when both are on a page.
+  Before, a 0.2 registry crashed a 0.4 client.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

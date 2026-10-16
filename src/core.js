@@ -482,11 +482,19 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
   return registry;
 }
 
-const REGISTRY_KEY = Symbol.for("sutram.registry@1");
+// The key changes when the registry's shape does, so copies of Sutram that
+// would break each other's registry keep their own instead.
+const REGISTRY_KEY = Symbol.for("sutram.registry@2");
+const OLDER_KEYS = [Symbol.for("sutram.registry@1")];
 
 /** The page's one registry, shared by every copy of Sutram loaded on it. */
 export function getRegistry() {
-  if (!globalThis[REGISTRY_KEY]) globalThis[REGISTRY_KEY] = createRegistry();
+  if (!globalThis[REGISTRY_KEY]) {
+    globalThis[REGISTRY_KEY] = createRegistry();
+    if (OLDER_KEYS.some((key) => globalThis[key])) {
+      console.warn("sutram: an older Sutram is on this page. Its commands are in its own registry, not in this one; load one version.");
+    }
+  }
   return globalThis[REGISTRY_KEY];
 }
 

@@ -208,3 +208,26 @@ test("a command without arguments may leave out input", async () => {
   r.register(Object.freeze(def({ name: "cart frozen", input: undefined, positional: [] })));
   assert.ok(r.get("cart frozen").input);
 });
+
+test("getRegistry keeps its own registry next to an older Sutram's, and warns", async () => {
+  const { getRegistry } = await import("../src/index.js");
+  const key = Symbol.for("sutram.registry@2");
+  const old = Symbol.for("sutram.registry@1");
+  const saved = globalThis[key];
+  delete globalThis[key];
+  globalThis[old] = { list: () => [] }; // an 0.3 registry, without policy
+  const warn = console.warn;
+  const warned = [];
+  console.warn = (m) => warned.push(m);
+  try {
+    const r = getRegistry();
+    assert.equal(typeof r.policy.needs, "function");
+    assert.equal(getRegistry(), r);
+    assert.equal(warned.length, 1);
+    assert.match(warned[0], /an older Sutram is on this page/);
+  } finally {
+    console.warn = warn;
+    delete globalThis[old];
+    if (saved) globalThis[key] = saved; else delete globalThis[key];
+  }
+});

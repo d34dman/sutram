@@ -66,7 +66,9 @@ about a quarter smaller. Names are not shortened, so stack traces still read.
 
 If two scripts each bundle their own copy of Sutram, they still share one
 registry, one format registry and one event bus, so every command ends up in
-the same console and the same tool list.
+the same console and the same tool list. That holds for copies of the same registry
+version: 0.4 and later do not share a registry with 0.3 or earlier, and warn
+when both are on a page. Load one version.
 
 ## Drupal
 
