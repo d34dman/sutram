@@ -226,3 +226,10 @@ export declare function checkFields(def: CommandDefinition, fields: string[]): s
 export declare function selectFields(data: unknown, fields: string[], schema?: Schema): { data?: unknown; error?: string };
 export declare function formatsUsed(def: CommandDefinition, formats?: Formats): Array<{ name: string } & FormatDefinition>;
 export declare function commandLine(def: CommandDefinition, input?: Record<string, unknown>): string;
+
+/**
+ * A prompt for a chat assistant without browser access. Generic: it lists no
+ * commands; the assistant finds them with help, man and status, and answers
+ * with command lines a person pastes into the console.
+ */
+export declare function agentPrompt(task?: string, page?: { title?: string; url?: string }): string;

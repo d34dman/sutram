@@ -351,7 +351,7 @@ Added 2 × V60 dripper, size 02.</pre>
         </article>
         <article class="way">
           <header><span class="ico"><svg class="i"><use href="#i-chat"/></svg></span><div><h3>A chat assistant</h3><p class="for">ChatGPT or Claude, with no browser access</p></div><span class="num">04</span></header>
-          <p>The assistant gets a prompt built from the page's commands and answers with command lines. A person pastes them into the console and pastes the output back. <a href="#assist">Try it below.</a></p>
+          <p>The assistant gets a generic prompt, finds the page's commands with <code>help</code> and <code>man</code>, and answers with command lines. A person pastes them into the console and pastes the output back. <a href="#assist">Try it below.</a></p>
 <pre class="code"><span class="c">```sh</span>
 cart add V60-02 2
 cart status
@@ -398,7 +398,7 @@ cart status
         </div>
       </div>
       <div class="card assist" id="assist">
-        <h3>No browser access? Use ChatGPT or Claude. <small>a prompt built from this page's commands</small></h3>
+        <h3>No browser access? Use ChatGPT or Claude. <small>one generic prompt: the assistant finds the commands itself</small></h3>
         <div class="assist-body">
           <div>
             <label for="task">What should the assistant do?</label>
@@ -411,7 +411,7 @@ cart status
             <details><summary>See the prompt</summary><pre class="code" id="prompt"></pre></details>
           </div>
           <ol class="assist-steps">
-            <li><span><b>Send the prompt.</b> The assistant answers with commands in a code block.</span></li>
+            <li><span><b>Send the prompt.</b> The assistant starts with <code>help</code> and <code>status</code> to learn the page, then answers with commands in a code block.</span></li>
             <li><span><b>Paste its commands into the console.</b> Press <kbd>`</kbd>, then paste. All lines run in order, stop at the first error, and anything consequential asks you once.</span></li>
             <li><span><b>Send back what the console printed.</b> Click <i>Copy</i> in the console's top bar and paste it into the chat. Repeat until it is done.</span></li>
           </ol>

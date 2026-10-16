@@ -14,3 +14,4 @@ export {
   synopsis, longSynopsis, annotationLabel, describeShape, sentence,
   checkFields, selectFields, formatsUsed, commandLine,
 } from "./format.js";
+export { agentPrompt } from "./prompt.js";

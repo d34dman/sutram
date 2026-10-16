@@ -352,11 +352,25 @@ the same as everywhere else. App code that needs no asking, such as the
 page's own buttons, calls `Sutram.registry.run("cart add", …)` with the
 command name.
 
-No WebMCP in the browser yet? An assistant such as ChatGPT or Claude can
-still drive the page through a person: give it the page's commands, paste
-the command lines it answers with into the console, and paste the output
-back. [The website](https://d34dman.github.io/sutram/) builds such a prompt
-from its own commands.
+### Without browser access: a chat assistant
+
+An assistant such as ChatGPT or Claude can still drive the page through a
+person. Give it `Sutram.agentPrompt(task)`, paste the command lines it
+answers with into the console, and paste the output back:
+
+```js
+const prompt = Sutram.agentPrompt("Buy two V60 drippers, then check out.");
+// → "You are helping me use a web page through Sutram, … My task: Buy two V60 drippers, then check out."
+```
+
+The prompt is generic, like a skill: it lists no commands. The assistant
+starts with `help` and `status`, reads `man <command>` when it needs more,
+and runs `help` again when the page's state changes. One text works on
+every page and never goes out of date. In the browser it names the page
+(`document.title` and `location.href`). Pass `{ title, url }` as the second
+argument to name it yourself, or import `agentPrompt` from the package,
+which has no DOM. [The website](https://d34dman.github.io/sutram/#assist)
+uses it.
 
 ## The console
 

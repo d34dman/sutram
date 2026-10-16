@@ -11,6 +11,8 @@ export type SutramGlobal = typeof core & {
   register: core.Registry["register"];
   tools(): Tool[];
   call(name: string, input?: Record<string, unknown>, options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal }): ReturnType<typeof callTool>;
+  /** core.agentPrompt for this page: page defaults to document.title and location.href. */
+  agentPrompt(task?: string, page?: { title?: string; url?: string }): string;
   mountConsole: typeof mountConsole;
   connectWebMCP(): () => void;
 };

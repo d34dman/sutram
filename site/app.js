@@ -234,61 +234,12 @@ document.getElementById("webmcp").textContent = findModelContext()
   : "In a browser with WebMCP, these are registered as tools for agents. Add something to the cart: checkout appears.";
 
 // --- A prompt for ChatGPT or Claude ------------------------------------------
-// For browsers without WebMCP: the assistant gets the page's commands, answers
-// with command lines, and the visitor pastes them into the console (which runs
-// a pasted batch in order) and pastes the output back.
-
-function describeArgument(key, schema, required) {
-  const bits = [];
-  if (schema.enum) bits.push(`one of ${schema.enum.join(", ")}`);
-  else bits.push(schema.type || "value");
-  if (schema.minimum !== undefined && schema.maximum !== undefined) bits.push(`${schema.minimum}–${schema.maximum}`);
-  else if (schema.minimum !== undefined) bits.push(`at least ${schema.minimum}`);
-  else if (schema.maximum !== undefined) bits.push(`at most ${schema.maximum}`);
-  if (schema.default !== undefined) bits.push(`default ${schema.default}`);
-  if (required) bits.push("required");
-  return `    --${key}: ${bits.join(", ")}${schema.description ? `. ${schema.description}` : ""}`;
-}
-
-function describeCommand(def) {
-  const order = def.positional || [];
-  const props = (def.input && def.input.properties) || {};
-  const required = new Set((def.input && def.input.required) || []);
-  const usage = [def.name, ...order.map((k) => (required.has(k) ? `<${k}>` : `[${k}]`))].join(" ");
-  const a = def.annotations || {};
-  const hint = a.readOnly ? " (read-only)" : a.consequential ? " (asks first: hard to undo)" : a.navigates ? " (leaves the page)" : "";
-  const lines = [`  ${usage}  ${def.description}${hint}`];
-  for (const [key, schema] of Object.entries(props)) lines.push(describeArgument(key, schema, required.has(key)));
-  if (order.length > 1) lines.push(`    Positional: ${order.join(", ")}, in that order; the last takes the rest of the line.`);
-  else if (order.length) lines.push(`    Positional: ${order[0]}, which takes the rest of the line.`);
-  return lines.join("\n");
-}
-
-function buildPrompt(task) {
-  const commands = registry.list().map(describeCommand).join("\n");
-  return `You are helping me use a web page through Sutram, a command line built into the page. You cannot see the page. I run the commands you give me in the page's console and paste back what it prints.
-
-How to reply:
-- Put the commands to run in one \`\`\`sh code block, one command per line, nothing else in the block. I paste the whole block: the lines run top to bottom and stop at the first error.
-- Look before you change things: read-only commands change nothing. Start with status if you are unsure.
-- Commands marked "asks first" are hard to undo; I will be asked to confirm them.
-- Options are GNU style: --name=value. Quote values that contain spaces. Add --json to any command to get its raw data.
-- Commands come and go with the page's state: one you expect may appear only after an earlier step (checking out, for example, once something is in a cart). End a block there and run help next. man <command> explains one in full.
-- After I paste the output, continue until the task is done. Then say "Done" and summarise what changed.
-
-The page: ${document.title} (${location.href})
-
-Commands on this page right now:
-${commands}
-  status  Show what every part of the page reports (read-only)
-  help, man <command>  List the commands, or explain one
-
-My task: ${task.trim() || "Show me what this page can do."}`;
-}
+// For browsers without WebMCP. Sutram.agentPrompt() is generic: the assistant
+// finds the page's commands itself with help, man and status.
 
 const taskEl = document.getElementById("task");
 function updatePrompt() {
-  const prompt = buildPrompt(taskEl.value);
+  const prompt = Sutram.agentPrompt(taskEl.value);
   document.getElementById("prompt").textContent = prompt;
   const q = encodeURIComponent(prompt);
   document.getElementById("open-claude").href = `https://claude.ai/new?q=${q}`;
@@ -296,7 +247,6 @@ function updatePrompt() {
   return prompt;
 }
 taskEl.addEventListener("input", updatePrompt);
-registry.onChange(updatePrompt);
 document.getElementById("copy-prompt").addEventListener("click", async (e) => {
   const b = e.currentTarget;
   try { await navigator.clipboard.writeText(updatePrompt()); b.textContent = "Copied. Paste it into your assistant"; } catch { b.textContent = "Select the prompt below and copy it"; }

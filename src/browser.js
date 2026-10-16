@@ -1,7 +1,8 @@
 // One script for pages without a bundler: loads everything, defines
 // <sutram-console>, connects WebMCP when the browser has it, and exposes
 // the shared API as globalThis.Sutram. Headless browsers and tests use
-// Sutram.tools() and Sutram.call() from there.
+// Sutram.tools() and Sutram.call() from there; chat assistants get
+// Sutram.agentPrompt().
 //
 //   <script type="module" src=".../sutram/src/browser.js"></script>
 //   <script type="module">
@@ -31,6 +32,8 @@ if (!globalThis.Sutram) {
     // uses registry.run().
     tools: () => listTools(registry),
     call: (name, input, options) => callTool(name, input, { ...options, registry }),
+    // The prompt for a chat assistant without browser access, naming this page.
+    agentPrompt: (task, page = { title: document.title, url: location.href }) => core.agentPrompt(task, page),
     mountConsole,
     connectWebMCP: () => connectWebMCP(registry, findModelContext()),
   });
