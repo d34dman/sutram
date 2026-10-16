@@ -108,6 +108,10 @@ breaking changes bump the minor version.
 - `clear` keeps an open question on screen, and the lines of a pasted batch
   are never taken as answers to it. Before, a batch's `clear` hid a question
   that then caught every line.
+- The console runs one line at a time: a line submitted while a command
+  runs waits its turn, so each output follows its own line. Answers to an
+  open question do not wait. `help`, `man` and `status` fail like commands
+  instead of rejecting `submit()`.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

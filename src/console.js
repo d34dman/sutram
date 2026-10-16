@@ -219,7 +219,7 @@ export class SutramConsole extends Base {
       // Several lines pasted at once run as a batch.
       e.preventDefault();
       this.setInput("");
-      this.runBatch(text);
+      this.enqueue(() => this.runBatch(text));
     });
     root.querySelector("form").addEventListener("submit", (e) => { e.preventDefault(); this.submitInput(); });
     this.input.addEventListener("keydown", (e) => this.onInputKey(e));
@@ -429,8 +429,17 @@ export class SutramConsole extends Base {
     const text = this.input.value;
     this.setInput("");
     this.closeMenu();
-    if (splitLines(text.trim()).filter((l) => l.trim()).length > 1) return this.runBatch(text);
-    return this.submit(text);
+    if (splitLines(text.trim()).filter((l) => l.trim()).length > 1) return this.enqueue(() => this.runBatch(text));
+    // An answer to an open question cannot wait: the running command waits for it.
+    if (this.pendingAsk) return this.submit(text);
+    return this.enqueue(() => this.submit(text));
+  }
+
+  /** Runs typed work one at a time, in order, so each output follows its own line. */
+  enqueue(fn) {
+    const run = (this.work || Promise.resolve()).then(fn);
+    this.work = run.catch(() => {});
+    return run;
   }
 
   // ---- completion --------------------------------------------------------
@@ -734,12 +743,10 @@ export class SutramConsole extends Base {
     this.remember(line);
     this.echo(line);
 
-    let words;
-    try { words = tokenize(line).map((t) => t.value); } catch (err) { return this.fail(err.message, err.code); }
-    const client = await this.runClientWord(words);
-    if (client !== null) return client;
-
     try {
+      // help, man, status and clear first; they fail like any command, never by rejecting.
+      const client = await this.runClientWord(tokenize(line).map((t) => t.value));
+      if (client !== null) return client;
       const parsed = parse(this.registry, line);
       const { def, input, help, fields } = parsed;
       if (help) { this.printBlocks(formatUsage(def)); return EXIT.OK; }
