@@ -87,6 +87,8 @@ breaking changes bump the minor version.
   line could reach.
 - Completion suggests for the positional key that parse would fill: after
   `--from=x`, the next word completes `to`. `--no-key` counts as given.
+- `--json=fields` on an empty list prints `[]`. Before, it printed an error
+  after the command had run.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

@@ -102,3 +102,11 @@ test("help lists commands with usage and annotation", () => {
   r.register(cartStatus);
   assert.match(formatHelp(r)[0].text, /^cart status {2}What is in the cart now {2}\[read-only\]$/);
 });
+
+test("--json=fields on an empty list gives an empty list", async () => {
+  const { selectFields } = await import("../src/client.js");
+  const schema = { type: "array", items: { type: "object", properties: { sku: { type: "string" } } } };
+  assert.deepEqual(selectFields([], ["sku"], schema), { data: [] });
+  assert.match(selectFields([], ["nope"], schema).error, /unknown field "nope"/);
+  assert.deepEqual(selectFields([], ["sku"]), { data: [] });
+});

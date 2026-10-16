@@ -161,6 +161,11 @@ export function checkFields(def, fields) {
  */
 export function selectFields(data, fields, schema) {
   const known = fieldNames(schema, data);
+  // No records is still a list of records: [] stays [], once the fields are known ones.
+  if (Array.isArray(data) && !data.length) {
+    const unknown = known.length ? fields.filter((f) => !known.includes(f)) : [];
+    return unknown.length ? { error: `unknown field ${unknown.map((f) => `"${f}"`).join(", ")}. Available: ${known.join(", ")}` } : { data: [] };
+  }
   if (!isRecord(data) && !isRecords(data)) return { error: "--json= needs records, and this command returned none" };
   const unknown = fields.filter((f) => !known.includes(f));
   if (unknown.length) return { error: `unknown field ${unknown.map((f) => `"${f}"`).join(", ")}. Available: ${known.join(", ")}` };
