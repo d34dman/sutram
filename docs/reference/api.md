@@ -430,6 +430,7 @@ export interface Messages {
   answered: (answer: Answer) => string;
   run: (name: string) => string;
   cancelled: string;
+  answerHint: (always: boolean) => string;
   manWhich: string;
   manMissing: (name: string) => string;
   noStatus: string;
@@ -448,12 +449,41 @@ export interface Messages {
 
 export declare const MESSAGES: Readonly<Messages>;
 
+/** The key left of 1, by position, outside text fields; Ctrl with it anywhere. */
+export declare const DEFAULT_HOTKEY: "backquote ctrl+backquote";
+
+export interface HotkeyBinding {
+  binding: string;
+  key: string;
+  ctrl: boolean;
+  alt: boolean;
+  shift: boolean;
+  meta: boolean;
+}
+
+/**
+ * Reads space-separated bindings: modifiers (ctrl, alt, shift, meta, mod) and a
+ * key. Letters and digits are the typed character; other keys are named like
+ * KeyboardEvent.code in lowercase (backquote, slash, f2). "none" is no binding.
+ */
+export declare function parseHotkey(spec?: string): HotkeyBinding[];
+/** The binding a key event matches, or null. Bindings without ctrl, alt or meta never fire in a text field. */
+export declare function matchHotkey(
+  e: Pick<KeyboardEvent, "key" | "code" | "ctrlKey" | "altKey" | "shiftKey" | "metaKey">,
+  bindings: HotkeyBinding[],
+  options?: { inField?: boolean },
+): HotkeyBinding | null;
+
 export declare class SutramConsole extends HTMLElement {
   registry: Registry;
   /** Assign some of MESSAGES' keys to translate them. */
   get messages(): Messages;
   set messages(value: Partial<Messages>);
   readonly inline: boolean;
+  /** The bindings of the hotkey attribute, or of DEFAULT_HOTKEY. */
+  readonly hotkeys: HotkeyBinding[];
+  /** Lines run, newest last; kept in sessionStorage unless history="off". */
+  history: string[];
   open(): void;
   close(): void;
   toggle(): void;
@@ -462,7 +492,11 @@ export declare class SutramConsole extends HTMLElement {
   /** Runs several lines as one batch, as a paste does. */
   runBatch(text: string): Promise<ExitCode>;
   print(text: string, kind?: string): HTMLElement;
-  ask(message: string, options?: { always?: boolean }): Promise<Answer>;
+  /** Waits its turn when another question is open; `lead` prints what it is about when it shows. */
+  ask(
+    message: string,
+    options?: { always?: boolean; lead?: (() => void) | null },
+  ): Promise<Answer>;
   askForAgent(request: AskRequest): Promise<Answer>;
   /** The output as plain text. */
   transcript(): string;
@@ -473,6 +507,10 @@ export declare function defineConsole(tag?: string): void;
 export interface MountAttributes {
   greeting?: string;
   locale?: string;
+  /** Space-separated bindings such as "mod+k ctrl+backquote", or "none". Default: DEFAULT_HOTKEY. */
+  hotkey?: string;
+  /** "off" keeps history in memory only, instead of sessionStorage. */
+  history?: "off";
   messages?: Partial<Messages>;
   [attribute: string]: unknown;
 }

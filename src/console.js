@@ -31,6 +31,7 @@ export const MESSAGES = Object.freeze({
   answered: (answer) => (answer === "always" ? "yes, and stop asking" : answer ? "yes" : "no"),
   run: (name) => `Run ${name}?`,
   cancelled: "Cancelled. Nothing changed.",
+  answerHint: (always) => (always ? "Answer y (yes), a (yes, and stop asking) or n (no)." : "Answer y (yes) or n (no)."),
   manWhich: "What manual page do you want?\nFor example, try: man help",
   manMissing: (name) => `No manual entry for ${name}. See help.`,
   noStatus: "No provider on this page reports a status.",
@@ -120,7 +121,59 @@ const commonStart = (list) => list.reduce((a, b) => {
 });
 
 const MAX_ROWS = 10;
+const HISTORY_KEY = "sutram.history";
+const HISTORY_SIZE = 100;
 let instances = 0;
+
+/**
+ * The default hotkey: the key left of 1 outside text fields, and Ctrl with
+ * it anywhere. Matched by position (e.code "Backquote"), the way game
+ * consoles bind it, so it is the same key on every layout: ` on US English,
+ * ^ on German, ² on French. Ctrl+` is also VS Code's terminal toggle.
+ */
+export const DEFAULT_HOTKEY = "backquote ctrl+backquote";
+
+const MODIFIERS = ["ctrl", "alt", "shift", "meta"];
+const isMac = () => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
+
+/**
+ * Reads a hotkey: space-separated bindings such as "mod+k ctrl+backquote",
+ * or "none". A binding is modifiers (ctrl, alt, shift, meta, or mod: Cmd on
+ * macOS, Ctrl elsewhere) and a key. A letter or digit is the character the
+ * keyboard types, so ctrl+k stays K on any layout; any other key is named by
+ * its position, as KeyboardEvent.code in lowercase: backquote, slash, f2.
+ */
+export function parseHotkey(spec = DEFAULT_HOTKEY) {
+  const text = String(spec).trim().toLowerCase();
+  if (!text || text === "none") return [];
+  return text.split(/\s+/).map((binding) => {
+    const parts = binding.split("+");
+    const key = parts.pop();
+    if (!key) throw new TypeError(`hotkey: "${binding}" has no key`);
+    const b = { binding, key, ctrl: false, alt: false, shift: false, meta: false };
+    for (const m of parts) {
+      if (m === "mod") b[isMac() ? "meta" : "ctrl"] = true;
+      else if (MODIFIERS.includes(m)) b[m] = true;
+      else throw new TypeError(`hotkey: unknown modifier "${m}" in "${binding}"; use ctrl, alt, shift, meta or mod`);
+    }
+    return b;
+  });
+}
+
+/** The binding a key event matches, or null. A binding without ctrl, alt or meta never fires in a text field. */
+export function matchHotkey(e, bindings, { inField = false } = {}) {
+  for (const b of bindings) {
+    if (e.ctrlKey !== b.ctrl || e.altKey !== b.alt || e.shiftKey !== b.shift || e.metaKey !== b.meta) continue;
+    if (inField && !b.ctrl && !b.alt && !b.meta) continue;
+    const typed = String(e.key || "").toLowerCase();
+    const hit = /^[a-z0-9]$/.test(b.key)
+      // Alt+K on macOS types ˚: then the key's position decides.
+      ? typed === b.key || (!/^[a-z0-9]$/.test(typed) && e.code === (/\d/.test(b.key) ? `Digit${b.key}` : `Key${b.key.toUpperCase()}`))
+      : String(e.code || "").toLowerCase() === b.key;
+    if (hit) return b;
+  }
+  return null;
+}
 
 export class SutramConsole extends Base {
   constructor() {
@@ -129,6 +182,8 @@ export class SutramConsole extends Base {
     this.history = [];
     this.historyIndex = 0;
     this.pendingAsk = null;
+    this.askQueue = [];
+    this.returnFocus = null;
     this.menuState = { items: [], index: -1, start: 0, request: 0 };
     this._messages = MESSAGES;
     const menuId = `sutram-menu-${++instances}`;
@@ -175,8 +230,31 @@ export class SutramConsole extends Base {
       e.preventDefault();
       this.accept(Number(li.dataset.index));
     });
+    // A drop-down console is a modal dialog: Tab stays inside it.
+    this.panel.addEventListener("keydown", (e) => {
+      if (e.key !== "Tab" || e.defaultPrevented || this.inline) return;
+      const items = [...root.querySelectorAll("button, textarea")].filter((el) => el.offsetParent !== null || el === this.input);
+      if (!items.length) return;
+      const at = items.indexOf(root.activeElement);
+      const next = items[(at + (e.shiftKey ? -1 : 1) + items.length) % items.length];
+      e.preventDefault();
+      next.focus();
+    });
     this.onGlobalKey = this.onGlobalKey.bind(this);
     this.renderChrome();
+  }
+
+  /** The hotkey bindings, from the hotkey attribute (see parseHotkey). A hotkey that cannot be read falls back to the default, with a warning. */
+  get hotkeys() {
+    const spec = this.hasAttribute("hotkey") ? this.getAttribute("hotkey") : DEFAULT_HOTKEY;
+    if (this._hotkeySpec !== spec) {
+      this._hotkeySpec = spec;
+      try { this._hotkeys = parseHotkey(spec); } catch (err) {
+        console.warn(`sutram: ${err.message}. Using "${DEFAULT_HOTKEY}".`);
+        this._hotkeys = parseHotkey(DEFAULT_HOTKEY);
+      }
+    }
+    return this._hotkeys;
   }
 
   /** The console's own texts. Assign an object with some of MESSAGES' keys to translate them. */
@@ -191,6 +269,10 @@ export class SutramConsole extends Base {
   connectedCallback() {
     if (!this.inline) document.addEventListener("keydown", this.onGlobalKey);
     this.panel.setAttribute("role", this.inline ? "region" : "dialog");
+    if (this.inline) this.panel.removeAttribute("aria-modal");
+    else this.panel.setAttribute("aria-modal", "true");
+    if (!this.history.length) this.history = this.loadHistory();
+    this.historyIndex = this.history.length;
     this.offChange = this.registry.onChange(() => { this.updateCount(); this.renderInput(); });
     // The first console on the page asks the user when an agent needs approval.
     if (!this.registry.policy.hasAsker()) this.offAsker = this.registry.policy.setAsker((request) => this.askForAgent(request));
@@ -257,6 +339,11 @@ export class SutramConsole extends Base {
   }
 
   open() {
+    if (!this.inline && !this.hasAttribute("open")) {
+      // Focus goes back where it was when the console closes.
+      const active = document.activeElement;
+      this.returnFocus = active && active !== this && active !== document.body ? active : null;
+    }
     if (!this.inline) this.setAttribute("open", "");
     requestAnimationFrame(() => this.input.focus());
     this.dispatchEvent(new CustomEvent("sutram-open"));
@@ -266,18 +353,19 @@ export class SutramConsole extends Base {
     if (this.inline) return;
     this.closeMenu();
     this.removeAttribute("open");
+    const back = this.returnFocus;
+    this.returnFocus = null;
+    if (back && back.isConnected && typeof back.focus === "function") back.focus();
     this.dispatchEvent(new CustomEvent("sutram-close"));
   }
 
   toggle() { this.hasAttribute("open") ? this.close() : this.open(); }
 
-  /** The hotkey: backtick outside text fields, or Ctrl+Shift+K anywhere. Escape closes. */
+  /** The hotkey (the hotkey attribute, DEFAULT_HOTKEY when unset) toggles the console. Escape closes. */
   onGlobalKey(e) {
-    const path = e.composedPath ? e.composedPath() : [];
-    const inside = path.includes(this);
     if (e.key === "Escape" && this.hasAttribute("open")) { e.preventDefault(); this.close(); return; }
-    if (e.ctrlKey && e.shiftKey && (e.key === "K" || e.key === "k")) { e.preventDefault(); this.toggle(); return; }
-    if (e.key === "`" && !e.ctrlKey && !e.metaKey && !e.altKey && !inside && !isEditable(path[0] || document.activeElement)) {
+    const path = e.composedPath ? e.composedPath() : [];
+    if (matchHotkey(e, this.hotkeys, { inField: isEditable(path[0] || document.activeElement) })) {
       e.preventDefault();
       this.toggle();
     }
@@ -309,7 +397,8 @@ export class SutramConsole extends Base {
       this.historyIndex = Math.min(this.history.length, this.historyIndex + 1);
       this.setInput(this.history[this.historyIndex] || "");
       e.preventDefault();
-    } else if (e.key === "`" && !value && !this.inline) {
+    } else if (!value && !this.inline && !e.ctrlKey && !e.altKey && !e.metaKey && matchHotkey(e, this.hotkeys)) {
+      // The plain hotkey in an empty field closes the console again.
       e.preventDefault();
       this.close();
     }
@@ -476,37 +565,71 @@ export class SutramConsole extends Base {
 
   remember(line) {
     this.history.push(line);
+    if (this.history.length > HISTORY_SIZE) this.history.splice(0, this.history.length - HISTORY_SIZE);
     this.historyIndex = this.history.length;
+    this.saveHistory();
+  }
+
+  /**
+   * History lives in sessionStorage, so it survives navigation in this tab
+   * and is gone when the tab closes. history="off" keeps it in memory only.
+   */
+  get keepsHistory() { return this.getAttribute("history") !== "off"; }
+
+  loadHistory() {
+    if (!this.keepsHistory) return [];
+    try {
+      const list = JSON.parse(sessionStorage.getItem(HISTORY_KEY) || "[]");
+      return Array.isArray(list) ? list.filter((l) => typeof l === "string").slice(-HISTORY_SIZE) : [];
+    } catch { return []; }
+  }
+
+  saveHistory() {
+    if (!this.keepsHistory) return;
+    try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(this.history)); } catch { /* storage blocked or full */ }
   }
 
   /**
    * Asks a yes/no question in the output. With `always`, a third answer
    * stops the questions about ordinary changes. Resolves to true, false or
-   * "always". Typing y, n or a answers too.
+   * "always". Typing y, n or a answers too; anything else asks again. A
+   * question asked while another is open waits its turn; `lead` prints what
+   * it is about when its turn comes.
    */
-  ask(message, { always = false } = {}) {
-    const m = this.messages;
+  ask(message, { always = false, lead = null } = {}) {
     return new Promise((resolve) => {
-      const el = this.print(message + " ", "ask");
-      const done = (answer) => {
-        if (answer === "always" && !always) answer = true;
-        this.pendingAsk = null;
-        el.querySelectorAll("button").forEach((b) => b.remove());
-        el.append(m.answered(answer));
-        resolve(answer);
-        this.input.focus();
-      };
-      const choices = [[m.yes, true], ...(always ? [[m.always, "always"]] : []), [m.no, false]];
-      for (const [label, answer] of choices) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.textContent = label;
-        if (answer === true) b.className = "yes";
-        b.addEventListener("click", () => done(answer));
-        el.append(b);
-      }
-      this.pendingAsk = done;
+      const show = () => this.showAsk(message, always, lead, resolve);
+      if (this.pendingAsk) this.askQueue.push(show);
+      else show();
     });
+  }
+
+  /** Shows a question from ask() and waits for its answer; then the next queued question, if any. */
+  showAsk(message, always, lead, resolve) {
+    const m = this.messages;
+    if (lead) lead();
+    const el = this.print(message + " ", "ask");
+    const done = (answer) => {
+      if (answer === "always" && !always) answer = true;
+      this.pendingAsk = null;
+      el.querySelectorAll("button").forEach((b) => b.remove());
+      el.append(m.answered(answer));
+      resolve(answer);
+      this.input.focus();
+      const next = this.askQueue.shift();
+      if (next) next();
+    };
+    done.always = always;
+    const choices = [[m.yes, true], ...(always ? [[m.always, "always"]] : []), [m.no, false]];
+    for (const [label, answer] of choices) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      if (answer === true) b.className = "yes";
+      b.addEventListener("click", () => done(answer));
+      el.append(b);
+    }
+    this.pendingAsk = done;
   }
 
   /** Whether "stop asking" can be offered: only about ordinary changes, never consequential ones. */
@@ -518,17 +641,19 @@ export class SutramConsole extends Base {
   async askForAgent({ who, steps }) {
     const m = this.messages;
     this.open();
-    this.print(steps.length === 1 ? m.agentAsks : m.agentAsksBatch(steps.length), "dim");
-    for (const { def, input } of steps) this.echo(commandLine(def, input), "input agent");
+    const lead = () => {
+      this.print(steps.length === 1 ? m.agentAsks : m.agentAsksBatch(steps.length), "dim");
+      for (const { def, input } of steps) this.echo(commandLine(def, input), "input agent");
+    };
     const question = steps.length === 1 ? (ownQuestion(steps[0].def, steps[0].input) || m.run(steps[0].def.name)) : m.agentBatch(steps.length);
-    return this.ask(question, { always: this.canStopAsking(who, steps.map((s) => s.def)) });
+    return this.ask(question, { always: this.canStopAsking(who, steps.map((s) => s.def)), lead });
   }
 
   // ---- running -----------------------------------------------------------
 
   /** The words clients own: help, man, status and clear. Resolves to an exit code, or null for any other line. */
   async runClientWord(words) {
-    const [first, ...rest] = words;
+    const [first, ...rest] = words.map((w, i) => (i === 0 ? w.toLowerCase() : w));
     if (first === "help") { this.printBlocks(formatHelp(this.registry, rest.join(" ").toLowerCase())); return EXIT.OK; }
     if (first === "man") {
       const name = rest.join(" ").toLowerCase();
@@ -559,7 +684,11 @@ export class SutramConsole extends Base {
     if (!line) return EXIT.OK;
     if (this.pendingAsk) {
       this.print(line, "input");
-      this.pendingAsk(/^y(es)?$/i.test(line) ? true : /^a(lways)?$/i.test(line) ? "always" : false);
+      const always = this.pendingAsk.always;
+      const answer = /^y(es)?$/i.test(line) ? true : /^n(o)?$/i.test(line) ? false : always && /^a(lways)?$/i.test(line) ? "always" : null;
+      // Anything else, such as a command typed too early, asks again instead of meaning no.
+      if (answer === null) { this.print(this.messages.answerHint(always), "dim"); return EXIT.USAGE; }
+      this.pendingAsk(answer);
       return EXIT.OK;
     }
     this.remember(line);
@@ -687,7 +816,8 @@ export function defineConsole(tag = "sutram-console") {
  * Adds a console and returns it. Without a container: the page's drop-down
  * console, created once. With a container: a new inline console inside it,
  * which fills the container and has no hotkey, for apps that place the
- * console themselves. `attributes` may hold greeting, locale and messages.
+ * console themselves. `attributes` may hold greeting, locale, hotkey,
+ * history ("off") and messages.
  */
 export function mountConsole(attributes = {}, container = null) {
   defineConsole();

@@ -33,6 +33,12 @@ breaking changes bump the minor version.
   as emitted.
 - **`sutram_status` returns `{ code: 0, data: { providers } }`**, the same
   shape as every other call. Before, `providers` was at the top level.
+- **The console's hotkey**: the key left of 1, found by position (`` ` `` on US,
+  `^` on German, `²` on French keyboards), outside text fields, and Ctrl
+  with it anywhere. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> is gone: it is
+  Firefox's Web Console. Set your own with `mountConsole({ hotkey })`.
+- While the console asks a question, a line that is not y, n (or a) asks
+  again instead of meaning no. A second question waits for the first.
 - `--flag true` and `--flag false` are usage errors. Before, the word became
   an argument and the flag was set to true.
 
@@ -59,6 +65,13 @@ breaking changes bump the minor version.
 - `Sutram.call()` and `sutram_batch` accept command names (`cart add`) as
   well as tool names (`cart_add`); "no such tool" names the closest tool.
 - An unclosed quote names the word it opened in, with a fix.
+- `mountConsole({ hotkey })`, `parseHotkey()`, `matchHotkey()` and
+  `DEFAULT_HOTKEY`.
+- Console history survives navigation in the tab (`sessionStorage`, last
+  100 lines); `history: "off"` keeps it in memory.
+- The drop-down console is a modal dialog: `aria-modal`, <kbd>Tab</kbd> stays
+  inside, and focus returns to where it was on close.
+- Client words are case-insensitive in the console: `Help` works.
 - `agentPrompt(task, { title, url })` and `Sutram.agentPrompt(task)`: a
   generic prompt for chat assistants without browser access.
 - Documentation site with `llms.txt` and `llms-full.txt`, every page also as
