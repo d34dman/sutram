@@ -3,15 +3,28 @@ on:
   push:
     branches: [main]
   pull_request:
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [20, 22]
+        node: [20, 22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - run: npm test
+  types:
+    # The declarations as an app's TypeScript sees them, through the package's
+    # own exports, with node16 and bundler resolution and no skipLibCheck.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npx -y -p typescript@5.5 tsc -p typecheck/tsconfig.json
+      - run: npx -y -p typescript@5.5 tsc -p typecheck/tsconfig.bundler.json

@@ -26,7 +26,10 @@ npm run docs          # if you changed types/, docs/measurements, src/prompt.js 
   no DOM; test it in Node. The console is checked by hand in a browser
   (`npm run example`).
 - **Types**: every export of `src/` needs a declaration in `types/`;
-  `test/types.test.js` checks it.
+  `test/types.test.js` checks it. CI also compiles `typecheck/consumer.ts`,
+  an app's view of every entry point, with `tsc -p typecheck/tsconfig.json`
+  (node16) and `typecheck/tsconfig.bundler.json`. Run them if you have
+  TypeScript, or with `npx -p typescript@5.5 tsc -p …`.
 - **Docs**: the pages are `docs/**/*.md`. Some files are generated and
   committed: `docs/reference/api.md`, the table in `docs/measurements.md`,
   `skills/use-sutram-page/SKILL.md` and `docs/llms.txt`. Edit their sources
