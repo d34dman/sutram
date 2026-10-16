@@ -22,12 +22,13 @@ jobs:
         with:
           node-version: 22
       - run: npm test
-      # The website runs the current code: site/ plus the build of src/.
+      # The website runs the current code: site/ plus the build of src/, and the docs.
       - run: |
           npm run build
           mkdir _site
           cp -r site/. _site/
           cp dist/sutram.js _site/sutram.js
+          node scripts/docs.mjs --site=_site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

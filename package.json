@@ -36,6 +36,7 @@
     "LICENSE-MIT",
     "dist",
     "docs",
+    "skills",
     "src",
     "types"
   ],
@@ -47,7 +48,10 @@
     "build": "node scripts/build.mjs",
     "prepack": "node scripts/build.mjs",
     "example": "node example/serve.js",
-    "site": "node scripts/build.mjs && cp dist/sutram.js site/sutram.js && node example/serve.js site"
+    "docs": "node scripts/docs.mjs",
+    "docs:check": "node scripts/docs.mjs --check",
+    "measure": "node scripts/measure.mjs",
+    "site": "node scripts/build.mjs && cp dist/sutram.js site/sutram.js && node scripts/docs.mjs --site && node example/serve.js site"
   },
   "keywords": [
     "webmcp",
@@ -72,7 +76,7 @@
     "type": "git",
     "url": "git+https://github.com/d34dman/sutram.git"
   },
-  "homepage": "https://github.com/d34dman/sutram#readme",
+  "homepage": "https://d34dman.github.io/sutram/docs/index.html",
   "bugs": {
     "url": "https://github.com/d34dman/sutram/issues"
   },

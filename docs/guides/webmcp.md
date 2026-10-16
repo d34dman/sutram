@@ -1,0 +1,47 @@
+---
+title: WebMCP
+description: What agents see when Sutram registers your commands as WebMCP tools, and how approval works.
+---
+
+# WebMCP
+
+[WebMCP](https://github.com/webmachinelearning/webmcp) lets a page offer
+tools to an agent in the browser. `connectWebMCP()`, or loading
+`dist/sutram.js`, registers every command as a tool in browsers that support
+it, and keeps the list in step with the registry.
+
+```js
+import { connectWebMCP, findModelContext } from "@d34dman/sutram/webmcp";
+connectWebMCP(registry, findModelContext());
+```
+
+## What agents get
+
+- **One tool per command.** The name is the command name with underscores:
+  `cart add` becomes `cart_add`.
+- **The input schema**, and the annotations as hints: `readOnlyHint`,
+  `consequentialHint`, `untrustedContentHint`.
+- **A description** that says what the command does, what it returns (from
+  the output schema), whether it leaves the page, and what any app-defined
+  formats mean.
+- **`sutram_status`**, which runs every `<provider> status` at once. Agents
+  should call it first.
+- **`sutram_batch`**, which runs several tools as one change:
+  `{ calls: [{ tool: "cart_add", input: { sku: "V60" } }, …] }`.
+
+When commands are added or removed, the tools follow.
+
+## Approval
+
+WebMCP decides which sites' tools an agent may see, not whether a call may
+change the user's page. So every call goes through the page's
+[policy](../concepts/annotations-and-policy.md) first. When a call needs
+approval, the console shows what the agent wants to run and asks the person.
+Without a console, the page's asker or the browser's `confirm()` asks.
+
+## Without WebMCP
+
+Browsers without WebMCP still have every tool: `Sutram.tools()` and
+`Sutram.call()` for agents that run JavaScript in the page (see
+[Test with Playwright](testing.md)), and [`agentPrompt()`](chat-assistants.md)
+for chat assistants.

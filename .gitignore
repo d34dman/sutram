@@ -2,3 +2,11 @@ node_modules/
 .DS_Store
 dist/
 site/sutram.js
+# Built by scripts/docs.mjs --site
+site/docs/
+site/example/
+site/skills/
+site/llms.txt
+site/llms-full.txt
+site/sitemap.xml
+site/robots.txt

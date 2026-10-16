@@ -1,3 +1,8 @@
+---
+title: Design notes
+description: The first design note (12 October 2026) with later updates, for contributors. Parts have changed since; the other pages describe Sutram as it is.
+---
+
 # Sutram design
 
 Status: draft, 12 Oct 2026. Open questions are at the end.

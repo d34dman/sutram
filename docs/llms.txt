@@ -1,0 +1,53 @@
+# Sutram
+
+> Let AI agents use your web app through commands, not clicks. Register commands once: agents call them through WebMCP, from JavaScript in a headless browser, or by typing into a console that people can use too.
+
+Sutram is an npm package (`@d34dman/sutram`, MIT OR GPL-2.0-or-later) and a Drupal module (`drupal/sutram`). An app registers commands: a name, a JSON Schema for the input, annotations, a function. Agents reach them as WebMCP tools, through `Sutram.tools()` and `Sutram.call()` in the page, as command lines in the page's console, or through a chat assistant with `Sutram.agentPrompt()`.
+
+Agents using a page: start with `status` (or the `sutram_status` tool), then `help`; read `man <command>` before using a command; change one thing per command; ask the person when a call returns exit 130. Coding agents adding Sutram to an app: read the quick start, then Write a provider and Write descriptions agents can use.
+
+## Start
+
+- [Documentation](https://d34dman.github.io/sutram/docs/index.md): Sutram lets AI agents use your web app through commands. Start here.
+- [Why commands](https://d34dman.github.io/sutram/docs/why.md): Why an agent does better with small commands it can discover than with one JSON schema for the whole thing.
+- [Measurements](https://d34dman.github.io/sutram/docs/measurements.md): How many tokens an agent spends filling a real Drupal form with one schema or with Sutram's commands, including a correction.
+- [Quick start](https://d34dman.github.io/sutram/docs/quick-start.md): Register one command, use it in the console, and call it the way an agent does.
+- [Install](https://d34dman.github.io/sutram/docs/install.md): Install Sutram from npm, load it as one script, or use the Drupal module.
+
+## Concepts
+
+- [Commands and providers](https://d34dman.github.io/sutram/docs/concepts/commands.md): What a command definition holds, who owns it, and when to register and remove it.
+- [Discovery: help, man, status](https://d34dman.github.io/sutram/docs/concepts/discovery.md): How people and agents find out what a page can do and what state it is in.
+- [Annotations and the policy](https://d34dman.github.io/sutram/docs/concepts/annotations-and-policy.md): How commands describe what they do, and how the page decides who has to agree before one runs.
+- [Batches](https://d34dman.github.io/sutram/docs/concepts/batches.md): Several commands as one change, checked first, asked once, rolled back on failure.
+- [Results and exit codes](https://d34dman.github.io/sutram/docs/concepts/results.md): What every run returns, how the console shows it, and the options every command gets for free.
+- [Formats](https://d34dman.github.io/sutram/docs/concepts/formats.md): App-defined formats such as money, following JSON Schema custom formats.
+- [Events](https://d34dman.github.io/sutram/docs/concepts/events.md): Facts a page declares and emits, and how agents poll for what changed.
+
+## Guides
+
+- [Write a provider](https://d34dman.github.io/sutram/docs/guides/write-a-provider.md): Build a small set of commands step by step, the way the coffee shop on the website does.
+- [Forms](https://d34dman.github.io/sutram/docs/guides/forms.md): Field-level commands for forms, progressive disclosure, and validation errors agents can fix.
+- [Drafts and saving](https://d34dman.github.io/sutram/docs/guides/drafts-and-saving.md): The convention for providers that keep a working copy: status, save, discard.
+- [Errors that help agents](https://d34dman.github.io/sutram/docs/guides/errors.md): How to word failures so an agent fixes one thing instead of starting over.
+- [Write descriptions agents can use](https://d34dman.github.io/sutram/docs/guides/descriptions.md): The documentation agents read is your command definitions. How to write them.
+- [Test with Playwright](https://d34dman.github.io/sutram/docs/guides/testing.md): Drive a page's commands from a headless browser, in tests or in an agent, with Sutram.tools() and Sutram.call().
+- [Chat assistants without browser access](https://d34dman.github.io/sutram/docs/guides/chat-assistants.md): Let ChatGPT or Claude drive a page through a person, with agentPrompt() and the console.
+- [WebMCP](https://d34dman.github.io/sutram/docs/guides/webmcp.md): What agents see when Sutram registers your commands as WebMCP tools, and how approval works.
+- [The console](https://d34dman.github.io/sutram/docs/guides/console.md): Open, use, place, restyle and translate the console that people and pasted command lines use.
+
+## Reference
+
+- [API](https://d34dman.github.io/sutram/docs/reference/api.md): Every export of every entry point, from the TypeScript declarations that ship with the package.
+- [The command line](https://d34dman.github.io/sutram/docs/reference/command-line.md): Grammar, options, quoting, exit codes, annotations and the words clients own.
+
+## More
+
+- [Drupal](https://d34dman.github.io/sutram/docs/drupal.md): The drupal/sutram module, its demo submodules, and how a Drupal module adds commands.
+
+## Optional
+
+- [Design notes](https://d34dman.github.io/sutram/docs/design.md): The first design note (12 October 2026) with later updates, for contributors. Parts have changed since; the other pages describe Sutram as it is.
+- [All pages in one file](https://d34dman.github.io/sutram/llms-full.txt)
+- [Skill: use a Sutram page](https://github.com/d34dman/sutram/blob/main/skills/use-sutram-page/SKILL.md)
+- [Skill: add Sutram to an app](https://github.com/d34dman/sutram/blob/main/skills/add-sutram/SKILL.md)
