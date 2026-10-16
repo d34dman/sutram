@@ -213,7 +213,7 @@ function parseArguments(def, rest) {
   // Positional words fill the positional keys not given as options, in order.
   // The last positional key takes the rest of the line, so `nav find pour over`
   // works without quotes. A word with no key left is an error, never dropped.
-  const free = order.filter((key) => input[key] === undefined);
+  const free = order.filter((key) => !own(input, key));
   const last = order[order.length - 1];
   free.forEach((key, i) => {
     if (i >= positional.length) return;

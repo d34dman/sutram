@@ -82,7 +82,10 @@ breaking changes bump the minor version.
   check, and refuses a `pattern` that is not a valid regular expression.
 - **Positional words are never dropped.** They fill the positional keys not
   given as options; a word with no key left is a usage error.
-- Only the schema's own properties are arguments: `--constructor` is unknown.
+- Only own properties count, in both directions: `--constructor` is unknown
+  unless the schema declares it, and a declared `constructor` or `toString`
+  is "not given" until the input has it (in checks, output checks, tables,
+  `--json=` fields and event payloads).
 - Event payloads are checked strictly (nothing is converted) and delivered
   as emitted.
 - **`sutram_status` returns `{ code: 0, data: { providers } }`**, the same

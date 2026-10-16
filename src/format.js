@@ -5,6 +5,8 @@
 import { deref } from "./core.js";
 import { getFormats, STANDARD_FORMATS } from "./formats.js";
 
+const own = (obj, key) => !!obj && Object.hasOwn(obj, key);
+
 /**
  * A block of output: { kind, text, head? }.
  * kind is "text", "table", "pairs", "json", "dim", "man" or "error".
@@ -59,7 +61,7 @@ export function formatTable(rows, itemSchema, root, { columns, maxWidth = 40, ..
   })(rows, 0);
 
   const cells = flat.map(([r, depth]) => cols.map((k, i) => {
-    const s = (i === 0 ? "  ".repeat(depth) : "") + formatValue(r[k], props[k], options);
+    const s = (i === 0 ? "  ".repeat(depth) : "") + formatValue(own(r, k) ? r[k] : undefined, own(props, k) ? props[k] : undefined, options);
     return s.length > maxWidth ? s.slice(0, maxWidth - 1) + "…" : s;
   }));
   const head = cols.map((k) => String((props[k] && props[k].title) || k).toUpperCase());
@@ -162,7 +164,7 @@ export function selectFields(data, fields, schema) {
   if (!isRecord(data) && !isRecords(data)) return { error: "--json= needs records, and this command returned none" };
   const unknown = fields.filter((f) => !known.includes(f));
   if (unknown.length) return { error: `unknown field ${unknown.map((f) => `"${f}"`).join(", ")}. Available: ${known.join(", ")}` };
-  const pick = (r) => Object.fromEntries(fields.filter((f) => f in r).map((f) => [f, r[f]]));
+  const pick = (r) => Object.fromEntries(fields.filter((f) => own(r, f)).map((f) => [f, r[f]]));
   return { data: Array.isArray(data) ? data.map(pick) : pick(data) };
 }
 
@@ -208,7 +210,7 @@ export function commandLine(def, input = {}) {
   const used = new Set(block ? [block] : []);
   // A positional word is plain text, so only strings and numbers go there.
   for (const key of order) {
-    if (input[key] == null || key === block || !["string", "number"].includes(typeof input[key])) break;
+    if (!own(input, key) || input[key] == null || key === block || !["string", "number"].includes(typeof input[key])) break;
     parts.push(quoteArg(input[key]));
     used.add(key);
   }

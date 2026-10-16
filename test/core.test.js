@@ -242,3 +242,21 @@ test("object and array defaults reach run() as copies", async () => {
   assert.deepEqual(input.properties.tags.default, ["a"]);
   assert.deepEqual(input.properties.meta.default, { n: 1 });
 });
+
+test("only own properties count, for input, parsing, output checks, tables, fields and events", async () => {
+  const { parse, selectFields } = await import("../src/client.js");
+  const { formatTable } = await import("../src/internals.js");
+  const { createEvents } = await import("../src/events.js");
+  const props = { constructor: { type: "string" }, toString: { type: "string" } };
+  assert.deepEqual(checkInput({ type: "object", properties: props }, {}), { errors: [], value: {} });
+  const r = createRegistry();
+  r.register(def({ name: "doc name", input: { type: "object", properties: props }, positional: ["constructor"] }));
+  assert.deepEqual(parse(r, "doc name x").input, { constructor: "x" });
+  assert.equal(checkOutput({ type: "object", required: ["toString"] }, {}), "toString is missing");
+  assert.equal(checkOutput({ type: "object", properties: { constructor: { type: "string" } } }, {}), null);
+  assert.doesNotMatch(JSON.stringify(formatTable([{ toString: "a" }], { type: "object", properties: props })), /function/);
+  assert.deepEqual(selectFields([{ toString: "a" }], ["toString", "constructor"], { type: "array", items: { type: "object", properties: props } }).data, [{ toString: "a" }]);
+  const ev = createEvents(r);
+  ev.define("doc.named", { description: "Named", payload: { type: "object", properties: props } });
+  assert.doesNotThrow(() => ev.emit("doc.named", {}));
+});

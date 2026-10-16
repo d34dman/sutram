@@ -150,7 +150,7 @@ export function checkInput(schema, input = {}, formats = getFormats(), { strict 
     if (!own(props, key)) errors.push(`unknown argument "${key}"`);
   }
   for (const [key, prop] of Object.entries(props)) {
-    let v = input[key];
+    let v = own(input, key) ? input[key] : undefined;
     if (v === undefined || v === null || (v === "" && typeOfProp(prop) !== "string")) {
       if (prop.default === undefined) {
         if (required.includes(key)) errors.push(`${key} is required`);
@@ -202,9 +202,9 @@ export function checkOutput(schema, data, root = schema, formats = getFormats())
   const ok = t === schema.type || (schema.type === "number" && t === "integer");
   if (!ok) return `expected ${schema.type}, got ${t}`;
   if (t === "object") {
-    for (const key of schema.required || []) if (!(key in data)) return `${key} is missing`;
+    for (const key of schema.required || []) if (!own(data, key)) return `${key} is missing`;
     for (const [key, prop] of Object.entries(schema.properties || {})) {
-      if (data[key] === undefined) continue;
+      if (!own(data, key) || data[key] === undefined) continue;
       const err = checkOutput(prop, data[key], root, formats);
       if (err) return `${key}: ${err}`;
     }
