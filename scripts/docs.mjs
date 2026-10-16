@@ -190,6 +190,60 @@ function llmsTxt(pages) {
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const slug = (s) => s.toLowerCase().replace(/<[^>]+>|`/g, "").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-");
 
+// --- Syntax highlighting -------------------------------------------------------
+// A few regular expressions per language, enough for the docs' examples. Each
+// rule is [class, regex]; the first that matches at a position wins, and text
+// no rule matches stays plain. Classes: c comment, k keyword, s string,
+// n number, f function, o option or property, t tag or type, p prompt,
+// out a console session's output.
+
+const JS_KEYWORDS = "async|await|break|case|catch|class|const|continue|default|delete|do|else|export|extends|false|finally|for|from|function|if|import|in|instanceof|let|new|null|of|return|static|switch|this|throw|true|try|typeof|undefined|var|void|while|yield";
+const TS_EXTRA = "declare|interface|type|readonly|keyof|implements|namespace|enum|as|is|any|unknown|never|string|number|boolean|Record|Partial|Promise|Readonly|Exclude";
+const STRINGS = [["s", /"(?:[^"\\\n]|\\.)*"/y], ["s", /'(?:[^'\\\n]|\\.)*'/y]];
+const LANGS = {
+  js: [
+    ["c", /\/\/[^\n]*/y], ["c", /\/\*[\s\S]*?\*\//y], ...STRINGS, ["s", /`(?:[^`\\]|\\.)*`/y],
+    ["k", new RegExp(`\\b(?:${JS_KEYWORDS})\\b`, "y")], ["n", /\b\d[\d_.]*\b/y],
+    ["f", /\b[A-Za-z_$][\w$]*(?=\s*\()/y], ["o", /\b[A-Za-z_$][\w$]*(?=\??:(?!:))/y],
+  ],
+  html: [
+    ["c", /<!--[\s\S]*?-->/y], ["t", /<\/?[A-Za-z][\w-]*|\/?>/y], ["o", /\b[\w-]+(?==)/y], ...STRINGS,
+  ],
+  css: [
+    ["c", /\/\*[\s\S]*?\*\//y], ["o", /--?[\w-]+(?=\s*:)/y], ["t", /::?[\w-]+(?:\([^)]*\))?/y], ...STRINGS, ["n", /\b\d[\d.]*(?:px|em|rem|vh|vw|%)?/y], ["s", /#[0-9a-fA-F]{3,8}\b/y],
+  ],
+  yaml: [["c", /#[^\n]*/y], ["o", /[\w./-]+(?=:\s)/y], ...STRINGS, ["n", /\b\d[\d.]*\b/y], ["k", /\b(?:true|false|null)\b/y]],
+  sh: [
+    ["p", /^[›$](?= )/my], ["c", /#[^\n]*/y], ...STRINGS, ["o", /(?<=\s)--?[\w-]+(?:=[^\s"']*)?/y], ["o", /(?<=\s)--(?=\s|$)/y],
+    ["t", /\[(?:read-only|consequential|navigates)\]/y],
+  ],
+};
+LANGS.ts = [...LANGS.js.slice(0, 5), ["k", new RegExp(`\\b(?:${JS_KEYWORDS}|${TS_EXTRA})\\b`, "y")], ...LANGS.js.slice(6)];
+LANGS.json = [["o", /"(?:[^"\\\n]|\\.)*"(?=\s*:)/y], ...STRINGS, ["n", /-?\b\d[\d.eE+-]*\b/y], ["k", /\b(?:true|false|null)\b/y]];
+
+/** Highlights code for `lang`. A block without a language that looks like a console session is treated as sh. */
+function highlight(code, lang) {
+  const rules = LANGS[lang] || (!lang && /^› /m.test(code) ? LANGS.sh : null);
+  if (!rules) return esc(code);
+  // In a console session, only the lines after a prompt are commands; the rest is output.
+  if (!lang) return code.split("\n").map((l) => (l.startsWith("› ") ? highlight(l, "sh") : l ? `<span class="out">${esc(l)}</span>` : "")).join("\n");
+  let out = "";
+  let plain = "";
+  for (let i = 0; i < code.length;) {
+    let hit = null;
+    for (const [cls, re] of rules) {
+      re.lastIndex = i;
+      const m = re.exec(code);
+      if (m && m[0]) { hit = [cls, m[0]]; break; }
+    }
+    if (!hit) { plain += code[i++]; continue; }
+    out += esc(plain) + `<span class="${hit[0]}">${esc(hit[1])}</span>`;
+    plain = "";
+    i += hit[1].length;
+  }
+  return out + esc(plain);
+}
+
 function inline(text, link) {
   const codes = [];
   let s = text.replace(/`([^`]+)`/g, (_, c) => `\u0000${codes.push(c) - 1}\u0000`);
@@ -215,7 +269,7 @@ function render(src, link) {
       i++;
       while (i < lines.length && !lines[i].startsWith("```")) body.push(lines[i++]);
       i++;
-      out.push(`<pre class="code"${m[1] ? ` data-lang="${m[1]}"` : ""}><code>${esc(body.join("\n"))}</code></pre>`);
+      out.push(`<pre class="code"${m[1] ? ` data-lang="${m[1]}"` : ""}><code>${highlight(body.join("\n"), m[1])}</code></pre>`);
     } else if ((m = line.match(/^(#{1,4})\s+(.*)$/))) {
       const level = m[1].length;
       out.push(`<h${level} id="${slug(m[2])}">${inline(m[2], link)}${level > 1 ? ` <a class="anchor" href="#${slug(m[2])}" aria-hidden="true">#</a>` : ""}</h${level}>`);
@@ -317,6 +371,8 @@ article p, article li { color: var(--ink-2); }
 article strong { color: var(--ink); }
 pre.code { background: var(--term); color: var(--term-ink); border: 1px solid var(--term-line); border-radius: 12px; padding: 14px 18px; overflow: auto; font-size: 13.5px; line-height: 1.65; }
 pre.code code { font-size: inherit; }
+pre.code .c { color: #8a91a6; font-style: italic; } pre.code .k { color: #c792ea; } pre.code .s { color: #c3e88d; } pre.code .n { color: #f78c6c; }
+pre.code .f { color: #82aaff; } pre.code .o { color: #7dcfff; } pre.code .t { color: #f07178; } pre.code .p { color: #a3aaff; } pre.code .out { color: #9aa1b5; }
 .table { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 12px; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
 th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
