@@ -98,3 +98,11 @@ test("heredocs: their lines stay one command, and Enter inside one starts a new 
   assert.equal(openQuote("flow connect a --to=<<END\n'"), "<<END");
   assert.deepEqual((await complete(r, "flow connect a <<END\n--")).items, []);
 });
+
+test("completion fills the same positional key as parse", async () => {
+  // --from is given as an option, so the first positional word is `to`.
+  assert.deepEqual(await values("flow connect --from=llm.1:out "), ["chat.2:in ", '"note.3:text with space" ']);
+  assert.equal(parse(r, "flow connect --from=llm.1:out chat.2:in").input.to, "chat.2:in");
+  // --no-strict counts as giving strict.
+  assert.ok(!(await values("flow connect a b --no-strict --")).includes("--strict "));
+});

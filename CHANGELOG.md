@@ -85,6 +85,8 @@ breaking changes bump the minor version.
   buffer keeps a copy of each payload.
 - `register()` refuses a name of more than six words, which no command
   line could reach.
+- Completion suggests for the positional key that parse would fill: after
+  `--from=x`, the next word completes `to`. `--no-key` counts as given.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

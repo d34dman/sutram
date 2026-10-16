@@ -453,26 +453,29 @@ export async function complete(registry, line, { signal, limit = 50 } = {}) {
   const props = (def.input && def.input.properties) || {};
   const order = def.positional || [];
   const args = before.slice(k);
-  const given = new Set();
+  const asOption = new Set(); // keys given as --key
   let endOfOptions = false;
   let pendingKey = null;
   let positionals = 0;
   for (const w of args) {
     const raw = line.slice(w.start, w.end);
-    if (pendingKey) { given.add(pendingKey); pendingKey = null; continue; }
+    if (pendingKey) { pendingKey = null; continue; }
     if (!endOfOptions && !w.quoted && raw === "--") { endOfOptions = true; continue; }
     if (!endOfOptions && !w.quoted && raw.startsWith("-")) {
       const m = /^--([a-z][\w-]*)(=?)/i.exec(raw);
       if (m) {
-        given.add(m[1]);
-        if (!m[2] && props[m[1]] && props[m[1]].type !== "boolean") pendingKey = m[1];
+        const negated = m[1].startsWith("no-") && !own(props, m[1]) && own(props, m[1].slice(3)) ? m[1].slice(3) : null;
+        asOption.add(negated || m[1]);
+        if (!m[2] && !negated && own(props, m[1]) && !isFlag(props[m[1]])) pendingKey = m[1];
       }
       continue;
     }
-    const key = order[Math.min(positionals, order.length - 1)];
-    if (key) given.add(key);
     positionals++;
   }
+  // As in parse: positional words fill the positional keys not given as options, in order; the last takes the rest.
+  const free = order.filter((key) => !asOption.has(key));
+  const positionalKey = (i) => free[Math.min(i, free.length - 1)];
+  const given = new Set([...asOption, ...free.slice(0, positionals)]);
 
   // The input typed so far, for suggest(): parse leniently, never fail.
   let input = {};
@@ -514,7 +517,7 @@ export async function complete(registry, line, { signal, limit = 50 } = {}) {
   }
   if (!endOfOptions && !current.quoted && raw.startsWith("-")) return done(options(raw));
 
-  const key = order.length ? order[Math.min(positionals, order.length - 1)] : undefined;
+  const key = free.length ? positionalKey(positionals) : undefined;
   if (key) {
     const items = await values(key, current.value, "");
     if (items.length || current.value) return done(items);
