@@ -577,6 +577,7 @@ export declare function findModelContext(): ModelContextLike | null;
 export declare function toolName(def: CommandDefinition): string;
 export declare function toTool(def: CommandDefinition, formats?: Formats): Tool;
 export declare function listTools(registry?: Registry): Tool[];
+/** Converts strings to the declared types, like console text; WebMCP calls do not. Follows the page's policy. */
 export declare function callTool(
   name: string,
   input?: Record<string, unknown>,

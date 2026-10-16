@@ -32,6 +32,10 @@ connectWebMCP(registry, findModelContext());
 
 When commands are added or removed, the tools follow.
 
+An agent's input is checked strictly: its JSON arrives typed, so `"off"`
+for a boolean or `"2"` for an integer is a usage error, not converted as
+text typed in the console would be.
+
 ## Approval
 
 WebMCP decides which sites' tools an agent may see, not whether a call may

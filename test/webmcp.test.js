@@ -222,3 +222,24 @@ test("the question shows the checked value, and a confirm() that throws gets the
   assert.deepEqual(asked, [{ ids: [4, 5], qty: 1 }]);
   assert.deepEqual(ran, [{ ids: [4, 5], qty: 1 }]);
 });
+
+test("WebMCP checks an agent's JSON strictly; callTool converts strings", async () => {
+  const r = createRegistry();
+  const ran = [];
+  r.register({
+    name: "doc show", provider: "doc", description: "Show", annotations: {},
+    input: { type: "object", properties: { all: { type: "boolean" }, n: { type: "integer" } } },
+    run: (input) => { ran.push(input); return {}; },
+  });
+  const mc = fakeModelContext();
+  connectWebMCP(r, mc);
+  const res = await mc.tools.get("doc_show").execute({ all: "off" }, {});
+  assert.equal(res.code, EXIT.USAGE);
+  assert.equal(res.message, "doc show: all must be true or false");
+  const batch = await mc.tools.get("sutram_batch").execute({ calls: [{ tool: "doc_show", input: { n: "2" } }] }, {});
+  assert.equal(batch.code, EXIT.USAGE);
+  assert.match(batch.message, /call 1: doc show: n must be a whole number/);
+  assert.deepEqual(ran, []);
+  assert.equal((await callTool("doc_show", { all: "off", n: "2" }, { registry: r })).code, 0);
+  assert.deepEqual(ran, [{ all: false, n: 2 }]);
+});

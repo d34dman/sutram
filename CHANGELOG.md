@@ -24,10 +24,11 @@ breaking changes bump the minor version.
   consequential tool relied on the WebMCP host to ask.
 - The console's input is a textarea: <kbd>Enter</kbd> inside quotes and
   <kbd>Shift</kbd>+<kbd>Enter</kbd> start a new line.
-- **Typed input is no longer converted.** Values from agents and code must
-  have the declared type: `true` for an integer, or an object for a string,
-  is a usage error instead of `1` or `"[object Object]"`. Text typed in the
-  console is still converted.
+- **Only strings are converted.** A value of another type must already have
+  the declared type: `true` for an integer, or an object for a string, is a
+  usage error instead of `1` or `"[object Object]"`. Strings are converted
+  as console text is (`"2"` → `2`), except from WebMCP and in event
+  payloads, which are checked strictly.
 - **Only a `CommandError` sets the exit code**, and never to 0. Anything
   else thrown is exit 1. Before, any integer `err.code` was used, so a
   `DOMException` (legacy `code` 0) counted as success and a batch committed.
@@ -52,6 +53,9 @@ breaking changes bump the minor version.
   roll back, and console and agent runs of a provider in a running batch
   wait too. Before, two batches at once could interleave their hooks and lose
   edits. Always finish a `startBatch()` batch.
+- **WebMCP input is checked strictly.** An agent's JSON arrives typed, so
+  `"off"` for a boolean is a usage error. `Sutram.call()` still converts
+  strings, so `call(name, parse(line).input)` works.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

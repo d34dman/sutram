@@ -123,9 +123,9 @@ async function approve(registry, steps, { confirmed = false, interactive = false
 
 /** Runs one command for an agent: input errors first, then approval, then the command. */
 async function runForAgent(registry, def, input, options) {
-  const { errors, value } = checkInput(def.input, input, registry.formats);
+  const { errors, value } = checkInput(def.input, input, registry.formats, { strict: options.strict });
   // Bad input runs nothing, so it is reported without asking.
-  if (errors.length) return registry.run(def.name, input, { caller: options.caller, signal: options.signal });
+  if (errors.length) return { code: EXIT.USAGE, message: `${def.name}: ${errors.join("; ")}` };
   // The user is asked about the checked value, and that value runs.
   const refusal = await approve(registry, [{ def, input: value }], options);
   if (refusal) return refusal;
@@ -142,7 +142,7 @@ async function runBatchTool(registry, input, options) {
     const def = call && findTool(registry, call.tool);
     if (!def) return { code: EXIT.NOT_FOUND, message: `${noSuchTool(registry, call && call.tool, `sutram_batch: call ${i + 1}: `)} Nothing ran.` };
     const args = (call.input && typeof call.input === "object") ? call.input : {};
-    const { errors, value } = checkInput(def.input, args, registry.formats);
+    const { errors, value } = checkInput(def.input, args, registry.formats, { strict: options.strict });
     if (errors.length) return { code: EXIT.USAGE, message: `sutram_batch: call ${i + 1}: ${def.name}: ${errors.join("; ")}. Nothing ran.` };
     steps.push({ def, input: value });
   }
@@ -158,6 +158,10 @@ const status = async (registry, caller, signal) => ({ code: EXIT.OK, data: { pro
  * Calls a tool by its WebMCP name (cart_add) or its command name (cart add), the way an agent's host would. For code
  * that drives the page from outside without WebMCP: a headless browser, a
  * test, an agent that can run JavaScript in the page.
+ *
+ * Strings are converted to the declared types, as for text typed in the
+ * console, so call(name, parse(line).input) works. WebMCP calls are not
+ * converted: an agent's JSON arrives typed.
  *
  * This is a client, like the console, so it follows the page's policy: a
  * tool that needs the user's approval (by default, a consequential one) runs
@@ -196,7 +200,8 @@ export function connectWebMCP(registry = getRegistry(), modelContext = findModel
     if (ctrl) { ctrl.abort(); live.delete(name); }
   };
 
-  const options = (signal) => ({ caller: "agent", signal, interactive: true });
+  // An agent's JSON arrives typed: "off" stays a string, which is not a boolean.
+  const options = (signal) => ({ caller: "agent", signal, interactive: true, strict: true });
   add("\0status", STATUS_TOOL, (_, { signal } = {}) => status(registry, "agent", signal));
   add("\0batch", BATCH_TOOL, (input, { signal } = {}) => runBatchTool(registry, input, options(signal)));
   // The definition is looked up at call time: it may have been replaced since.

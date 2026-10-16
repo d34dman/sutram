@@ -37,6 +37,9 @@ await page.evaluate(() =>
 - `call()` takes the tool name (underscores) and follows the page's policy
   like a careful host: a call that needs approval runs only with
   `{ confirmed: true }`, which says the user agreed.
+- Strings are converted to the declared types, as in the console, so
+  `call(name, Sutram.client.parse(line).input)` works. WebMCP calls are
+  checked strictly.
 - Results and exit codes are the same as everywhere else.
 
 ## A test
