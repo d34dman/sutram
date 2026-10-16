@@ -23,11 +23,11 @@ same way, by registering commands. Agents find them with `help`, run them one
 at a time or in one batch, and correct what goes wrong:
 
 ```sh
-form node-article-form fields
-form node-article-form set title "Pour-over, step by step"
-form node-article-form set field_tags "coffee, v60"
-form node-article-form set status false
-form node-article-form save
+form fields node-article-form
+form set node-article-form title "Pour-over, step by step"
+form set node-article-form field_tags "coffee, v60"
+form set node-article-form status false
+form save node-article-form
 ```
 
 Each command has a JSON Schema for its input, and agents with WebMCP get it
@@ -50,7 +50,7 @@ depends on screen size, layout or how the page looks.
 
 ## Precise edits
 
-`form <id> set title "Foo"` changes one field and nothing else. With one
+`form set <form> title "Foo"` changes one field and nothing else. With one
 schema for the whole form, the agent writes every field, including the ones it
 did not mean to touch, and one wrong value fails or overwrites all of it.
 
@@ -67,7 +67,7 @@ A schema written up front cannot describe fields that do not exist yet. With
 commands the agent answers, and the result says what appeared:
 
 ```
-› form request set topic billing
+› form set request topic billing
 topic set. The form now also asks for: invoice, amount.
 ```
 
@@ -80,8 +80,8 @@ exactly this. The coffee shop on the home page does it at small scale: the
 When a command fails, the message names the command and what is wrong:
 
 ```
-› form node-article-form set status draft
-form node-article-form set: status is a yes/no field. Use true or false.
+› form set node-article-form status draft
+form set: status is a yes/no field. Use true or false.
 ```
 
 The agent fixes that one line and carries on. The fields it already set stay

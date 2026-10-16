@@ -20,8 +20,8 @@ it: the console, an agent, a test or the app.
 import { CommandError, EXIT } from "@d34dman/sutram";
 
 throw new CommandError(
-  "form request submit: email is required. " +
-    "For example: form request set email …",
+  "form submit: email is required. " +
+    "For example: form set request email …",
   EXIT.FAILED,
 );
 ```

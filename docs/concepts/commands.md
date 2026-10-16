@@ -90,7 +90,7 @@ const remove = getRegistry().register({
 
 | Field | Required | What it is for |
 |---|---|---|
-| `name` | yes | Lowercase words separated by single spaces. Start with the provider: `cart add`, `form node-article-form set`. |
+| `name` | yes | Lowercase words separated by single spaces. Start with the provider: `cart add`, `form set`. |
 | `provider` | yes | Who owns the command. `help <provider>` lists one group. |
 | `description` | yes | What it does, in one line first. `help` shows the first line, `man` all of it; agents read all of it. See [descriptions](../guides/descriptions.md). |
 | `input` | no | JSON Schema for the input, checked before `run()`. Leave it out for a command with no arguments. |
@@ -143,12 +143,18 @@ the data (tables, trees, `key: value`); agents get it as it is. See
 
 ## Register when it makes sense, remove when it does not
 
-`register()` returns a function that removes the command. Register commands
-when they make sense on the page, and remove them when they no longer do: a
-`checkout` command only while the cart has something in it, a form's commands
-only while the form is on the page. `help`, completion and the agent's tool
-list follow along. This is how an agent finds out what is possible now,
-without guessing.
+`register()` returns a function that removes the command. A provider can
+register commands when its own state makes them possible, and remove them when
+it no longer does: a `checkout` command only while the cart has something in
+it. `help`, completion and the agent's tool list follow along. This is how an
+agent finds out what is possible now, without guessing.
+
+Content that other code loads and removes (a form in a dialog, a step loaded
+by AJAX, a rebuilt form) is different: register its commands once, with the
+content as an argument (`form set <form> <field> <value>`), and look the
+content up when the command runs. A command that holds on to content can
+otherwise act on something that is no longer on the page. See
+[Forms](../guides/forms.md).
 
 ## A status command per provider
 

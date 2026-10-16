@@ -25,8 +25,10 @@ Docs: https://d34dman.github.io/sutram/llms.txt
 4. **Then reading commands** (`list`, `find`, `get`), all
    `annotations: { readOnly: true }`.
 5. **Then changes**, one thing per command (`add`, `set`, `remove`). For
-   forms: `form <id> status | fields | get | set | save | discard`, with
-   `set` taking one field and one value.
+   forms: `form list`, then `form status | fields | get | set | save | discard`
+   with the form's id first, and `set` taking one field and one value.
+   Register commands once and look content up when they run, so content
+   that comes and goes needs no re-registering.
 6. **Mark what matters.** `consequential: true` for anything hard to undo
    (orders, deletes, publishing, sending), with a `confirm` question.
    `navigates: true` when the page reloads or leaves.

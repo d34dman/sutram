@@ -218,7 +218,7 @@ function heredoc(s) {
 
 /**
  * The command line that runs a command with this input, such as
- * `form node-article-edit-form set revision_log "Clearer title"`. Positional
+ * `form set node-article-edit-form revision_log "Clearer title"`. Positional
  * arguments come first, in order; the rest are long options. The first
  * multi-line text value, such as HTML, goes last as a heredoc. Clients use it
  * to show what an agent or a button ran in the words a person would type.

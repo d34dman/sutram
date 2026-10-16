@@ -11,20 +11,23 @@ Read [Why commands](../why.md) for the argument; this guide is the how.
 
 ## The command set
 
-Use the same names for every form, so an agent that has filled one knows
-them all:
+Use the same commands for every form, with the form as the first argument,
+so an agent that has filled one knows them all:
 
 | Command | Does | Annotations |
 |---|---|---|
-| `form <id> status` | Unsaved changes, missing fields, errors | read-only |
-| `form <id> fields` | Every field the form has now: name, label, type, required, value | read-only |
-| `form <id> get <field>` | One field in full, with its allowed values or format | read-only |
-| `form <id> set <field> <value>` | Change one field. Nothing is saved yet | |
-| `form <id> save` (or `submit`) | Send it, the same as the form's button | consequential |
-| `form <id> discard` | Undo the unsaved changes | consequential |
+| `form list` | The forms on the page now | read-only |
+| `form status <form>` | Unsaved changes, missing fields, errors | read-only |
+| `form fields <form>` | Every field the form has now: name, label, type, required, value | read-only |
+| `form get <form> <field>` | One field in full, with its allowed values or format | read-only |
+| `form set <form> <field> <value>` | Change one field. Nothing is saved yet | |
+| `form save <form>` (or `submit`) | Send it, the same as the form's button | consequential |
+| `form discard <form>` | Undo the unsaved changes | consequential |
 
-The provider is `form <id>`, so `help form <id>` lists one form, and two forms
-on a page never collide. Drupal's
+Register these once, when your script loads, and look the form up each time a
+command runs. Forms come and go (a dialog opens, a step loads, a form is
+rebuilt), but the commands stay the same, so agents see one tool list for the
+whole page and no command can act on a form that is gone. Drupal's
 [form commands](../drupal.md) and the
 [forms example](https://d34dman.github.io/sutram/example/forms.html) both
 follow this.
@@ -33,18 +36,15 @@ follow this.
 
 ```js
 registry.register({
-  name: `${base} set`,
-  provider: base,
+  name: "form set",
+  provider: "form",
   description:
     "Change one field. Answers can add fields to the form: the result names them",
   input: {
     type: "object",
     properties: {
-      field: {
-        type: "string",
-        enum: visibleFields(),
-        description: `A field of the form now. ${base} fields lists them.`,
-      },
+      form: { type: "string", description: "The form's id. form list shows them." },
+      field: { type: "string", description: "A field of the form now. form fields <form> lists them." },
       value: {
         type: "string",
         description:
@@ -52,18 +52,25 @@ registry.register({
           "choices take a key or its label.",
       },
     },
-    required: ["field", "value"],
+    required: ["form", "field", "value"],
   },
-  positional: ["field", "value"],
+  positional: ["form", "field", "value"],
   annotations: {},
-  run: ({ field, value }) => {
-    // Convert the value, write it into the real input, report what changed.
+  // Completion: the forms on the page, then the fields of the form typed.
+  suggest: (key, partial, { input }) =>
+    (key === "form" ? formIds() : key === "field" ? fieldsOf(input.form) : [])
+      .filter((v) => v.startsWith(partial)),
+  run: ({ form, field, value }) => {
+    // Find the form now, or fail with the forms that are open. Check the
+    // field against the fields it has now. Convert the value, write it into
+    // the real input, report what changed.
   },
 });
 ```
 
-- `field` is an `enum` of the fields that exist now: a typo is a usage error
-  with the valid names, and completion works.
+- `form` and `field` are checked when the command runs, against the page as
+  it is then: an unknown one is a usage error that lists the valid names.
+  `suggest` gives completion.
 - `value` is a string, converted per field by your code. That keeps one
   `set` for every field type, and lets your messages explain each type.
 - Write into the real input (and fire `input` and `change` events), so the
@@ -72,54 +79,52 @@ registry.register({
 
 ## Progressive disclosure
 
-When an answer changes which fields exist, do two things:
-
-1. **Re-register the commands** whose `enum` lists the fields, so `help`,
-   completion and the agent's tools follow.
-2. **Say so in the result**, so the agent does not have to guess:
+When an answer changes which fields exist, the commands need no change:
+they check fields when they run, and `form fields` and completion read the
+form as it is now. Say so in the result, so the agent does not have to guess:
 
 ```
-› form request set topic billing
+› form set request topic billing
 topic set. The form now also asks for: invoice, amount.
-› form request set topic bug
+› form set request topic bug
 topic set. The form now also asks for: product, severity, steps. No longer asked: invoice, amount.
 ```
 
 Return the lists in `data` too (`added`, `removed`), for agents that read
-JSON. Re-register only when the set of fields really changed, not on every
-keystroke.
+JSON.
 
 ## Validation errors
 
 Check what you can in `set`, and say what a valid value looks like:
 
 ```
-› form request set invoice 2024-17
-form request set: "2024-17" is not a valid invoice number. Use INV- and at least four digits, such as INV-20417.
+› form set request invoice 2024-17
+form set: "2024-17" is not a valid invoice number. Use INV- and at least four digits, such as INV-20417.
 ```
 
 Check required fields before sending, and name all of them at once, with an
 example of the next command:
 
 ```
-› form request submit
-form request submit: email, summary, product, phone are required. For example: form request set email …
+› form submit request
+form submit: email, summary, product, phone are required. For example: form set request email …
 ```
 
-Errors the server finds after `save` belong in `form <id> status`, by field.
+Errors the server finds after `save` belong in `form status <form>`, by field.
 See [Drafts and saving](drafts-and-saving.md).
 
 ## What the agent does
 
 ```sh
-form request fields
-form request set topic billing
-form request fields
-form request set invoice INV-20417
-form request set email ada@example.com
-form request set summary "Charged twice in May"
-form request status
-form request submit
+form list
+form fields request
+form set request topic billing
+form fields request
+form set request invoice INV-20417
+form set request email ada@example.com
+form set request summary "Charged twice in May"
+form status request
+form submit request
 ```
 
 Read, change one thing, read what changed, fix what failed, send. The fields

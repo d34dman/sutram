@@ -20,7 +20,7 @@ option:  --name=value
 ```
 
 - **The command name** is one to six lowercase words: `cart add`,
-  `form node-article-form set`. The longest registered name wins.
+  `form set`. The longest registered name wins.
 - **Positional values** fill the keys listed in `positional` that were not
   given as options, in order. The last one takes the rest of the line:
   `nav find menu settings` searches for "menu settings". A word with no key
@@ -56,7 +56,7 @@ line with `<<END`. The lines after it, up to a line holding only `END`, are
 the value, exactly as written: quotes and backslashes in it mean nothing.
 
 ```
-form node-article-form set body.value <<END
+form set node-article-form body.value <<END
 <p class="lead">Don't escape anything here.</p>
 <ul><li>"Quotes" and \backslashes\ stay as they are.</li></ul>
 END
@@ -128,7 +128,7 @@ Sutram's own WebMCP tools (`sutram_status`, `sutram_batch`) use.
 ## Tool names
 
 A WebMCP tool's name is the command name with spaces replaced by
-underscores: `cart add` → `cart_add`, `form node-article-form set` →
-`form_node-article-form_set`. `commandLine(def, input)` turns a tool call back
+underscores: `cart add` → `cart_add`, `form set` →
+`form_set`. `commandLine(def, input)` turns a tool call back
 into the command line a person would type, and that line parses to the same
 input: objects and awkward lists as JSON, `null` left out.

@@ -27,20 +27,23 @@ They are demos, not a stable API: try them, or copy them as a starting point.
 |---|---|
 | `sutram_demo_nav` | `nav status`, `nav tree`, `nav find`, `nav go`: the menus you choose, access-checked for each user |
 | `sutram_demo_page` | `page status`: the current page's title, route and entity |
-| `sutram_demo_form` | `form <form-id> status`, `fields`, `get`, `set`, `save`, `discard` on content entity forms |
+| `sutram_demo_form` | `form list`, then `form status`, `fields`, `get`, `set`, `save`, `discard` with the form's id first on content entity forms |
 
-The form commands follow the [forms guide](guides/forms.md). Fields are
+The form commands follow the [forms guide](guides/forms.md). They are
+registered once and look the form up when they run, so a form that arrives by
+AJAX (in a dialog, say) works too, and a form that has gone answers "not on
+this page". Fields are
 dotted paths such as `title` or `body.value`. `set` writes into the real
 inputs (and CKEditor), so the form on screen and the commands agree. `save`
 clicks the real Save button: Drupal validates, checks access and runs its
-hooks as usual, and errors come back in `form <id> status`, by field.
+hooks as usual, and errors come back in `form status <form>`, by field.
 
 ```sh
-form node-article-form fields
-form node-article-form set title "Pour-over, step by step"
-form node-article-form set field_tags "coffee, v60"
-form node-article-form set status false
-form node-article-form save
+form fields node-article-form
+form set node-article-form title "Pour-over, step by step"
+form set node-article-form field_tags "coffee, v60"
+form set node-article-form status false
+form save node-article-form
 ```
 
 ## Add commands from your module

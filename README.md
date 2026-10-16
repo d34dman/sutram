@@ -106,10 +106,10 @@ modules) one standard way to hook in, and gives agents one short list of
 commands:
 
 ```sh
-form node-article-form fields
-form node-article-form set title "Pour-over, step by step"
-form node-article-form set status false
-form node-article-form save
+form fields node-article-form
+form set node-article-form title "Pour-over, step by step"
+form set node-article-form status false
+form save node-article-form
 ```
 
 - **In the user's session:** the person logs in, the agent takes over, and

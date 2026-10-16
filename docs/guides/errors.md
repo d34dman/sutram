@@ -39,7 +39,7 @@ A good message:
 2. **Says what is wrong** with this input, not in general.
 3. **Says what would work**: the format, the allowed values, an example.
 4. **Names the next command** when there is one: "Set it first, for example:
-   `form request set email …`".
+   `form set request email …`".
 5. **Lists everything at once.** "email, summary and phone are required" saves
    two round trips over naming one at a time.
 
