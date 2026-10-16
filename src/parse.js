@@ -1,13 +1,48 @@
-// The command line: GNU long options, POSIX-style quoting, `--` to end options.
-// Sutram parses one command line. It is not a shell: no pipes, redirection,
-// variables or globbing.
+// The command line: GNU long options, POSIX-style quoting, heredocs, `--` to
+// end options. Sutram parses one command line. It is not a shell: no pipes,
+// redirection, variables or globbing.
 
 import { CommandError, EXIT, RESERVED_WORDS, CLIENT_OPTIONS } from "./core.js";
 
+// A heredoc: <<END (or <<'END', <<"END") as the last word of a line. The lines
+// after it, up to a line holding only END, are one value, taken as written:
+// quotes and backslashes in it mean nothing, so HTML needs no escaping.
+const HEREDOC = /^<<(?:([A-Za-z_]\w*)|'([A-Za-z_]\w*)'|"([A-Za-z_]\w*)")[ \t]*(?=\r?\n|$)/;
+
+/**
+ * The heredoc opening at text[i], or null. Returns { tag, value, end, open }:
+ * end is the index just after the closing line (its line break excluded), and
+ * open is true when the text ends before the closing line.
+ */
+function heredocAt(text, i) {
+  const m = HEREDOC.exec(text.slice(i));
+  if (!m) return null;
+  const tag = m[1] || m[2] || m[3];
+  const nl = text.indexOf("\n", i + m[0].length);
+  if (nl < 0) return { tag, value: "", end: text.length, open: true };
+  const start = nl + 1;
+  for (let at = start; at <= text.length;) {
+    let le = text.indexOf("\n", at);
+    if (le < 0) le = text.length;
+    if (text.slice(at, le).trim() === tag) {
+      const value = text.slice(start, at).replace(/\r\n/g, "\n").replace(/\n$/, "");
+      return { tag, value, end: text[le - 1] === "\r" ? le - 1 : le, open: false };
+    }
+    if (le === text.length) break;
+    at = le + 1;
+  }
+  return { tag, value: text.slice(start).replace(/\r\n/g, "\n"), end: text.length, open: true };
+}
+
+/** Whether a heredoc may open after this much of a word: at its start, or after --key= */
+const heredocMayOpen = (word) => !word || /^--[a-z][\w-]*=$/i.test(word);
+
 /**
  * Splits a line into words. Double and single quotes group words, and a
- * backslash escapes the next character outside single quotes.
- * Each token is { value, quoted }; quoted means the word starts with a quote.
+ * backslash escapes the next character outside single quotes. A heredoc
+ * (<<END ending a line) makes the lines up to END one word.
+ * Each token is { value, quoted }; quoted means the word starts with a quote
+ * or is a heredoc.
  */
 export function tokenize(line) {
   const tokens = [];
@@ -24,6 +59,16 @@ export function tokenize(line) {
     if (/\s/.test(ch)) {
       if (current) { tokens.push(current); current = null; }
       continue;
+    }
+    if (ch === "<" && heredocMayOpen(current ? current.value : "")) {
+      const hd = heredocAt(line, i);
+      if (hd) {
+        if (hd.open) throw new CommandError(`unclosed heredoc: end it with a line holding only ${hd.tag}`, EXIT.USAGE);
+        if (!current) current = { value: "", quoted: true };
+        current.value += hd.value;
+        i = hd.end - 1;
+        continue;
+      }
     }
     if (!current) current = { value: "", quoted: false };
     // A word is quoted, and so never an option, when it starts with a quote:
@@ -148,8 +193,8 @@ function parseArguments(def, rest) {
 
 /**
  * Words with their place in the line, by the same rules as tokenize(), but
- * never throwing. Returns { words: [{ start, end, value, quoted }], quote },
- * where quote is the quote still open at the end of the line, or null.
+ * never throwing. Returns { words: [{ start, end, value, quoted, heredoc }], quote },
+ * where quote is what is still open at the end of the line (", ' or <<TAG), or null.
  */
 function scan(line) {
   const words = [];
@@ -158,6 +203,17 @@ function scan(line) {
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (!quote && /\s/.test(ch)) { if (w) { w.end = i; words.push(w); w = null; } continue; }
+    if (!quote && ch === "<" && heredocMayOpen(w ? w.value : "")) {
+      const hd = heredocAt(line, i);
+      if (hd) {
+        if (!w) w = { start: i, value: "", quoted: true };
+        w.value += hd.value;
+        w.heredoc = true;
+        if (hd.open) { w.end = line.length; words.push(w); return { words, quote: `<<${hd.tag}` }; }
+        i = hd.end - 1;
+        continue;
+      }
+    }
     if (!w) w = { start: i, value: "", quoted: false };
     if (quote) {
       if (ch === quote) quote = null;
@@ -171,13 +227,13 @@ function scan(line) {
   return { words, quote };
 }
 
-/** The quote a text leaves open at its end (" or '), or null. Enter inside one starts a new line in the value. */
+/** What a text leaves open at its end (", ' or <<TAG for a heredoc), or null. Enter inside one starts a new line in the value. */
 export const openQuote = (text) => scan(String(text)).quote;
 
 /**
- * Splits pasted text into command lines. A line break inside quotes belongs
- * to the value, so a multi-line value stays one command. Lines starting with
- * # are comments; their quotes do not count.
+ * Splits pasted text into command lines. A line break inside quotes or a
+ * heredoc belongs to the value, so a multi-line value stays one command.
+ * Lines starting with # are comments; their quotes do not count.
  */
 export function splitLines(text) {
   text = String(text);
@@ -197,6 +253,11 @@ export function splitLines(text) {
       if (ch === quote) quote = null;
       cur += ch;
       continue;
+    }
+    if (ch === "<") {
+      const word = /(?:^|\s)(\S*)$/.exec(cur)[1];
+      const hd = heredocMayOpen(word) ? heredocAt(text, i) : null;
+      if (hd) { cur += text.slice(i, hd.end).replace(/\r\n/g, "\n"); i = hd.end - 1; continue; }
     }
     if (ch === "#" && !cur.trim()) comment = true;
     else if (ch === "\\" && i + 1 < text.length && text[i + 1] !== "\n") { cur += ch + text[++i]; continue; }
@@ -258,7 +319,7 @@ export function highlight(registry, line) {
       const known = raw === "-h" || CLIENT_OPTIONS.includes(name) || !def || props[name]
         || (name.startsWith("no-") && props[name.slice(3)] && props[name.slice(3)].type === "boolean");
       push(eq < 0 ? raw : raw.slice(0, eq + 1), known ? "option" : "bad-option");
-      if (eq >= 0) push(raw.slice(eq + 1), /["']/.test(raw.slice(eq + 1)) ? "string" : "value");
+      if (eq >= 0) push(raw.slice(eq + 1), x.heredoc || /["']/.test(raw.slice(eq + 1)) ? "string" : "value");
       return;
     }
     push(raw, x.quoted ? "string" : "arg");
@@ -325,6 +386,8 @@ function nameItems(registry, typed, partial, withClientWords) {
 export async function complete(registry, line, { signal, limit = 50 } = {}) {
   line = String(line);
   const { words, quote } = scan(line);
+  // Inside a heredoc everything is the value: nothing to complete.
+  if (quote && quote.startsWith("<<")) return { start: line.length, end: line.length, items: [] };
   const atBreak = !quote && (!line || /\s$/.test(line));
   const current = atBreak || !words.length ? { start: line.length, end: line.length, value: "", quoted: false } : words[words.length - 1];
   const before = atBreak ? words : words.slice(0, -1);

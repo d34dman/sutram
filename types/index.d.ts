@@ -159,7 +159,8 @@ export declare function distance(a: string, b: string): number;
 export declare function highlight(registry: Registry, line: string): Array<{ text: string; kind: SpanKind }>;
 export declare function complete(registry: Registry, line: string, options?: { signal?: AbortSignal; limit?: number }): Promise<{ start: number; end: number; items: Completion[] }>;
 export declare function splitLines(text: string): string[];
-export declare function openQuote(text: string): '"' | "'" | null;
+/** What the text leaves open at its end: a quote, `<<TAG` for a heredoc, or null. */
+export declare function openQuote(text: string): '"' | "'" | `<<${string}` | null;
 
 // ---- policy ---------------------------------------------------------------
 

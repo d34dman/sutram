@@ -20,9 +20,9 @@ Open it with <kbd>`</kbd> (outside text fields) or
 | `clear` | Clear the screen |
 | <kbd>Tab</kbd> | Complete a command, an option or a value; with several choices, a list opens |
 | ↑ / ↓ | Walk through history |
-| <kbd>Enter</kbd> inside quotes | Start a new line of the value, for multi-line text |
+| <kbd>Enter</kbd> inside quotes or a [heredoc](../reference/command-line.md#heredocs) | Start a new line of the value, for multi-line text |
 | <kbd>Shift</kbd>+<kbd>Enter</kbd> | Start a new line; several lines run as one batch |
-| Paste several lines | Run them as one [batch](../concepts/batches.md). Pasted inside open quotes, they become part of the value instead. |
+| Paste several lines | Run them as one [batch](../concepts/batches.md). Pasted inside open quotes or a heredoc, they become part of the value instead. |
 | *Copy* (top bar) | Copy the output as text, for example to paste back to a chat assistant |
 
 ## Options

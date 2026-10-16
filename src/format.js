@@ -172,19 +172,29 @@ function quoteArg(value) {
   return s !== "" && /^[\w@%+=:,./-]+$/.test(s) && !s.startsWith("-") ? s : `"${s.replace(/(["\\])/g, "\\$1")}"`;
 }
 
+/** A heredoc for a multi-line value, with a closing word that no line of it holds. */
+function heredoc(s) {
+  const lines = s.split("\n");
+  let tag = "END";
+  for (let n = 2; lines.some((l) => l.trim() === tag); n++) tag = `END${n}`;
+  return `<<${tag}\n${s}\n${tag}`;
+}
+
 /**
  * The command line that runs a command with this input, such as
  * `form node-article-edit-form set revision_log "Clearer title"`. Positional
- * arguments come first, in order; the rest are long options. Clients use it to
- * show what an agent or a button ran in the words a person would type.
+ * arguments come first, in order; the rest are long options. The first
+ * multi-line text value, such as HTML, goes last as a heredoc. Clients use it
+ * to show what an agent or a button ran in the words a person would type.
  */
 export function commandLine(def, input = {}) {
   const parts = [def.name];
   const props = (def.input && def.input.properties) || {};
   const order = def.positional || [];
-  const used = new Set();
+  const block = Object.keys(input).find((key) => typeof input[key] === "string" && input[key].includes("\n"));
+  const used = new Set(block ? [block] : []);
   for (const key of order) {
-    if (input[key] === undefined) break;
+    if (input[key] === undefined || key === block) break;
     parts.push(quoteArg(input[key]));
     used.add(key);
   }
@@ -193,6 +203,7 @@ export function commandLine(def, input = {}) {
     if (props[key] && props[key].type === "boolean") parts.push(value ? `--${key}` : `--no-${key}`);
     else parts.push(`--${key}=${quoteArg(value)}`);
   }
+  if (block) parts.push(`--${block} ${heredoc(input[block])}`);
   return parts.join(" ");
 }
 

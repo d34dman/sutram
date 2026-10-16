@@ -238,7 +238,8 @@ export declare function complete(
   options?: { signal?: AbortSignal; limit?: number },
 ): Promise<{ start: number; end: number; items: Completion[] }>;
 export declare function splitLines(text: string): string[];
-export declare function openQuote(text: string): '"' | "'" | null;
+/** What the text leaves open at its end: a quote, `<<TAG` for a heredoc, or null. */
+export declare function openQuote(text: string): '"' | "'" | `<<${string}` | null;
 ```
 
 ### policy

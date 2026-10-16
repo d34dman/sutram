@@ -15,7 +15,7 @@
 export const DISCOVERY_RULES = Object.freeze([
   "You do not know this page's commands yet. Find out, do not guess:\n  - help lists every command with its usage. help <provider> lists one group.\n  - man <command> explains one in full: arguments, output, examples. <command> -h shows short usage.\n  - status shows what every part of the page reports right now.",
   "Look before you change things. Commands marked [read-only] change nothing. [consequential] ones are hard to undo; the person is asked to confirm them. [navigates] ones leave the page.",
-  "Options are GNU style: --name=value. Quote values that contain spaces. Add --json to any command to get its raw data, --json=a,b for only some fields.",
+  "Options are GNU style: --name=value. Quote values that contain spaces. For long or multi-line text, such as HTML, end the line with <<END, put the text on the next lines as it is (no escaping), then a line with only END. Add --json to any command to get its raw data, --json=a,b for only some fields.",
   "Commands come and go with the page's state: one may appear only after an earlier step, such as a form field after a choice. When you expect a new command or field, look again (help, or the provider's fields or status command).",
   "Change one thing per command. When one fails, read its message, fix that one command, and carry on; do not start over.",
 ]);

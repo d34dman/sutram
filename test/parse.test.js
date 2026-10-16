@@ -79,3 +79,48 @@ test("highlight covers every character and names each part of the line", () => {
   assert.deepEqual(kinds("cart "), ["command:cart"]);
   assert.deepEqual(kinds("cark add"), ["unknown:cark", "arg:add"]);
 });
+
+const html = `<p class="lead">Don't escape "this".</p>\n<p>a \\ b</p>`;
+
+test("a heredoc takes the lines up to its closing word, exactly as written", () => {
+  assert.equal(parse(r, `nav find <<END\n${html}\nEND`).input.query, html);
+  assert.equal(parse(r, `nav find <<'EOF'\n${html}\n  EOF  `).input.query, html);
+  assert.equal(parse(r, `nav find --query <<"X"\n\nkeeps blank lines\n\nX`).input.query, "\nkeeps blank lines\n");
+  assert.equal(parse(r, `nav find --query=<<END\none\nEND`).input.query, "one");
+  assert.equal(parse(r, "nav find <<END\r\none\r\ntwo\r\nEND").input.query, "one\ntwo");
+  assert.equal(parse(r, "nav find <<END\nEND").input.query, "");
+  // A line that only contains the word, or starts with it, does not close it.
+  assert.equal(parse(r, "nav find <<END\nEND of story\nEND").input.query, "END of story");
+  // Only at the end of a line, and not when quoted or escaped.
+  assert.equal(parse(r, "nav find <<END x").input.query, "<<END x");
+  assert.equal(parse(r, 'nav find "<<END"').input.query, "<<END");
+  assert.equal(parse(r, "nav find a<<END").input.query, "a<<END");
+  // A heredoc word is never an option.
+  assert.equal(parse(r, "nav find <<END\n--qty=2\nEND").input.query, "--qty=2");
+  assert.throws(() => parse(r, "nav find <<END\nno end"), (e) => e.code === EXIT.USAGE && /unclosed heredoc.*END/.test(e.message));
+});
+
+test("commandLine writes a multi-line value as a heredoc, last, and it parses back", () => {
+  const set = createRegistry();
+  set.register({
+    name: "form f set", provider: "form", description: "Set",
+    input: { type: "object", properties: { field: { type: "string" }, value: { type: "string" }, draft: { type: "boolean" } } },
+    positional: ["field", "value"], annotations: {}, run: () => ({}),
+  });
+  const def = set.get("form f set");
+  assert.equal(commandLine(def, { field: "body.value", value: "<p>a</p>\n<p>b</p>", draft: true }),
+    "form f set body.value --draft --value <<END\n<p>a</p>\n<p>b</p>\nEND");
+  assert.match(commandLine(def, { field: "x", value: "a\nEND\nb" }), /<<END2\na\nEND\nb\nEND2$/);
+  for (const input of [{ field: "body.value", value: html }, { field: "x", value: "a\nEND\nb\n" }, { value: "one\ntwo", field: "first\nsecond" }]) {
+    assert.deepEqual(parse(set, commandLine(def, input)).input, input);
+  }
+});
+
+test("highlight marks a heredoc as a string", () => {
+  const kinds = (line) => highlight(r, line).filter((s) => s.kind !== "space").map((s) => `${s.kind}:${s.text}`);
+  for (const line of ["nav find <<END\n<p>x</p>\nEND", "nav find --query=<<END\nopen", "nav find <<END"]) {
+    assert.equal(highlight(r, line).map((s) => s.text).join(""), line);
+  }
+  assert.deepEqual(kinds("nav find <<END\n<p>\"x\"</p>\nEND"), ["command:nav", "command:find", 'string:<<END\n<p>"x"</p>\nEND']);
+  assert.deepEqual(kinds("nav find --query=<<END\na\nEND"), ["command:nav", "command:find", "option:--query=", "string:<<END\na\nEND"]);
+});

@@ -39,10 +39,39 @@ option:  --name=value
 - An unclosed quote is a usage error (exit 2). In the console, <kbd>Enter</kbd>
   inside quotes starts a new line of the value instead.
 
+## Heredocs
+
+For long or multi-line text, such as the HTML of a rich-text field, end the
+line with `<<END`. The lines after it, up to a line holding only `END`, are
+the value, exactly as written: quotes and backslashes in it mean nothing.
+
+```
+form node-article-form set body.value <<END
+<p class="lead">Don't escape anything here.</p>
+<ul><li>"Quotes" and \backslashes\ stay as they are.</li></ul>
+END
+```
+
+- Any word works as the closing word: `<<HTML` … `HTML`. `<<'END'` and
+  `<<"END"` mean the same as `<<END`, since nothing in the text is expanded
+  anyway.
+- The heredoc is the last word of the command: `--value <<END` or
+  `--value=<<END` for an option, or alone for the next positional value.
+- The closing line may have spaces around the word; a line that only
+  starts with it, like `END of story`, does not close it.
+- The value has no line break at its end. Blank lines inside are kept.
+- `<<END` counts only at the end of a line and at the start of a word or after
+  `--name=`. Quote it (`"<<END"`) to mean the text itself.
+- An unclosed heredoc is a usage error (exit 2). In the console,
+  <kbd>Enter</kbd> inside one starts a new line.
+- [`commandLine()`](api.md) writes a multi-line value back as a heredoc, so
+  what a person is asked to confirm stays readable.
+
 ## Several lines
 
 Pasted text and multi-line entries are split into lines and run as one
-[batch](../concepts/batches.md). Lines starting with `#` are comments.
+[batch](../concepts/batches.md). Line breaks inside quotes or a heredoc
+belong to the value. Lines starting with `#` are comments.
 
 ## Options every command has
 

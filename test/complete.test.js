@@ -85,3 +85,15 @@ test("multi-line values: line breaks inside quotes belong to the value", () => {
   assert.equal(openQuote('flow connect --from="a b"'), null);
   assert.deepEqual(parse(r, 'flow connect "a\nb" c').input, { from: "a\nb", to: "c" });
 });
+
+test("heredocs: their lines stay one command, and Enter inside one starts a new line", async () => {
+  const text = `flow connect a <<END\n<p class="x">Don't</p>\n# not a comment\nEND\nnext 'x'`;
+  assert.deepEqual(splitLines(text), [`flow connect a <<END\n<p class="x">Don't</p>\n# not a comment\nEND`, "next 'x'"]);
+  assert.deepEqual(splitLines("a <<END\nopen"), ["a <<END\nopen"]);
+  assert.deepEqual(splitLines("a <<END\r\nx\r\nEND\r\nb"), ["a <<END\nx\nEND", "b"]);
+  assert.equal(openQuote("flow connect a <<END"), "<<END");
+  assert.equal(openQuote("flow connect a <<'EOF'\n<p>"), "<<EOF");
+  assert.equal(openQuote("flow connect a <<END\n<p>\nEND"), null);
+  assert.equal(openQuote("flow connect a --to=<<END\n'"), "<<END");
+  assert.deepEqual((await complete(r, "flow connect a <<END\n--")).items, []);
+});

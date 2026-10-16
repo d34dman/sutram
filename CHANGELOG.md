@@ -24,6 +24,9 @@ breaking changes bump the minor version.
 - <kbd>Tab</kbd> completion in the console, and `suggest()` on commands.
 - `mountConsole(options, container)` for an inline console in your own panel.
 - `MESSAGES`: the console's own texts, translatable.
+- Heredocs: `--value <<END`, then the text, then a line holding only `END`.
+  The text is taken as written, so HTML needs no escaping. `commandLine()`
+  writes multi-line values as heredocs, and the agent prompt mentions them.
 - TypeScript declarations in `types/`.
 - `agentPrompt(task, { title, url })` and `Sutram.agentPrompt(task)`: a
   generic prompt for chat assistants without browser access.
