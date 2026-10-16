@@ -50,6 +50,6 @@ console.
 ## More
 
 - [Drupal](drupal.md)
-- [Design notes](design.md), for contributors
+- [Design notes](https://d34dman.github.io/sutram/docs/design.md), for contributors
 - For agents: [llms.txt](https://d34dman.github.io/sutram/llms.txt), and the
   skills in the package's `skills/` folder

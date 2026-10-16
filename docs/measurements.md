@@ -17,7 +17,7 @@ adjectives.
   `sutram_demo_form` module. Eleven fields an agent can set. Four of them are
   hidden until clicked open: the summary behind "Edit summary", the URL alias
   and the promotion options in collapsed sections. Captured on 16 October 2026
-  in [`docs/measurements/`](measurements/drupal-article-form.json): Sutram's
+  in [`docs/measurements/`](https://d34dman.github.io/sutram/docs/measurements/drupal-article-form.json): Sutram's
   tool list, `help`, the field list and real outputs, and the page as a
   browser agent sees it.
 - **The task:** create an unpublished article with a title, a summary, a

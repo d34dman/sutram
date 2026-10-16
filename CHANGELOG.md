@@ -96,6 +96,8 @@ breaking changes bump the minor version.
   (`type: ["boolean", "null"]`) is a flag too.
 - A multi-line description: `help` and `-h` show its first line, `man`
   shows the rest under DESCRIPTION.
+- The package no longer ships `docs/design.md`, which shows an earlier API,
+  or `docs/measurements/`. Both stay on the website.
 
 ### Added
 

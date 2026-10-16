@@ -49,6 +49,8 @@
     "LICENSE-MIT",
     "dist",
     "docs",
+    "!docs/design.md",
+    "!docs/measurements",
     "skills",
     "src",
     "types"
