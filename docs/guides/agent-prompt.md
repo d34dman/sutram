@@ -6,8 +6,9 @@ description: One generic prompt, agentPrompt(), that sends an agent with a brows
 # Hand a task to a browser agent
 
 Sutram's commands run in the page, so an agent needs a browser it can drive:
-Claude Code or another coding agent with Playwright MCP, a browser
-extension, or a browser with WebMCP. Fetching the URL is not enough.
+Claude Code or Codex with Playwright MCP, Claude Desktop, Claude in Chrome,
+or a browser with WebMCP. Fetching the URL is not enough. A chat with no
+browser tool cannot use the page.
 `agentPrompt()` writes the prompt that hands such an agent a task.
 
 ## The prompt

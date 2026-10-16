@@ -81,5 +81,6 @@ calls your commands. The list starts with two tools of Sutram's own,
 - Write the commands for one part of your app:
   [Write a provider](guides/write-a-provider.md).
 - Using npm and a bundler: [Install](install.md). On Drupal: [Drupal](drupal.md).
-- Hand a task to Claude Code or another agent that drives a browser:
+- Hand a task to an agent that drives a browser (Claude Code, Codex,
+  Claude Desktop, Claude in Chrome):
   [Hand a task to a browser agent](guides/agent-prompt.md).
