@@ -1,0 +1,261 @@
+{
+ "captured": "2026-10-16, drupal-sutram-demo (Drupal 11.4, drupal/sutram 1.x-dev with sutram_demo_form), node/add/article, Sutram 0.3 + 0.4 work",
+ "form": "form node-article-form",
+ "help": "events list                               List the events providers on this page have declared  [read-only]\nevents recent [--since=<integer>]         Show recent events on this page, optionally only those after an event id  [read-only]\nform node-article-form discard            Undo the unsaved changes in the new article form  [consequential]\nform node-article-form fields             List the fields of the new article form with their type and current value  [read-only]\nform node-article-form get <field>        Show one field's current value in the new article form, in full  [read-only]\nform node-article-form save               Save the new article form, the same as clicking Save. The page reloads  [consequential]\nform node-article-form set <field> <value>  Change a field in the new article form. Nothing is saved until form node-article-form save\nform node-article-form status             Show the unsaved changes and the errors in the new article form  [read-only]\nnav find <query>                          Find menu links whose title or description contains all the words  [read-only]\nnav go <item>                             Go to a menu link, by path, title or breadcrumb, or to any path on this site  [navigates]\nnav status                                Show where this page is in the menus  [read-only]\nnav tree [menu] [--depth=<integer>]       Show a menu's links with their path and description  [read-only]\npage status                               Show what this page is: its title, route and the entity it shows  [read-only]\nhelp <provider> · man <command> · <command> -h · <command> --json[=fields] · <command> --wide · status · clear",
+ "fieldsText": "FIELD         LABEL                   TYPE         REQUIRED  VALUE\nbody.summary  Body: Summary           text         false\nbody.value    Body                    html         false\nbody.format   Body: Text format       choice       false     basic_html\ncreated       Authored on             unsupported  false\nfield_image   Image                   unsupported  false\nfield_tags    Tags                    references   false\npath.alias    URL alias               string       false\npromote       Promoted to front page  boolean      false     true\nstatus        Published               boolean      false     true\nsticky        Sticky at top of lists  boolean      false     false\ntitle         Title                   string       true\nuid           Authored by             reference    false     admin (1)\nlangcode      Language                unsupported  false\nrevision_log  Revision log message    text         false",
+ "fields": [
+  {
+   "field": "body.summary",
+   "label": "Body: Summary",
+   "type": "text",
+   "required": false,
+   "value": ""
+  },
+  {
+   "field": "body.value",
+   "label": "Body",
+   "type": "html",
+   "required": false,
+   "value": ""
+  },
+  {
+   "field": "body.format",
+   "label": "Body: Text format",
+   "type": "choice",
+   "required": false,
+   "value": "basic_html",
+   "options": {
+    "basic_html": "Basic HTML",
+    "restricted_html": "Restricted HTML",
+    "full_html": "Full HTML"
+   }
+  },
+  {
+   "field": "created",
+   "label": "Authored on",
+   "type": "unsupported",
+   "required": false,
+   "value": ""
+  },
+  {
+   "field": "field_image",
+   "label": "Image",
+   "type": "unsupported",
+   "required": false,
+   "value": ""
+  },
+  {
+   "field": "field_tags",
+   "label": "Tags",
+   "type": "references",
+   "required": false,
+   "value": ""
+  },
+  {
+   "field": "path.alias",
+   "label": "URL alias",
+   "type": "string",
+   "required": false,
+   "value": ""
+  },
+  {
+   "field": "promote",
+   "label": "Promoted to front page",
+   "type": "boolean",
+   "required": false,
+   "value": true
+  },
+  {
+   "field": "status",
+   "label": "Published",
+   "type": "boolean",
+   "required": false,
+   "value": true
+  },
+  {
+   "field": "sticky",
+   "label": "Sticky at top of lists",
+   "type": "boolean",
+   "required": false,
+   "value": false
+  },
+  {
+   "field": "title",
+   "label": "Title",
+   "type": "string",
+   "required": true,
+   "value": ""
+  },
+  {
+   "field": "uid",
+   "label": "Authored by",
+   "type": "reference",
+   "required": false,
+   "value": "admin (1)"
+  },
+  {
+   "field": "langcode",
+   "label": "Language",
+   "type": "unsupported",
+   "required": false,
+   "value": ""
+  },
+  {
+   "field": "revision_log",
+   "label": "Revision log message",
+   "type": "text",
+   "required": false,
+   "value": ""
+  }
+ ],
+ "formTools": [
+  {
+   "name": "form_node-article-form_discard",
+   "description": "Undo the unsaved changes in the new article form. Returns { discarded: [string] }.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {}
+   },
+   "annotations": {
+    "consequentialHint": true
+   }
+  },
+  {
+   "name": "form_node-article-form_fields",
+   "description": "List the fields of the new article form with their type and current value. Returns { fields: [{ field, label, type, required, value, options }] }.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {}
+   },
+   "annotations": {
+    "readOnlyHint": true
+   }
+  },
+  {
+   "name": "form_node-article-form_get",
+   "description": "Show one field's current value in the new article form, in full. Returns { field, value }.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "field": {
+      "type": "string",
+      "enum": [
+       "body.summary",
+       "body.value",
+       "body.format",
+       "field_tags",
+       "path.alias",
+       "promote",
+       "status",
+       "sticky",
+       "title",
+       "uid",
+       "revision_log"
+      ],
+      "description": "A field of this form, such as body.summary, body.value, body.format. form node-article-form fields lists them all."
+     }
+    },
+    "required": [
+     "field"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": true
+   }
+  },
+  {
+   "name": "form_node-article-form_save",
+   "description": "Save the new article form, the same as clicking Save. The page reloads. Leaves this page; the tools on the next page may differ. Returns { form, submitted }.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {}
+   },
+   "annotations": {
+    "consequentialHint": true
+   }
+  },
+  {
+   "name": "form_node-article-form_set",
+   "description": "Change a field in the new article form. Nothing is saved until form node-article-form save. Returns { field, from, to }.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "field": {
+      "type": "string",
+      "enum": [
+       "body.summary",
+       "body.value",
+       "body.format",
+       "field_tags",
+       "path.alias",
+       "promote",
+       "status",
+       "sticky",
+       "title",
+       "uid",
+       "revision_log"
+      ],
+      "description": "A field of this form, such as body.summary, body.value, body.format. form node-article-form fields lists them all."
+     },
+     "value": {
+      "type": "string",
+      "description": "The new value. Yes/no fields take true or false, lists take a key or its label, tags take names separated by commas, HTML fields take HTML such as <p>…</p>"
+     }
+    },
+    "required": [
+     "field",
+     "value"
+    ]
+   },
+   "annotations": {}
+  },
+  {
+   "name": "form_node-article-form_status",
+   "description": "Show the unsaved changes and the errors in the new article form. Returns { form, entity: { type, bundle, id, label }, unsaved: [{ field, from, to }], errors: [{ field, message }] }.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {}
+   },
+   "annotations": {
+    "readOnlyHint": true
+   }
+  }
+ ],
+ "outputs": [
+  {
+   "line": "form node-article-form set title \"Pour-over, step by step\"",
+   "code": 0,
+   "text": "title: (empty) → \"Pour-over, step by step\". Not saved yet."
+  },
+  {
+   "line": "form node-article-form set body.summary \"A 15 g to 250 g V60 recipe\"",
+   "code": 0,
+   "text": "body.summary: (empty) → \"A 15 g to 250 g V60 recipe\". Not saved yet."
+  },
+  {
+   "line": "form node-article-form set field_tags \"coffee, v60\"",
+   "code": 0,
+   "text": "field_tags: (empty) → \"coffee, v60\". Not saved yet."
+  },
+  {
+   "line": "form node-article-form set status draft",
+   "code": 2,
+   "text": "form node-article-form set: status is a yes/no field. Use true or false."
+  },
+  {
+   "line": "form node-article-form set status false",
+   "code": 0,
+   "text": "status: yes → no. Not saved yet."
+  },
+  {
+   "line": "form node-article-form status",
+   "code": 0,
+   "text": "Unsaved changes in new article: body.summary, field_tags, status, title. form node-article-form save sends them.\nFIELD         FROM  TO\nbody.summary        A 15 g to 250 g V60 recipe\nfield_tags          coffee, v60\nstatus        true  false\ntitle               Pour-over, step by step"
+  }
+ ],
+ "pageTools": {
+  "count": 14,
+  "bytes": 4938,
+  "note": "JSON.stringify(Sutram.tools()) on the same page: every tool's name, description, input schema and annotations"
+ }
+}
