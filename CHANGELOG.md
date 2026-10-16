@@ -116,6 +116,9 @@ breaking changes bump the minor version.
   back what you were typing; keys pressed while an input method composes
   (IME) are left to it; the hotkey does not fire on key repeat or in a
   `role="textbox"` editor, and only the first drop-down console answers it.
+- The console resets the text styles it would inherit from the page
+  (`text-transform`, letter and word spacing, indent, alignment, font
+  style), so the highlighting stays under the caret on any page.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

@@ -56,6 +56,10 @@ const STYLE = `
   --sutram-option: #7dcfff; --sutram-string: #c3e88d;
   --sutram-font: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
   position: fixed; inset: 0 0 auto 0; z-index: 2147483000; display: none;
+  /* The page's text styles stop here, so the highlight layer stays under the caret. */
+  text-transform: none; letter-spacing: normal; word-spacing: normal; text-indent: 0; text-align: left;
+  text-shadow: none; font-style: normal; font-weight: normal; font-variant: normal; font-stretch: normal;
+  line-height: normal; white-space: normal; direction: ltr; text-decoration: none;
 }
 :host([open]) { display: block; }
 :host([inline]) { position: relative; inset: auto; z-index: auto; display: block; height: 100%; min-height: 0; }
