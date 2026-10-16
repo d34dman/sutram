@@ -28,6 +28,9 @@ breaking changes bump the minor version.
   have the declared type: `true` for an integer, or an object for a string,
   is a usage error instead of `1` or `"[object Object]"`. Text typed in the
   console is still converted.
+- **Only a `CommandError` sets the exit code**, and never to 0. Anything
+  else thrown is exit 1. Before, any integer `err.code` was used, so a
+  `DOMException` (legacy `code` 0) counted as success and a batch committed.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

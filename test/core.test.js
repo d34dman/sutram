@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry, EXIT } from "../src/index.js";
+import { createRegistry, CommandError, EXIT } from "../src/index.js";
 import { checkInput, checkOutput, runStatus } from "../src/client.js";
 
 const def = (over = {}) => ({
@@ -47,6 +47,22 @@ test("a handler that throws becomes exit 1, or its own code", async () => {
   const r = createRegistry();
   r.register(def({ run: () => { throw new Error("out of stock"); } }));
   assert.deepEqual(await r.run("cart add", { sku: "x" }), { code: 1, message: "out of stock" });
+  const codeOf = async (err) => { const r2 = createRegistry(); r2.register(def({ run: () => { throw err; } })); return (await r2.run("cart add", { sku: "x" })).code; };
+  assert.equal(await codeOf(new CommandError("bad", EXIT.USAGE)), EXIT.USAGE);
+  // Only a CommandError sets the code, and never to success.
+  assert.equal(await codeOf(new CommandError("bad", 0)), EXIT.FAILED);
+  assert.equal(await codeOf(new DOMException("denied", "NotAllowedError")), EXIT.FAILED);
+  assert.equal(await codeOf(Object.assign(new Error("x"), { code: 8 })), EXIT.FAILED);
+});
+
+test("a thrown DOMException fails a batch and rolls it back", async () => {
+  const r = createRegistry();
+  const calls = [];
+  r.register(def({ run: () => { throw new DOMException("denied", "NotAllowedError"); } }));
+  r.defineBatch("cart", { commit: () => calls.push("commit"), rollback: () => calls.push("rollback") });
+  const res = await r.batch([{ name: "cart add", input: { sku: "x" } }]);
+  assert.equal(res.code, EXIT.FAILED);
+  assert.deepEqual(calls, ["rollback"]);
 });
 
 test("an aborted signal cancels with 130", async () => {

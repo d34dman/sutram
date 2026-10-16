@@ -26,6 +26,9 @@ throw new CommandError(
 );
 ```
 
+Only a `CommandError` sets the code. Anything else thrown is exit 1, even
+when it has a numeric `code` of its own, such as a `DOMException`.
+
 See [Errors that help agents](../guides/errors.md) for how to word them.
 
 ## How results look

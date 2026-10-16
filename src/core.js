@@ -324,7 +324,9 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
           return { code: EXIT.OK, ...res };
         } catch (err) {
           if (signal && signal.aborted) return { code: EXIT.CANCELLED, message: `${name}: cancelled` };
-          return { code: err && Number.isInteger(err.code) ? err.code : EXIT.FAILED, message: (err && err.message) || String(err) };
+          // Only a CommandError sets the code: a DOMException has a legacy numeric code, often 0.
+          const code = err instanceof CommandError && Number.isInteger(err.code) && err.code !== EXIT.OK ? err.code : EXIT.FAILED;
+          return { code, message: (err && err.message) || String(err) };
         }
       })();
       notify(resultFns, { name, input: value, caller, result });

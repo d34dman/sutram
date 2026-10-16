@@ -35,6 +35,7 @@ export interface Schema {
 export declare const EXIT: Readonly<{ OK: 0; FAILED: 1; USAGE: 2; NOT_FOUND: 127; CANCELLED: 130 }>;
 export type ExitCode = 0 | 1 | 2 | 127 | 130 | number;
 
+/** Thrown from run(), sets the result's code. 0 counts as 1: a thrown error is never success. */
 export declare class CommandError extends Error {
   constructor(message: string, code?: ExitCode);
   code: ExitCode;
