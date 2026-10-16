@@ -125,6 +125,8 @@ const MAX_ROWS = 10;
 const HISTORY_KEY = "sutram.history";
 const HISTORY_SIZE = 100;
 let instances = 0;
+/** Consoles on the page, in the order they connected. */
+const connected = new Set();
 
 /**
  * The default hotkey: the key left of 1 outside text fields, and Ctrl with
@@ -275,16 +277,33 @@ export class SutramConsole extends Base {
     if (!this.history.length) this.history = this.loadHistory();
     this.historyIndex = this.history.length;
     this.offChange = this.registry.onChange(() => { this.updateCount(); this.renderInput(); });
+    connected.add(this);
     // The first console on the page asks the user when an agent needs approval.
-    if (!this.registry.policy.hasAsker()) this.offAsker = this.registry.policy.setAsker((request) => this.askForAgent(request));
+    this.takeAsker();
     this.updateCount();
     if (!this.out.childElementCount && this.hasAttribute("greeting")) this.print(this.getAttribute("greeting"), "dim");
   }
 
   disconnectedCallback() {
+    connected.delete(this);
     document.removeEventListener("keydown", this.onGlobalKey);
     if (this.offChange) this.offChange();
-    if (this.offAsker) { this.offAsker(); this.offAsker = null; }
+    // Nobody can answer here any more: open and queued questions are answered no.
+    for (const show of this.askQueue.splice(0)) show.cancel();
+    if (this.pendingAsk) this.pendingAsk(false);
+    if (this.offAsker) {
+      this.offAsker();
+      this.offAsker = null;
+      // Another console on the page takes over asking.
+      for (const other of connected) if (other.registry === this.registry && other.takeAsker()) break;
+    }
+  }
+
+  /** Becomes the policy's asker when there is none. True when it did. */
+  takeAsker() {
+    if (this.registry.policy.hasAsker()) return false;
+    this.offAsker = this.registry.policy.setAsker((request) => this.askForAgent(request));
+    return true;
   }
 
   get formatOptions() {
@@ -602,11 +621,12 @@ export class SutramConsole extends Base {
       if (signal && signal.aborted) { resolve(false); return; }
       let done = null; // set once the question is shown
       const show = () => { done = this.showAsk(message, always, lead, resolve); };
+      show.cancel = () => resolve(false);
       // A withdrawn question goes: from the queue, or answered "withdrawn" on screen.
       if (signal) {
         signal.addEventListener("abort", () => {
           if (done) done(false, this.messages.withdrawn);
-          else { this.askQueue = this.askQueue.filter((s) => s !== show); resolve(false); }
+          else { this.askQueue = this.askQueue.filter((s) => s !== show); show.cancel(); }
         }, { once: true });
       }
       if (this.pendingAsk) this.askQueue.push(show);

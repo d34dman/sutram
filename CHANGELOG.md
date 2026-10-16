@@ -102,6 +102,9 @@ breaking changes bump the minor version.
   gets no extra full stop; an empty list prints "Nothing to show."; `man`
   prints object defaults as JSON; usage lines and `man` show a nullable
   type as `<string>` and "string or null".
+- **Questions end with their console.** Removing a console answers its open
+  and queued questions with no, and another console on the page takes over
+  asking. Before, the agent's call waited forever.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches
