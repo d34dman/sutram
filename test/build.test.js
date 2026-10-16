@@ -69,3 +69,9 @@ test("the minifier keeps regular expressions after keywords and with escaped sla
   assert.equal(run("const s = `a ${ 1 + 1 } b`; // x\nreturn s"), "a 2 b");
   assert.equal(strip("if (a)  {\n    b();   // c\n}\n"), "if (a) {\nb();\n}\n");
 });
+
+test("the modules that set up the page are marked as side effects, so bundlers keep them", async () => {
+  const { readFileSync } = await import("node:fs");
+  const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.deepEqual(pkg.sideEffects, ["./src/browser.js", "./dist/sutram.js", "./dist/sutram.min.js"]);
+});
