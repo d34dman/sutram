@@ -31,6 +31,10 @@ breaking changes bump the minor version.
 - Only the schema's own properties are arguments: `--constructor` is unknown.
 - Event payloads are checked strictly (nothing is converted) and delivered
   as emitted.
+- **`sutram_status` returns `{ code: 0, data: { providers } }`**, the same
+  shape as every other call. Before, `providers` was at the top level.
+- `--flag true` and `--flag false` are usage errors. Before, the word became
+  an argument and the flag was set to true.
 
 ### Added
 
@@ -50,6 +54,11 @@ breaking changes bump the minor version.
 - `run()` may return a string, used as its text. Returning any other
   non-object is now exit 1 with a message saying what to return.
 - `checkInput(schema, input, formats, { strict })`.
+- A backslash at the end of a line joins the next line, in the console,
+  pasted blocks and `parse()`.
+- `Sutram.call()` and `sutram_batch` accept command names (`cart add`) as
+  well as tool names (`cart_add`); "no such tool" names the closest tool.
+- An unclosed quote names the word it opened in, with a fix.
 - `agentPrompt(task, { title, url })` and `Sutram.agentPrompt(task)`: a
   generic prompt for chat assistants without browser access.
 - Documentation site with `llms.txt` and `llms-full.txt`, every page also as

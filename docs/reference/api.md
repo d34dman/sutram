@@ -527,7 +527,7 @@ export declare function callTool(
   },
 ): Promise<Result | BatchResult | {
   code: 0;
-  providers: Array<{ provider: string } & Result>;
+  data: { providers: Array<{ provider: string } & Result> };
 }>;
 export declare function connectWebMCP(
   registry?: Registry,

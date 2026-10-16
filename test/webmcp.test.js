@@ -63,7 +63,10 @@ test("listTools and callTool give code outside the page what an agent sees", asy
   assert.deepEqual(await callTool("nav_go", { item: "/shop" }, { registry: r }), { code: 0, data: { url: "/shop" } });
   assert.equal((await callTool("nav_go", {}, { registry: r })).code, EXIT.USAGE);
   assert.equal((await callTool("nope", {}, { registry: r })).code, EXIT.NOT_FOUND);
-  assert.deepEqual(await callTool("sutram_status", {}, { registry: r }), { code: 0, providers: [] });
+  // The command name works too, and a near miss names the closest tool.
+  assert.deepEqual(await callTool("nav go", { item: "/shop" }, { registry: r }), { code: 0, data: { url: "/shop" } });
+  assert.match((await callTool("nav_goo", {}, { registry: r })).message, /nav_goo: no such tool. The most similar tool is nav_go\./);
+  assert.deepEqual(await callTool("sutram_status", {}, { registry: r }), { code: 0, data: { providers: [] } });
 
   const refused = await callTool("checkout", {}, { registry: r });
   assert.equal(refused.code, EXIT.CANCELLED);

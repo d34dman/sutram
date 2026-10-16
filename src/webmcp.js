@@ -1,7 +1,8 @@
 // The registry as WebMCP tools.
-// Checked against the WebMCP Draft Community Group Report of 13 October 2026:
+// Checked against the WebMCP Draft Community Group Report of 15 October 2026:
 // document.modelContext.registerTool(tool, { signal }) returns a promise,
 // rejects a duplicate name, and removes the tool when the signal aborts.
+// execute(input, { signal }) gets no way to ask the user, so the page asks.
 // ToolAnnotations is a fixed set, and a tool has no output schema, so
 // Sutram's own annotations and a summary of `output` go into the description.
 // WebMCP decides which origins see the tools, not whether a call may change
@@ -10,6 +11,7 @@
 import { EXIT, checkInput, getRegistry, runStatus } from "./core.js";
 import { commandLine, describeShape, formatsUsed, sentence } from "./format.js";
 import { getFormats } from "./formats.js";
+import { suggest } from "./parse.js";
 import { ownQuestion } from "./policy.js";
 
 /** The page's model context, or null when the browser has none. */
@@ -39,14 +41,14 @@ export function toTool(def, formats = getFormats()) {
 
 export const STATUS_TOOL = {
   name: "sutram_status",
-  description: "Run every provider's status command and return what each reports about the page. Call this first.",
+  description: "Run every provider's status command and return what each reports about the page. Call this first. Returns { data: { providers: [{ provider, code, text?, data? }] } }.",
   inputSchema: { type: "object", properties: {} },
   annotations: { readOnlyHint: true },
 };
 
 export const BATCH_TOOL = {
   name: "sutram_batch",
-  description: "Run several tools in order as one change. The user is asked at most once, the batch stops at the first call that fails, "
+  description: "Run several tools in order as one change. Every call is checked before any runs. When a call needs the user's approval, the user is asked once, before anything runs. The batch stops at the first call that fails, "
     + "and providers that support it undo the earlier calls. Use it for edits that belong together. Returns { code, results, completed, total }.",
   inputSchema: {
     type: "object",
@@ -74,7 +76,19 @@ export function listTools(registry = getRegistry()) {
   return [STATUS_TOOL, BATCH_TOOL, ...registry.list().map((def) => toTool(def, registry.formats))];
 }
 
-const findTool = (registry, name) => registry.list().find((d) => toolName(d) === name);
+/** A command by its tool name (cart_add) or its command name (cart add). */
+const findTool = (registry, name) => {
+  const key = String(name).trim().toLowerCase();
+  return registry.list().find((d) => toolName(d) === key || d.name === key.replace(/\s+/g, " "));
+};
+
+/** "no such tool" with the closest tool name, like the console's "did you mean". */
+function noSuchTool(registry, name, prefix = "") {
+  const guess = suggest(registry, String(name).toLowerCase().split(/[\s_]+/).filter(Boolean));
+  const def = guess && registry.get(guess);
+  const hint = def ? ` The most similar tool is ${toolName(def)}.` : "";
+  return `${prefix}${name}: no such tool.${hint}`;
+}
 
 /** The question for a call or a batch, in plain text. */
 function question(steps) {
@@ -123,7 +137,7 @@ async function runBatchTool(registry, input, options) {
   const steps = [];
   for (const [i, call] of calls.entries()) {
     const def = call && findTool(registry, call.tool);
-    if (!def) return { code: EXIT.NOT_FOUND, message: `sutram_batch: call ${i + 1}: ${call && call.tool}: no such tool. Nothing ran.` };
+    if (!def) return { code: EXIT.NOT_FOUND, message: `${noSuchTool(registry, call && call.tool, `sutram_batch: call ${i + 1}: `)} Nothing ran.` };
     const args = (call.input && typeof call.input === "object") ? call.input : {};
     const { errors } = checkInput(def.input, args, registry.formats);
     if (errors.length) return { code: EXIT.USAGE, message: `sutram_batch: call ${i + 1}: ${def.name}: ${errors.join("; ")}. Nothing ran.` };
@@ -134,22 +148,27 @@ async function runBatchTool(registry, input, options) {
   return registry.batch(steps.map((s) => ({ name: s.def.name, input: s.input })), { caller: options.caller, signal: options.signal });
 }
 
+/** sutram_status: what every provider reports, in the same result shape as any call. */
+const status = async (registry, caller, signal) => ({ code: EXIT.OK, data: { providers: await runStatus(registry, { caller, signal }) } });
+
 /**
- * Calls a tool by its WebMCP name, the way an agent's host would. For code
+ * Calls a tool by its WebMCP name (cart_add) or its command name (cart add), the way an agent's host would. For code
  * that drives the page from outside without WebMCP: a headless browser, a
  * test, an agent that can run JavaScript in the page.
  *
  * This is a client, like the console, so it follows the page's policy: a
  * tool that needs the user's approval (by default, a consequential one) runs
  * only with `confirmed: true`, which says that the user has agreed. Without
- * it nothing runs and the result says so.
+ * it nothing runs and the result says so. `confirmed` is a courtesy between
+ * the caller and its user, not a security boundary: code in the page can
+ * pass it, or call registry.run(), which never asks.
  */
 export async function callTool(name, input = {}, { registry = getRegistry(), confirmed = false, caller = "agent", signal } = {}) {
   const options = { confirmed, caller, signal, interactive: false };
-  if (name === STATUS_TOOL.name) return { code: EXIT.OK, providers: await runStatus(registry, { caller, signal }) };
+  if (name === STATUS_TOOL.name) return status(registry, caller, signal);
   if (name === BATCH_TOOL.name) return runBatchTool(registry, input, options);
   const def = findTool(registry, name);
-  if (!def) return { code: EXIT.NOT_FOUND, message: `${name}: no such tool. Call tools() for the list.` };
+  if (!def) return { code: EXIT.NOT_FOUND, message: `${noSuchTool(registry, name)} Call tools() for the list.` };
   return runForAgent(registry, def, input, options);
 }
 
@@ -175,7 +194,7 @@ export function connectWebMCP(registry = getRegistry(), modelContext = findModel
   };
 
   const options = (signal) => ({ caller: "agent", signal, interactive: true });
-  add("\0status", STATUS_TOOL, async (_, { signal } = {}) => ({ code: 0, providers: await runStatus(registry, { caller: "agent", signal }) }));
+  add("\0status", STATUS_TOOL, (_, { signal } = {}) => status(registry, "agent", signal));
   add("\0batch", BATCH_TOOL, (input, { signal } = {}) => runBatchTool(registry, input, options(signal)));
   // The definition is looked up at call time: it may have been replaced since.
   const addCommand = (def) => add(def.name, toTool(def, registry.formats), (input, { signal } = {}) => runForAgent(registry, registry.get(def.name) || def, input || {}, options(signal)));

@@ -36,12 +36,16 @@ function heredocAt(text, i) {
   return { tag, value: text.slice(start).replace(/\r\n/g, "\n"), end: text.length, open: true };
 }
 
+/** The length of a line continuation (backslash, then a line break) at text[i], or 0. */
+const continuation = (text, i) => (text[i] !== "\\" ? 0 : text[i + 1] === "\n" ? 2 : text[i + 1] === "\r" && text[i + 2] === "\n" ? 3 : 0);
+
 /** Whether a heredoc may open after this much of a word: at its start, or after --key= */
 const heredocMayOpen = (word) => !word || /^--[a-z][\w-]*=$/i.test(word);
 
 /**
  * Splits a line into words. Double and single quotes group words, and a
- * backslash escapes the next character outside single quotes. A heredoc
+ * backslash escapes the next character outside single quotes. A backslash
+ * at the end of a line joins the next line to it, as in a shell. A heredoc
  * (<<END ending a line) makes the lines up to END one word.
  * Each token is { value, quoted }; quoted means the word starts with a quote
  * or is a heredoc.
@@ -50,8 +54,11 @@ export function tokenize(line) {
   const tokens = [];
   let current = null;
   let quote = null;
+  let quoteAt = 0;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
+    const joined = quote !== "'" && continuation(line, i);
+    if (joined) { i += joined - 1; continue; }
     if (quote) {
       if (ch === quote) { quote = null; continue; }
       if (ch === "\\" && quote === '"' && i + 1 < line.length) { current.value += line[++i]; continue; }
@@ -66,22 +73,30 @@ export function tokenize(line) {
       const hd = heredocAt(line, i);
       if (hd) {
         if (hd.open) throw new CommandError(`unclosed heredoc: end it with a line holding only ${hd.tag}`, EXIT.USAGE);
-        if (!current) current = { value: "", quoted: true };
+        if (!current) current = { value: "", quoted: true, start: i };
         current.value += hd.value;
         i = hd.end - 1;
         continue;
       }
     }
-    if (!current) current = { value: "", quoted: false };
+    if (!current) current = { value: "", quoted: false, start: i };
     // A word is quoted, and so never an option, when it starts with a quote:
     // --who="Grace Hopper" is an option with a quoted value.
-    if (ch === '"' || ch === "'") { quote = ch; if (!current.value) current.quoted = true; continue; }
+    if (ch === '"' || ch === "'") { quote = ch; quoteAt = i; if (!current.value) current.quoted = true; continue; }
     if (ch === "\\" && i + 1 < line.length) { current.value += line[++i]; continue; }
     current.value += ch;
   }
-  if (quote) throw new CommandError(`unclosed ${quote === '"' ? "double" : "single"} quote`, EXIT.USAGE);
+  if (quote) {
+    // Name the word, so `don't` in a rest-of-line value is easy to spot.
+    const after = line.slice(quoteAt + 1).search(/\s/);
+    const word = line.slice(current.start, after < 0 ? line.length : quoteAt + 1 + after);
+    const fix = quote === "'"
+      ? "put text with an apostrophe in double quotes, or write \\'"
+      : "close it, or write \\\" for a quote inside the text";
+    throw new CommandError(`unclosed ${quote === '"' ? "double" : "single"} quote in ${word}: ${fix}`, EXIT.USAGE);
+  }
   if (current) tokens.push(current);
-  return tokens;
+  return tokens.map(({ value, quoted }) => ({ value, quoted }));
 }
 
 /** Edit distance, for "did you mean". */
@@ -170,7 +185,14 @@ function parseArguments(def, rest) {
       }
       if (!own(props, key)) throw new CommandError(`${name}: unknown option --${key}. See ${name} -h`, EXIT.USAGE);
       if (val === undefined) {
-        if (props[key].type === "boolean") { input[key] = true; continue; }
+        if (props[key].type === "boolean") {
+          const next = rest[i + 1];
+          if (next && !next.quoted && /^(true|false)$/i.test(next.value)) {
+            throw new CommandError(`${name}: --${key} takes no value. Write --${key} or --no-${key}, or --${key}=${next.value.toLowerCase()}`, EXIT.USAGE);
+          }
+          input[key] = true;
+          continue;
+        }
         if (i + 1 >= rest.length) throw new CommandError(`${name}: --${key} needs a value`, EXIT.USAGE);
         val = rest[++i].value;
       }
@@ -204,7 +226,8 @@ function parseArguments(def, rest) {
 /**
  * Words with their place in the line, by the same rules as tokenize(), but
  * never throwing. Returns { words: [{ start, end, value, quoted, heredoc }], quote },
- * where quote is what is still open at the end of the line (", ' or <<TAG), or null.
+ * where quote is what is still open at the end of the line (", ', <<TAG, or
+ * \ for a line that ends in a continuation), or null.
  */
 function scan(line) {
   const words = [];
@@ -212,6 +235,9 @@ function scan(line) {
   let quote = null;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
+    const joined = quote !== "'" && continuation(line, i);
+    if (joined) { i += joined - 1; continue; }
+    if (ch === "\\" && i === line.length - 1 && quote !== "'") { if (w) { w.end = i; words.push(w); } return { words, quote: quote || "\\" }; }
     if (!quote && /\s/.test(ch)) { if (w) { w.end = i; words.push(w); w = null; } continue; }
     if (!quote && ch === "<" && heredocMayOpen(w ? w.value : "")) {
       const hd = heredocAt(line, i);
@@ -242,7 +268,8 @@ export const openQuote = (text) => scan(String(text)).quote;
 
 /**
  * Splits pasted text into command lines. A line break inside quotes or a
- * heredoc belongs to the value, so a multi-line value stays one command.
+ * heredoc belongs to the value, so a multi-line value stays one command, and
+ * a backslash at the end of a line joins the next line to it.
  * Lines starting with # are comments; their quotes do not count.
  */
 export function splitLines(text) {
@@ -258,6 +285,8 @@ export function splitLines(text) {
       if (ch === "\n") { lines.push(cur); cur = ""; comment = false; } else cur += ch;
       continue;
     }
+    const joined = quote !== "'" && continuation(text, i);
+    if (joined) { cur += "\\\n"; i += joined - 1; continue; }
     if (quote) {
       if (ch === "\\" && quote === '"' && i + 1 < text.length) { cur += ch + text[++i]; continue; }
       if (ch === quote) quote = null;

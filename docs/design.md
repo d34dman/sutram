@@ -215,6 +215,9 @@ do. That is a deliberate choice, and it means Sutram checks no permissions:
 The one real change is that **agents** become callers, and they act quickly with
 all of the user's permissions. Annotations handle that: they let a client ask the
 user before a consequential command, without Sutram becoming a permission system.
+The policy is etiquette, not a lock: `Sutram.call(…, { confirmed: true })` and
+`registry.run()` skip the question, because code running in the page could do the
+same by clicking. Access control stays on the server.
 
 ## Forms and widgets
 

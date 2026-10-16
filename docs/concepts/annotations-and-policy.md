@@ -56,6 +56,11 @@ life; it never covers a consequential command.
   `{ confirmed: true }`, which says the user agreed.
 - App code that calls `registry.run()` is never asked. It is the app.
 
+`confirmed` is a courtesy between a caller and its user, not a security
+boundary. Any code in the page can pass it, or call `registry.run()`
+directly. The policy makes well-behaved agents ask; it cannot stop code that
+already runs in the page, which could click the buttons just as well.
+
 ## Why the page decides
 
 WebMCP decides which sites' tools an agent may see. It does not decide

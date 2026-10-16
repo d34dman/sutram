@@ -27,7 +27,8 @@ option:  --name=value
   left is a usage error (`unexpected argument`), never dropped.
 - **Options** are GNU long options: `--qty=2` or `--qty 2`. There are no
   short options except `-h`.
-- **Booleans**: `--all` sets true, `--no-all` sets false.
+- **Booleans**: `--all` sets true, `--no-all` sets false. `--all=false` works
+  too; `--all false` is a usage error, so the word is not taken for an argument.
 - **`--`** ends options: everything after it is a value, even if it starts
   with `--`.
 
@@ -36,6 +37,11 @@ option:  --name=value
 - Double or single quotes group words: `--who="Grace Hopper"`,
   `set title 'Pour-over, step by step'`.
 - A backslash escapes the next character, except inside single quotes.
+- A backslash at the end of a line joins the next line to it, as in a shell:
+  long commands can be split over several lines. In the console,
+  <kbd>Enter</kbd> after a trailing backslash starts a new line.
+- An apostrophe opens a single quote, so `don't` in an unquoted value is an
+  unclosed quote. Put such text in double quotes: `nav find "don't panic"`.
 - A value that starts with a quote is never an option.
 - An unclosed quote is a usage error (exit 2). In the console, <kbd>Enter</kbd>
   inside quotes starts a new line of the value instead.

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry, parse, tokenize, EXIT, commandLine, highlight } from "../src/index.js";
+import { createRegistry, parse, tokenize, splitLines, openQuote, EXIT, commandLine, highlight } from "../src/index.js";
 
 const r = createRegistry();
 r.register({
@@ -136,4 +136,30 @@ test("positional words fill the keys not given as options, and none is dropped",
   assert.throws(() => parse(r, "note set a --value=v b"), /note set: unexpected argument "b"/);
   assert.throws(() => parse(r, "note set --field=a --value=v b"), /unexpected argument "b"/);
   assert.throws(() => parse(r, "note set t --constructor=x"), /unknown option --constructor/);
+});
+
+test("a backslash at the end of a line joins the next line", () => {
+  const r = createRegistry();
+  r.register({
+    name: "note set", provider: "note", description: "Set", positional: ["field", "value"], annotations: {}, run: () => {},
+    input: { type: "object", properties: { field: { type: "string" }, value: { type: "string" }, on: { type: "boolean" } } },
+  });
+  assert.deepEqual(splitLines("note set title \\\n  --value=hi\nnote set x y"), ["note set title \\\n  --value=hi", "note set x y"]);
+  assert.deepEqual(parse(r, "note set title \\\r\n  --value=hi").input, { field: "title", value: "hi" });
+  assert.deepEqual(parse(r, "note set ti\\\ntle v").input, { field: "title", value: "v" });
+  assert.deepEqual(tokenize("'a\\\nb'").map((t) => t.value), ["a\\\nb"]);
+  assert.equal(openQuote("note set title \\"), "\\");
+  assert.equal(openQuote("note set title \\\\"), null);
+});
+
+test("quote and boolean mistakes say how to fix them", () => {
+  const r = createRegistry();
+  r.register({
+    name: "note set", provider: "note", description: "Set", positional: ["field", "value"], annotations: {}, run: () => {},
+    input: { type: "object", properties: { field: { type: "string" }, value: { type: "string" }, on: { type: "boolean" } } },
+  });
+  assert.throws(() => parse(r, "note set title don't panic"), /unclosed single quote in don't: put text with an apostrophe in double quotes/);
+  assert.throws(() => parse(r, 'note set title "oops'), /unclosed double quote in "oops/);
+  assert.throws(() => parse(r, "note set t --on false"), /--on takes no value. Write --on or --no-on, or --on=false/);
+  assert.deepEqual(parse(r, "note set t --on=false").input, { field: "t", on: "false" });
 });

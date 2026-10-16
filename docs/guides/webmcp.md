@@ -24,8 +24,9 @@ connectWebMCP(registry, findModelContext());
 - **A description** that says what the command does, what it returns (from
   the output schema), whether it leaves the page, and what any app-defined
   formats mean.
-- **`sutram_status`**, which runs every `<provider> status` at once. Agents
-  should call it first.
+- **`sutram_status`**, which runs every `<provider> status` at once and
+  returns `{ code: 0, data: { providers: [{ provider, code, text?, data? }] } }`.
+  Agents should call it first.
 - **`sutram_batch`**, which runs several tools as one change:
   `{ calls: [{ tool: "cart_add", input: { sku: "V60" } }, …] }`.
 
