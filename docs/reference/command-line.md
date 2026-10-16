@@ -31,6 +31,9 @@ option:  --name=value
   too; `--all false` is a usage error, so the word is not taken for an argument.
 - **`--`** ends options: everything after it is a value, even if it starts
   with `--`.
+- **Lists** are comma-separated: `--tags=draft,urgent`. A list whose items
+  contain commas, or a list of objects, is written as JSON:
+  `--tags='["a,b","c"]'`. **Objects** are always JSON: `--meta='{"a":1}'`.
 
 ## Quoting
 
@@ -126,4 +129,5 @@ Command names cannot start with these words.
 A WebMCP tool's name is the command name with spaces replaced by
 underscores: `cart add` → `cart_add`, `form node-article-form set` →
 `form_node-article-form_set`. `commandLine(def, input)` turns a tool call back
-into the command line a person would type.
+into the command line a person would type, and that line parses to the same
+input: objects and awkward lists as JSON, `null` left out.

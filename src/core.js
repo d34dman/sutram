@@ -91,7 +91,8 @@ function checkValue(name, prop, v, errors, formats, strict) {
   } else if (type === "string") {
     if (typeof v !== "string") return fail();
   } else if (type === "array") {
-    if (text) v = v.split(",").map((s) => s.trim()).filter(Boolean);
+    if (text && v.trim().startsWith("[")) { try { const list = JSON.parse(v); if (Array.isArray(list)) v = list; } catch { /* a plain a,b,c list */ } }
+    if (text && typeof v === "string") v = v.split(",").map((s) => s.trim()).filter(Boolean);
     if (!Array.isArray(v)) return fail();
     if (prop.items) v = v.map((item, i) => checkValue(`${name}[${i}]`, prop.items, item, errors, formats, strict));
   } else if (type === "object") {

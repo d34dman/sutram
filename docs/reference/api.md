@@ -316,6 +316,7 @@ export interface FormatOptions {
   fields?: string[] | null;
 }
 
+/** Input as the command line a person would type. The line parses back to the same input. */
 export declare function commandLine(
   def: CommandDefinition,
   input?: Record<string, unknown>,

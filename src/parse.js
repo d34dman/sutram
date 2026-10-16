@@ -150,6 +150,9 @@ export function parse(registry, line) {
   );
 }
 
+/** A boolean property, nullable or not: --key and --no-key. */
+const isFlag = (prop) => [].concat(prop.type).includes("boolean");
+
 function parseArguments(def, rest) {
   const name = def.name;
   const props = def.input.properties || {};
@@ -179,13 +182,13 @@ function parseArguments(def, rest) {
       if (!m) throw new CommandError(`${name}: cannot read option ${raw}`, EXIT.USAGE);
       let [, key, val] = m;
       const negated = key.startsWith("no-") ? key.slice(3) : null;
-      if (!own(props, key) && negated && own(props, negated) && props[negated].type === "boolean") {
+      if (!own(props, key) && negated && own(props, negated) && isFlag(props[negated])) {
         input[negated] = false;
         continue;
       }
       if (!own(props, key)) throw new CommandError(`${name}: unknown option --${key}. See ${name} -h`, EXIT.USAGE);
       if (val === undefined) {
-        if (props[key].type === "boolean") {
+        if (isFlag(props[key])) {
           const next = rest[i + 1];
           if (next && !next.quoted && /^(true|false)$/i.test(next.value)) {
             throw new CommandError(`${name}: --${key} takes no value. Write --${key} or --no-${key}, or --${key}=${next.value.toLowerCase()}`, EXIT.USAGE);
@@ -356,7 +359,7 @@ export function highlight(registry, line) {
       const eq = raw.indexOf("=");
       const name = (eq < 0 ? raw : raw.slice(0, eq)).replace(/^--?/, "");
       const known = raw === "-h" || CLIENT_OPTIONS.includes(name) || !def || own(props, name)
-        || (name.startsWith("no-") && own(props, name.slice(3)) && props[name.slice(3)].type === "boolean");
+        || (name.startsWith("no-") && own(props, name.slice(3)) && isFlag(props[name.slice(3)]));
       push(eq < 0 ? raw : raw.slice(0, eq + 1), known ? "option" : "bad-option");
       if (eq >= 0) push(raw.slice(eq + 1), x.heredoc || /["']/.test(raw.slice(eq + 1)) ? "string" : "value");
       return;
@@ -480,7 +483,7 @@ export async function complete(registry, line, { signal, limit = 50 } = {}) {
 
   const values = async (key, partial, prefix) => {
     const prop = props[key] || {};
-    const fixed = [...(prop.enum || (prop.type === "boolean" ? [true, false] : [])), ...(prop.examples || [])];
+    const fixed = [...(prop.enum || (isFlag(prop) ? [true, false] : [])), ...(prop.examples || [])];
     const out = fixed.map(String).filter((v) => v.toLowerCase().startsWith(partial.toLowerCase())).map((v) => ({ value: v }));
     if (def.suggest) {
       try {
@@ -495,7 +498,7 @@ export async function complete(registry, line, { signal, limit = 50 } = {}) {
 
   const options = (typed) => {
     const items = Object.keys(props).filter((key) => !given.has(key)).map((key) => ({
-      value: props[key].type === "boolean" ? `--${key} ` : `--${key}=`,
+      value: isFlag(props[key]) ? `--${key} ` : `--${key}=`,
       label: `--${key}`,
       description: props[key].description || "",
     }));

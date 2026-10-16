@@ -216,6 +216,7 @@ export declare function getFormats(): Formats;
 export interface Block { kind: string; text: string; head?: string; code?: ExitCode; commands?: CommandDefinition[] }
 export interface FormatOptions { locale?: string; formats?: Formats; json?: boolean; wide?: boolean; fields?: string[] | null }
 
+/** Input as the command line a person would type. The line parses back to the same input. */
 export declare function commandLine(def: CommandDefinition, input?: Record<string, unknown>): string;
 
 /**

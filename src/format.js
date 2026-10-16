@@ -166,10 +166,23 @@ export function selectFields(data, fields, schema) {
   return { data: Array.isArray(data) ? data.map(pick) : pick(data) };
 }
 
-/** Quotes a value for a command line only when it needs it, the way a shell user would. */
-function quoteArg(value) {
-  const s = Array.isArray(value) ? value.join(",") : String(value);
+/** Quotes a word for a command line only when it needs it, the way a shell user would. */
+function quoteWord(s) {
   return s !== "" && /^[\w@%+=:,./-]+$/.test(s) && !s.startsWith("-") ? s : `"${s.replace(/(["\\])/g, "\\$1")}"`;
+}
+
+/**
+ * A value as one command line word that reads back as the same value.
+ * A list of plain items is written a,b,c; an object, or a list that a comma
+ * split would change, is written as JSON, in single quotes when it can be.
+ */
+function quoteArg(value) {
+  const plain = (x) => ["string", "number", "boolean"].includes(typeof x) && !/[,\n]/.test(String(x)) && String(x).trim() === String(x) && String(x) !== "";
+  if ((Array.isArray(value) && value.length && value.every(plain)) || (value === null || typeof value !== "object")) {
+    return quoteWord(Array.isArray(value) ? value.join(",") : String(value));
+  }
+  const json = JSON.stringify(value);
+  return json.includes("'") ? quoteWord(json) : `'${json}'`;
 }
 
 /** A heredoc for a multi-line value, with a closing word that no line of it holds. */
@@ -193,14 +206,17 @@ export function commandLine(def, input = {}) {
   const order = def.positional || [];
   const block = Object.keys(input).find((key) => typeof input[key] === "string" && input[key].includes("\n"));
   const used = new Set(block ? [block] : []);
+  // A positional word is plain text, so only strings and numbers go there.
   for (const key of order) {
-    if (input[key] === undefined || key === block) break;
+    if (input[key] == null || key === block || !["string", "number"].includes(typeof input[key])) break;
     parts.push(quoteArg(input[key]));
     used.add(key);
   }
+  // null and undefined mean "not given", so they are left out.
   for (const [key, value] of Object.entries(input)) {
-    if (used.has(key) || value === undefined) continue;
-    if (props[key] && props[key].type === "boolean") parts.push(value ? `--${key}` : `--no-${key}`);
+    if (used.has(key) || value == null) continue;
+    const flag = props[key] && [].concat(props[key].type).includes("boolean");
+    if (flag && typeof value === "boolean") parts.push(value ? `--${key}` : `--no-${key}`);
     else parts.push(`--${key}=${quoteArg(value)}`);
   }
   if (block) parts.push(`--${block} ${heredoc(input[block])}`);

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createRegistry, EXIT, commandLine } from "../src/index.js";
-import { parse, tokenize, splitLines, openQuote, highlight } from "../src/client.js";
+import { parse, tokenize, splitLines, openQuote, highlight, checkInput } from "../src/client.js";
 
 const r = createRegistry();
 r.register({
@@ -64,6 +64,39 @@ test("commandLine writes input back as the line a person would type, and parses 
   for (const input of [{ sku: "V60", qty: "2" }, { sku: "a b", qty: "3" }, { sku: "--x" }]) {
     assert.deepEqual(parse(r, commandLine(def, input)).input, input);
   }
+});
+
+test("commandLine writes any checked value so that it reads back the same", () => {
+  const r2 = createRegistry();
+  const def = {
+    name: "doc set", provider: "doc", description: "Set", annotations: {}, positional: ["title"],
+    input: { type: "object", properties: {
+      title: { type: "string" }, n: { type: "number" }, on: { type: "boolean" }, maybe: { type: ["boolean", "null"] },
+      tags: { type: "array", items: { type: "string" } }, ids: { type: "array", items: { type: "integer" } },
+      meta: { type: "object" }, rows: { type: "array", items: { type: "object" } }, note: { type: "string" },
+    } },
+    run: () => ({}),
+  };
+  r2.register(def);
+  const values = [
+    { title: "x", meta: { a: 1, b: [true, "c"] } },
+    { title: "it's", meta: { q: "it's \"so\"" } },
+    { tags: ["a,b", "c"], ids: [1, 2] },
+    { tags: [" padded", ""], rows: [{ a: 1 }] },
+    { tags: [], on: false, maybe: true, n: -1.5 },
+    { title: "-dash", note: "[not a list]" },
+  ];
+  for (const value of values) {
+    const line = commandLine(def, value);
+    const { errors, value: back } = checkInput(def.input, parse(r2, line).input);
+    assert.deepEqual(errors, [], line);
+    assert.deepEqual(back, value, line);
+  }
+  assert.equal(commandLine(def, { title: "x", meta: { a: 1 } }), `doc set x --meta='{"a":1}'`);
+  assert.equal(commandLine(def, { title: null, n: undefined, on: null }), "doc set");
+  assert.equal(commandLine(def, { tags: ["a,b"] }), `doc set --tags='["a,b"]'`);
+  // A value of the wrong type is written as given, not as a flag.
+  assert.equal(commandLine(def, { on: "false", note: true }), "doc set --on=false --note=true");
 });
 
 test("highlight covers every character and names each part of the line", () => {

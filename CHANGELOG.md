@@ -41,6 +41,13 @@ breaking changes bump the minor version.
   defaults filled), which is what runs. Before, `{ all: "false" }` was asked
   as `--all` and ran with `all: false`. A `confirm()` that throws gets the
   generic question.
+- **`commandLine()` writes every value so that it reads back the same.**
+  Objects, and lists whose items hold commas or objects, are written as JSON
+  (`--meta='{"a":1}'`); `null` is left out; `true` for a non-boolean is
+  `--key=true`, not a flag. Console text accepts a JSON list for an array
+  (`--tags='["a,b"]'`). Before, an object became `[object Object]`.
+- A nullable boolean (`type: ["boolean", "null"]`) is a flag: `--key`
+  and `--no-key`.
 - **Batches take turns.** A second batch waits for the first to commit or
   roll back, and console and agent runs of a provider in a running batch
   wait too. Before, two batches at once could interleave their hooks and lose
