@@ -319,11 +319,15 @@ function highlight(code, lang) {
 
 function inline(text, link) {
   const codes = [];
-  let s = text.replace(/`([^`]+)`/g, (_, c) => `\u0000${codes.push(c) - 1}\u0000`);
-  s = esc(s).replace(/&lt;(\/?)(kbd|br)&gt;/g, "<$1$2>");
+  const kbds = [];
+  // Keys first: <kbd>`</kbd> is a backtick, not the start of a code span.
+  let s = text.replace(/<kbd>(.*?)<\/kbd>/g, (_, k) => `\u0001${kbds.push(k) - 1}\u0001`);
+  s = s.replace(/`([^`]+)`/g, (_, c) => `\u0000${codes.push(c) - 1}\u0000`);
+  s = esc(s).replace(/&lt;br&gt;/g, "<br>");
   s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => `<a href="${esc(link(u.replace(/&amp;/g, "&")))}">${t}</a>`);
   s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/(^|[^\w*])\*([^*\n]+)\*(?![\w*])/g, "$1<em>$2</em>");
-  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${esc(codes[i])}</code>`);
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${esc(codes[i])}</code>`)
+    .replace(/\u0001(\d+)\u0001/g, (_, i) => `<kbd>${esc(kbds[i])}</kbd>`);
 }
 
 function render(src, link) {
@@ -460,6 +464,8 @@ table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
 th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { background: var(--bg-2); font-weight: 600; }
 tr:last-child td { border-bottom: 0; }
+/* A name in a cell stays whole; the table scrolls instead. */
+td > code { overflow-wrap: normal; }
 blockquote { margin: 16px 0; padding: 4px 18px; border-left: 3px solid var(--accent); background: var(--bg-2); border-radius: 0 10px 10px 0; }
 li.task { list-style: none; margin-left: -1.2em; }
 .meta { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; color: var(--muted); margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }
