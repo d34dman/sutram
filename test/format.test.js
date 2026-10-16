@@ -122,3 +122,28 @@ test("help shows the first line of a multi-line description; man shows all of it
   assert.match(man, /doc fix - Fix the document\n/);
   assert.match(man, /DESCRIPTION\n\n?     Runs every check, then\n       fixes what it can\./);
 });
+
+test("wording: plurals, sentences, empty lists, object defaults, nullable types", async () => {
+  const { sentence, formatValue, synopsis } = await import("../src/internals.js");
+  const { complete } = await import("../src/client.js");
+  assert.equal(formatValue([{ a: 1 }]), "1 item");
+  assert.equal(formatValue([{ a: 1 }, { a: 2 }]), "2 items");
+  assert.equal(sentence("Hi!"), "Hi!");
+  assert.equal(sentence("Sure?"), "Sure?");
+  assert.equal(sentence("Done  "), "Done.");
+  assert.deepEqual(formatResult({ code: 0, data: [] }, {}), [{ kind: "dim", text: "Nothing to show." }]);
+  const r = createRegistry();
+  const d = {
+    name: "doc set", provider: "doc", description: "Set", annotations: {},
+    input: { type: "object", properties: { note: { type: ["string", "null"] }, on: { type: ["boolean", "null"] }, meta: { type: "object", default: { a: 1 } } } },
+    run: () => ({}),
+  };
+  r.register(d);
+  r.register({ name: "media add", provider: "media", description: "Add", annotations: {}, run: () => ({}) });
+  assert.equal(synopsis(d), "doc set [--note=<string>] [--on] [--meta=<object>]");
+  const man = blocksToText(formatMan(d, "doc set", r.formats));
+  assert.match(man, /--note\n\s+string or null\./);
+  assert.match(man, /default \{"a":1\}/);
+  const items = (await complete(r, "med")).items;
+  assert.notEqual(items[0].description, "1 commands");
+});

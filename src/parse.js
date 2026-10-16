@@ -417,7 +417,7 @@ function nameItems(registry, typed, partial, withClientWords) {
   const items = [...byWord.entries()].map(([word, hits]) => ({
     value: `${word} `,
     label: word,
-    description: hits.length === 1 && hits[0].whole ? hits[0].def.description : `${hits.length} commands`,
+    description: hits.length === 1 && hits[0].whole ? hits[0].def.description : `${hits.length} command${hits.length === 1 ? "" : "s"}`,
   }));
   if (withClientWords && !at) {
     for (const [word, description] of Object.entries(CLIENT_WORDS)) {

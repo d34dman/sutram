@@ -19,8 +19,17 @@ const isRecords = (v) => Array.isArray(v) && v.length > 0 && v.every(isRecord);
 /** The first line of a description, for one-line lists: man pages have a one-line summary too. */
 export const summary = (s) => String(s).trim().split(/\r?\n/)[0].trim();
 
-/** Ends a description with exactly one full stop. */
-export const sentence = (s) => String(s).replace(/\.?\s*$/, ".");
+/** Ends a description with one full stop, unless it already ends with ., ! or ?. */
+export const sentence = (s) => String(s).replace(/\s*$/, "").replace(/([^.!?])$/, "$1.");
+
+/** "1 item", "2 items". */
+export const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** A boolean property, nullable or not: written --key. */
+const isFlag = (p) => !!p && [].concat(p.type).includes("boolean");
+
+/** The type a usage line shows for a property: its enum, or its type without "null". */
+const typeName = (p) => (p.enum ? p.enum.join("|") : [].concat(p.type).filter((t) => t && t !== "null").join("|") || "value");
 
 /** The format definition for a property, from the page's format registry. */
 const formatOf = (prop, options) => (prop && prop.format ? (options.formats || getFormats()).get(prop.format) : undefined);
@@ -37,7 +46,7 @@ export function formatValue(value, prop = {}, options = {}) {
       // A format that cannot show this value falls back to the plain value.
     }
   }
-  if (Array.isArray(value)) return value.every((x) => typeof x !== "object") ? value.join(", ") : `${value.length} items`;
+  if (Array.isArray(value)) return value.every((x) => typeof x !== "object") ? value.join(", ") : plural(value.length, "item");
   if (isRecord(value)) return JSON.stringify(value);
   return String(value);
 }
@@ -114,6 +123,10 @@ export function formatResult(result, def = {}, options = {}) {
   if (result.text) blocks.push({ kind: "text", text: result.text });
   if (data === undefined || data === null) return blocks;
 
+  if (Array.isArray(data) && !data.length) {
+    if (!result.text) blocks.push({ kind: "dim", text: "Nothing to show." });
+    return blocks;
+  }
   if (isRecords(data)) { table(data, schema.items); return blocks; }
   if (!isRecord(data)) {
     if (!result.text) blocks.push({ kind: "text", text: formatValue(data, schema, options) });
@@ -245,7 +258,7 @@ export function synopsis(def) {
   for (const k of Object.keys(props)) {
     if (order.includes(k)) continue;
     const p = props[k];
-    const s = p.type === "boolean" ? `--${k}` : `--${k}=<${p.enum ? p.enum.join("|") : p.type}>`;
+    const s = isFlag(p) ? `--${k}` : `--${k}=<${typeName(p)}>`;
     parts.push(required.includes(k) ? s : `[${s}]`);
   }
   return [def.name, ...parts].join(" ");
@@ -257,7 +270,7 @@ export function longSynopsis(def) {
   const required = def.input.required || [];
   if (!(def.positional || []).length) return null;
   const parts = Object.keys(props).map((k) => {
-    const s = props[k].type === "boolean" ? `--${k}` : `--${k}=<${props[k].type}>`;
+    const s = isFlag(props[k]) ? `--${k}` : `--${k}=<${typeName(props[k])}>`;
     return required.includes(k) ? s : `[${s}]`;
   });
   return [def.name, ...parts].join(" ");
@@ -331,12 +344,12 @@ export function formatMan(def, name = def && def.name, formats = getFormats()) {
   if (!Object.keys(props).length) L.push("     none");
   for (const [k, p] of Object.entries(props)) {
     const bits = [
-      p.type,
+      [].concat(p.type).filter(Boolean).join(" or "),
       p.format,
       required.includes(k) ? "required" : null,
       p.enum ? `one of ${p.enum.join(", ")}` : null,
       p.minimum !== undefined ? `at least ${p.minimum}` : null,
-      p.default !== undefined ? `default ${p.default}` : null,
+      p.default !== undefined ? `default ${p.default !== null && typeof p.default === "object" ? JSON.stringify(p.default) : p.default}` : null,
     ].filter(Boolean).join(", ");
     L.push(`     --${k}`, `          ${bits}.${p.description ? " " + sentence(p.description) : ""}${formatNote(p, formats)}`);
   }

@@ -98,6 +98,10 @@ breaking changes bump the minor version.
 - A multi-line description: `help` and `-h` show its first line, `man`
   shows the rest under DESCRIPTION. Before, one newline made the console's
   `help` throw.
+- Wording: "1 item" and "1 command"; a description ending in `!` or `?`
+  gets no extra full stop; an empty list prints "Nothing to show."; `man`
+  prints object defaults as JSON; usage lines and `man` show a nullable
+  type as `<string>` and "string or null".
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches
