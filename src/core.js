@@ -3,7 +3,7 @@
 // It holds no app state and touches no DOM.
 
 import { getFormats } from "./formats.js";
-import { createPolicy } from "./policy.js";
+import { createPolicy, whoIs } from "./policy.js";
 
 /** Exit codes, borrowed from the shell. */
 export const EXIT = Object.freeze({
@@ -254,6 +254,65 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
     try { fn(event); } catch (err) { console.error(err); }
   });
 
+  // One batch at a time: each waits for the one before it. A batch takes its
+  // providers as it reaches them, so two at once could each wait on the other.
+  let batchTail = Promise.resolve();
+  let active = null; // the running batch: { providers: Set, done: Promise }
+
+  /** Resolves true when `promise` settles first, false when the signal aborts first. */
+  const until = (promise, signal) => {
+    if (!signal) return promise.then(() => true);
+    if (signal.aborted) return Promise.resolve(false);
+    return new Promise((resolve) => {
+      const onAbort = () => resolve(false);
+      signal.addEventListener("abort", onAbort, { once: true });
+      promise.then(() => { signal.removeEventListener("abort", onAbort); resolve(true); });
+    });
+  };
+  const cancelled = (name) => ({ code: EXIT.CANCELLED, message: `${name}: cancelled` });
+
+  async function execute(name, input, { caller = "code", signal, expect } = {}, inBatch) {
+    let def = commands.get(name);
+    // A person or an agent waits for a batch that is changing this provider,
+    // so its rollback cannot undo their edit. App code does not: it may be
+    // running inside one of the batch's own commands.
+    while (!inBatch && def && whoIs(caller) && active && active.providers.has(def.provider)) {
+      if (!(await until(active.done, signal))) return cancelled(name);
+      def = commands.get(name);
+    }
+    if (expect !== undefined && def !== expect) {
+      return { code: EXIT.CANCELLED, message: `${name}: the command changed after it was checked, so it did not run` };
+    }
+    if (!def) return { code: EXIT.NOT_FOUND, message: `${name}: command not found` };
+    const { errors, value } = checkInput(def.input, input, formats);
+    if (errors.length) return { code: EXIT.USAGE, message: `${name}: ${errors.join("; ")}` };
+    if (signal && signal.aborted) return cancelled(name);
+
+    notify(runFns, { name, input: value, caller });
+    const result = await (async () => {
+      try {
+        let res = await def.run(value, { caller, signal });
+        if (typeof res === "string") res = { text: res };
+        else if (res === undefined || res === null) res = {};
+        else if (!isPlainObject(res)) {
+          return { code: EXIT.FAILED, message: `${name}: run returned ${Array.isArray(res) ? "a list" : `a ${typeof res}`}; return { text?, data? } or a string` };
+        }
+        if (checkResults && def.output && res.data !== undefined) {
+          const err = checkOutput(def.output, res.data, def.output, formats);
+          if (err) console.warn(`sutram: ${name} returned data that does not match its output schema: ${err}`);
+        }
+        return { code: EXIT.OK, ...res };
+      } catch (err) {
+        if (signal && signal.aborted) return cancelled(name);
+        // Only a CommandError sets the code: a DOMException has a legacy numeric code, often 0.
+        const code = err instanceof CommandError && Number.isInteger(err.code) && err.code !== EXIT.OK ? err.code : EXIT.FAILED;
+        return { code, message: (err && err.message) || String(err) };
+      }
+    })();
+    notify(resultFns, { name, input: value, caller, result });
+    return result;
+  }
+
   const registry = {
     /** The format registry this registry checks input and results against. */
     formats,
@@ -300,39 +359,11 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
     /**
      * Runs a command. Always resolves to a result:
      * { code: 0, text?, data? } on success, { code, message } otherwise.
+     * `expect` is the definition a client checked and asked about: when the
+     * name no longer maps to it, nothing runs. A console or agent run of a
+     * provider that a batch is changing waits until the batch is done.
      */
-    async run(name, input = {}, { caller = "code", signal } = {}) {
-      const def = commands.get(name);
-      if (!def) return { code: EXIT.NOT_FOUND, message: `${name}: command not found` };
-      const { errors, value } = checkInput(def.input, input, formats);
-      if (errors.length) return { code: EXIT.USAGE, message: `${name}: ${errors.join("; ")}` };
-      if (signal && signal.aborted) return { code: EXIT.CANCELLED, message: `${name}: cancelled` };
-
-      notify(runFns, { name, input: value, caller });
-      const result = await (async () => {
-        try {
-          let res = await def.run(value, { caller, signal });
-          if (typeof res === "string") res = { text: res };
-          else if (res === undefined || res === null) res = {};
-          else if (!isPlainObject(res)) {
-            return { code: EXIT.FAILED, message: `${name}: run returned ${Array.isArray(res) ? "a list" : `a ${typeof res}`}; return { text?, data? } or a string` };
-          }
-          if (checkResults && def.output && res.data !== undefined) {
-            const err = checkOutput(def.output, res.data, def.output, formats);
-            if (err) console.warn(`sutram: ${name} returned data that does not match its output schema: ${err}`);
-          }
-          return { code: EXIT.OK, ...res };
-        } catch (err) {
-          if (signal && signal.aborted) return { code: EXIT.CANCELLED, message: `${name}: cancelled` };
-          // Only a CommandError sets the code: a DOMException has a legacy numeric code, often 0.
-          const code = err instanceof CommandError && Number.isInteger(err.code) && err.code !== EXIT.OK ? err.code : EXIT.FAILED;
-          return { code, message: (err && err.message) || String(err) };
-        }
-      })();
-      notify(resultFns, { name, input: value, caller, result });
-      return result;
-    },
-
+    run: (name, input = {}, options = {}) => execute(name, input, options, false),
     /**
      * Lets a provider group the commands of a batch into one change, such as
      * one undo step. In a batch, begin() is called before the provider's first
@@ -356,29 +387,50 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
       const begun = []; // [{ provider, hooks }]
       const kept = new Set();
       let finished = false;
+      // Take a place in the queue now; wait for it at the first run.
+      let release;
+      const done = new Promise((resolve) => { release = resolve; });
+      const turn = batchTail;
+      batchTail = batchTail.then(() => done);
+      const me = { providers: new Set(), done };
+      let started = false;
+
       const finish = async (how) => {
         if (finished) throw new Error("batch: already finished");
         finished = true;
         const list = how === "commit" ? begun : [...begun].reverse();
         let error = null;
-        for (const { hooks } of list) {
-          try { if (hooks[how]) await hooks[how](); } catch (err) { error = error || err; if (how === "rollback") console.error(err); }
+        try {
+          for (const { hooks } of list) {
+            try { if (hooks[how]) await hooks[how](); } catch (err) { error = error || err; if (how === "rollback") console.error(err); }
+          }
+        } finally {
+          if (active === me) active = null;
+          release();
         }
         if (error && how === "commit") throw error;
         return { rolledBack: how === "rollback" ? begun.map((b) => b.provider) : [], kept: [...kept] };
       };
       return {
-        async run(name, input = {}) {
+        /** Runs one command in the batch. `expect`, as for run(). */
+        async run(name, input = {}, { expect } = {}) {
           if (finished) throw new Error("batch: already finished");
+          if (!started) {
+            if (!(await until(turn, signal))) return cancelled(name);
+            started = true;
+            active = me;
+          }
           const def = commands.get(name);
           const hooks = def && batchHooks.get(def.provider);
           if (hooks && !begun.some((b) => b.provider === def.provider)) {
+            me.providers.add(def.provider);
             try { if (hooks.begin) await hooks.begin(); } catch (err) {
+              me.providers.delete(def.provider);
               return { code: EXIT.FAILED, message: `${name}: ${def.provider} could not start a batch: ${(err && err.message) || err}` };
             }
             begun.push({ provider: def.provider, hooks });
           }
-          const result = await registry.run(name, input, { caller, signal });
+          const result = await execute(name, input, { caller, signal, expect: expect === undefined ? def : expect }, true);
           if (result.code === EXIT.OK && def && !hooks && !def.annotations.readOnly) kept.add(def.provider);
           return result;
         },
@@ -388,24 +440,30 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
     },
 
     /**
-     * Runs steps, [{ name, input }], as one batch. Every step is checked
-     * before any runs, so a typo runs nothing. The batch stops at the first
-     * step that fails and rolls back what the providers' batch hooks can undo.
+     * Runs steps, [{ name, input, def? }], as one batch. Every step is checked
+     * before any runs, so a typo runs nothing. A step runs only while its name
+     * still maps to the definition that was checked: `def` when the step gives
+     * one (the definition a client asked about), else the one found here.
+     * The batch stops at the first step that fails and rolls back what the
+     * providers' batch hooks can undo.
      * Resolves to { code, results, completed, total, message?, rolledBack?, kept? }.
      */
     async batch(steps, { caller = "code", signal } = {}) {
       const total = steps.length;
       const refuse = (code, message) => ({ code, message, results: [], completed: 0, total });
-      for (const [i, { name, input }] of steps.entries()) {
+      const defs = [];
+      for (const [i, { name, input, def: expected }] of steps.entries()) {
         const def = commands.get(name);
+        if (expected !== undefined && def !== expected) return refuse(EXIT.CANCELLED, `step ${i + 1}: ${name} changed after it was approved. Nothing ran.`);
         if (!def) return refuse(EXIT.NOT_FOUND, `step ${i + 1}: ${name}: command not found. Nothing ran.`);
         const { errors } = checkInput(def.input, input, formats);
         if (errors.length) return refuse(EXIT.USAGE, `step ${i + 1}: ${name}: ${errors.join("; ")}. Nothing ran.`);
+        defs.push(def);
       }
       const b = registry.startBatch({ caller, signal });
       const results = [];
       for (const [i, { name, input }] of steps.entries()) {
-        const result = await b.run(name, input);
+        const result = await b.run(name, input, { expect: defs[i] });
         results.push(result);
         if (result.code !== EXIT.OK) {
           const { rolledBack, kept } = await b.rollback();

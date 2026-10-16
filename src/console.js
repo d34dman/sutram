@@ -711,7 +711,7 @@ export class SutramConsole extends Base {
         if (!answer) { this.print(this.messages.cancelled, "dim"); return EXIT.CANCELLED; }
         if (answer === "always") policy.relax("person");
       }
-      const result = await this.registry.run(def.name, input, { caller: "console" });
+      const result = await this.registry.run(def.name, input, { caller: "console", expect: def });
       this.printResult(result, parsed);
       return result.code;
     } catch (err) {
@@ -774,7 +774,7 @@ export class SutramConsole extends Base {
       else {
         this.remember(step.line);
         this.echo(step.line);
-        const result = await batch.run(step.def.name, step.input);
+        const result = await batch.run(step.def.name, step.input, { expect: step.def });
         this.printResult(result, step);
         code = result.code;
       }

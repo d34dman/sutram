@@ -143,8 +143,20 @@ export interface BatchEnd {
   kept: string[];
 }
 
+/** `expect`: the definition the caller checked or asked about. When the name maps to another by the time it runs, nothing runs (130). */
+export interface RunOptions {
+  caller?: Caller;
+  signal?: AbortSignal;
+  expect?: CommandDefinition;
+}
+
+/** A started batch. Always finish it with commit() or rollback(): the next batch waits until you do. */
 export interface Batch {
-  run(name: string, input?: Record<string, unknown>): Promise<Result>;
+  run(
+    name: string,
+    input?: Record<string, unknown>,
+    options?: { expect?: CommandDefinition },
+  ): Promise<Result>;
   commit(): Promise<BatchEnd>;
   rollback(): Promise<BatchEnd>;
 }
@@ -181,15 +193,21 @@ export interface Registry {
   onChange(fn: (event: ChangeEvent) => void): () => void;
   onRun(fn: (event: RunEvent) => void): () => void;
   onResult(fn: (event: ResultEvent) => void): () => void;
+  /** A console or agent run of a provider a batch is changing waits until the batch is done. */
   run(
     name: string,
     input?: Record<string, unknown>,
-    options?: { caller?: Caller; signal?: AbortSignal },
+    options?: RunOptions,
   ): Promise<Result>;
   defineBatch(provider: string, hooks: BatchHooks): () => void;
   startBatch(options?: { caller?: Caller; signal?: AbortSignal }): Batch;
+  /** One batch runs at a time; the next waits. A step with `def` runs only while its name still maps to that definition. */
   batch(
-    steps: Array<{ name: string; input?: Record<string, unknown> }>,
+    steps: Array<{
+      name: string;
+      input?: Record<string, unknown>;
+      def?: CommandDefinition;
+    }>,
     options?: { caller?: Caller; signal?: AbortSignal },
   ): Promise<BatchResult>;
 }

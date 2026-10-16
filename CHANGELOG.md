@@ -31,6 +31,15 @@ breaking changes bump the minor version.
 - **Only a `CommandError` sets the exit code**, and never to 0. Anything
   else thrown is exit 1. Before, any integer `err.code` was used, so a
   `DOMException` (legacy `code` 0) counted as success and a batch committed.
+- **What was approved is what runs.** A batch runs the definitions it
+  checked; a step whose command was replaced by an earlier step does not run
+  (130), and the batch rolls back. WebMCP and the console pass the definition
+  they asked the user about (`run(name, input, { expect })`, `def` on a batch
+  step), so a command swapped in during the question does not run.
+- **Batches take turns.** A second batch waits for the first to commit or
+  roll back, and console and agent runs of a provider in a running batch
+  wait too. Before, two batches at once could interleave their hooks and lose
+  edits. Always finish a `startBatch()` batch.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

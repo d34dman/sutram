@@ -153,3 +153,34 @@ test("sutram_batch runs calls as one batch, asks once, and checks everything fir
   assert.equal(consequential.code, EXIT.CANCELLED);
   assert.match(consequential.message, /contains consequential commands.*doc add a\ndoc clear/s);
 });
+
+test("a command replaced while the user is asked does not run", async () => {
+  const r = createRegistry();
+  const mc = fakeModelContext();
+  connectWebMCP(r, mc);
+  const ran = [];
+  const clear = (label) => ({
+    name: "doc clear", provider: "doc", description: "Clear", annotations: { consequential: true },
+    run: () => { ran.push(label); return {}; },
+  });
+  let off = r.register(clear("approved"));
+  r.policy.setAsker(() => { off(); off = r.register(clear("replacement")); return true; });
+  const res = await mc.tools.get("doc_clear").execute({}, {});
+  assert.equal(res.code, EXIT.CANCELLED);
+  assert.match(res.message, /changed after it was checked/);
+  assert.deepEqual(ran, []);
+});
+
+test("sutram_batch runs the definitions it approved, not ones a step swapped in", async () => {
+  const r = createRegistry();
+  const ran = [];
+  const apply = (consequential) => ({
+    name: "doc apply", provider: "doc", description: "Apply", annotations: consequential ? { consequential } : {},
+    run: () => { ran.push(consequential ? "consequential" : "plain"); return {}; },
+  });
+  let off = r.register(apply(false));
+  r.register({ name: "doc swap", provider: "doc", description: "Swap", annotations: {}, run: () => { off(); off = r.register(apply(true)); return {}; } });
+  const res = await callTool("sutram_batch", { calls: [{ tool: "doc_swap" }, { tool: "doc_apply" }] }, { registry: r });
+  assert.equal(res.code, EXIT.CANCELLED);
+  assert.deepEqual(ran, []);
+});

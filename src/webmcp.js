@@ -127,7 +127,8 @@ async function runForAgent(registry, def, input, options) {
     const refusal = await approve(registry, [{ def, input }], options);
     if (refusal) return refusal;
   }
-  return registry.run(def.name, input, { caller: options.caller, signal: options.signal });
+  // expect: the definition the user was asked about, not whatever has the name by now.
+  return registry.run(def.name, input, { caller: options.caller, signal: options.signal, expect: def });
 }
 
 /** Runs sutram_batch: every call is found and checked, then approved once, then run as one batch. */
@@ -145,7 +146,7 @@ async function runBatchTool(registry, input, options) {
   }
   const refusal = await approve(registry, steps, options);
   if (refusal) return refusal;
-  return registry.batch(steps.map((s) => ({ name: s.def.name, input: s.input })), { caller: options.caller, signal: options.signal });
+  return registry.batch(steps.map((s) => ({ name: s.def.name, input: s.input, def: s.def })), { caller: options.caller, signal: options.signal });
 }
 
 /** sutram_status: what every provider reports, in the same result shape as any call. */

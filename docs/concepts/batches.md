@@ -50,6 +50,23 @@ await b.run("cart add", { sku: "FILTER-02" });
 await b.commit();   // or b.rollback()
 ```
 
+Always finish a started batch with `commit()` or `rollback()`: batches run
+one at a time, and the next one waits until you do.
+
+## One at a time, and what was checked
+
+- **Batches take turns.** A second batch waits until the first has committed
+  or rolled back. A person's or an agent's command for a provider the running
+  batch is changing waits too, so a rollback cannot undo their edit. App code
+  calling `registry.run()` does not wait: it may be running inside one of the
+  batch's own commands.
+- **Each step runs the command that was checked.** If an earlier step
+  replaces a later step's command (a command that comes and goes with page
+  state), that step does not run (exit 130), and the batch rolls back.
+  Clients pass the definition they asked the user about, so a command
+  swapped in while the user was deciding does not run either:
+  `registry.run(name, input, { expect: def })`, or `def` on a batch step.
+
 ## For agents
 
 Through WebMCP, agents get a `sutram_batch` tool:
