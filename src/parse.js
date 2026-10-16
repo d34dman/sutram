@@ -279,33 +279,45 @@ export function splitLines(text) {
   text = String(text);
   const lines = [];
   let cur = "";
+  let wordStart = 0; // where the current word starts in cur
+  let blank = true; // cur holds only whitespace so far
   let quote = null;
   let comment = false;
+  // Appends to cur and keeps wordStart and blank up to date, in time linear in what is added.
+  const add = (str) => {
+    for (let j = 0; j < str.length; j++) {
+      if (/\s/.test(str[j])) wordStart = cur.length + j + 1;
+      else blank = false;
+    }
+    cur += str;
+  };
+  const endLine = () => { lines.push(cur); cur = ""; wordStart = 0; blank = true; };
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (ch === "\r" && text[i + 1] === "\n") continue;
     if (comment) {
-      if (ch === "\n") { lines.push(cur); cur = ""; comment = false; } else cur += ch;
+      if (ch === "\n") { endLine(); comment = false; } else add(ch);
       continue;
     }
     const joined = quote !== "'" && continuation(text, i);
-    if (joined) { cur += "\\\n"; i += joined - 1; continue; }
+    if (joined) { add("\\\n"); i += joined - 1; continue; }
     if (quote) {
-      if (ch === "\\" && quote === '"' && i + 1 < text.length) { cur += ch + text[++i]; continue; }
+      if (ch === "\\" && quote === '"' && i + 1 < text.length) { add(ch + text[++i]); continue; }
       if (ch === quote) quote = null;
-      cur += ch;
+      add(ch);
       continue;
     }
     if (ch === "<") {
-      const word = /(?:^|\s)(\S*)$/.exec(cur)[1];
-      const hd = heredocMayOpen(word) ? heredocAt(text, i) : null;
-      if (hd) { cur += text.slice(i, hd.end).replace(/\r\n/g, "\n"); i = hd.end - 1; continue; }
+      // A heredoc opens at the start of a word or after --key=, so most < need no look back.
+      const mayOpen = wordStart === cur.length || (cur.endsWith("=") && heredocMayOpen(cur.slice(wordStart)));
+      const hd = mayOpen ? heredocAt(text, i) : null;
+      if (hd) { add(text.slice(i, hd.end).replace(/\r\n/g, "\n")); i = hd.end - 1; continue; }
     }
-    if (ch === "#" && !cur.trim()) comment = true;
-    else if (ch === "\\" && i + 1 < text.length && text[i + 1] !== "\n") { cur += ch + text[++i]; continue; }
+    if (ch === "#" && blank) comment = true;
+    else if (ch === "\\" && i + 1 < text.length && text[i + 1] !== "\n") { add(ch + text[++i]); continue; }
     else if (ch === '"' || ch === "'") quote = ch;
-    else if (ch === "\n") { lines.push(cur); cur = ""; continue; }
-    cur += ch;
+    else if (ch === "\n") { endLine(); continue; }
+    add(ch);
   }
   lines.push(cur);
   return lines;

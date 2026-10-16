@@ -89,6 +89,8 @@ breaking changes bump the minor version.
   `--from=x`, the next word completes `to`. `--no-key` counts as given.
 - `--json=fields` on an empty list prints `[]`. Before, it printed an error
   after the command had run.
+- Pasting is linear in the length of the text: a long HTML paste took
+  seconds before.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

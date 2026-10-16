@@ -197,3 +197,14 @@ test("quote and boolean mistakes say how to fix them", () => {
   assert.throws(() => parse(r, "note set t --on false"), /--on takes no value. Write --on or --no-on, or --on=false/);
   assert.deepEqual(parse(r, "note set t --on=false").input, { field: "t", on: "false" });
 });
+
+test("splitLines is linear on a long paste", () => {
+  const html = "<p>" + "word <b>bold</b> # not a comment ".repeat(4000) + "</p>";
+  const text = `doc set --value=${JSON.stringify(html)}\n# a comment\ndoc set --value <<END\n${html}\nEND\n${"x<".repeat(30000)}`;
+  const started = performance.now();
+  const lines = splitLines(text);
+  assert.ok(performance.now() - started < 200, `took ${Math.round(performance.now() - started)} ms`);
+  assert.equal(lines.length, 4);
+  assert.equal(lines[1], "# a comment");
+  assert.match(lines[2], /<<END\n<p>word/);
+});
