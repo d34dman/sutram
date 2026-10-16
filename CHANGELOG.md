@@ -59,6 +59,9 @@ breaking changes bump the minor version.
 - `sutram_batch` refuses a call that is not `{ tool, input }`, or an
   `input` that is not an object. Before, `input: "item=a"` ran with no
   arguments.
+- Command names cannot start with `sutram`, so no command can shadow
+  `sutram_status` or `sutram_batch`. `sutram_status` follows the policy
+  like every tool.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

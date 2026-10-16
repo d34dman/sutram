@@ -254,3 +254,17 @@ test("sutram_batch refuses a call or input that is not an object", async () => {
   assert.deepEqual(log, []);
   assert.equal((await callTool("sutram_batch", { calls: [{ tool: "doc_clear", input: null }] }, { registry: r, confirmed: true })).code, 0);
 });
+
+test("sutram is reserved for Sutram's own tools, and sutram_status follows the policy", async () => {
+  const r = createRegistry();
+  assert.throws(() => r.register({ name: "sutram batch", provider: "x", description: "d", annotations: {}, run: () => ({}) }), /starts with "sutram"/);
+  r.register({
+    name: "bank status", provider: "bank", description: "Balance", annotations: { readOnly: true, consequential: true },
+    run: () => ({ text: "€12" }),
+  });
+  const refused = await callTool("sutram_status", {}, { registry: r });
+  assert.equal(refused.code, EXIT.CANCELLED);
+  assert.match(refused.message, /^sutram_status is consequential/);
+  const ok = await callTool("sutram_status", {}, { registry: r, confirmed: true });
+  assert.deepEqual(ok, { code: 0, data: { providers: [{ provider: "bank", code: 0, text: "€12" }] } });
+});

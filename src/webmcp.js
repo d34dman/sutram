@@ -8,7 +8,7 @@
 // WebMCP decides which origins see the tools, not whether a call may change
 // the user's page, so calls go through the page's policy (policy.js) first.
 
-import { EXIT, checkInput, getRegistry, runStatus } from "./core.js";
+import { EXIT, checkInput, getRegistry, isStatusCommand, runStatus } from "./core.js";
 import { commandLine, describeShape, formatsUsed, sentence } from "./format.js";
 import { getFormats } from "./formats.js";
 import { suggest } from "./parse.js";
@@ -103,11 +103,10 @@ function question(steps) {
  * browser's confirm() when there is none; Sutram.call() cannot ask, so it
  * tells its caller to ask and call again with { confirmed: true }.
  */
-async function approve(registry, steps, { confirmed = false, interactive = false, caller = "agent" } = {}) {
+async function approve(registry, steps, { confirmed = false, interactive = false, caller = "agent" } = {}, label = steps.length === 1 ? toolName(steps[0].def) : BATCH_TOOL.name) {
   const policy = registry.policy;
   const needing = steps.filter((s) => policy.needs(s.def, "agent"));
   if (!needing.length || confirmed) return null;
-  const label = steps.length === 1 ? toolName(steps[0].def) : BATCH_TOOL.name;
   if (interactive) {
     let yes;
     if (policy.hasAsker()) yes = await policy.ask({ who: "agent", caller, steps });
@@ -156,8 +155,17 @@ async function runBatchTool(registry, input, options) {
   return registry.batch(steps.map((s) => ({ name: s.def.name, input: s.input, def: s.def })), { caller: options.caller, signal: options.signal });
 }
 
-/** sutram_status: what every provider reports, in the same result shape as any call. */
-const status = async (registry, caller, signal) => ({ code: EXIT.OK, data: { providers: await runStatus(registry, { caller, signal }) } });
+/**
+ * sutram_status: what every provider reports, in the same result shape as any
+ * call. It goes through the policy like every tool: status commands are
+ * read-only, but a page's policy may still ask about them.
+ */
+async function status(registry, options) {
+  const steps = registry.list().filter(isStatusCommand).map((def) => ({ def, input: {} }));
+  const refusal = await approve(registry, steps, options, STATUS_TOOL.name);
+  if (refusal) return refusal;
+  return { code: EXIT.OK, data: { providers: await runStatus(registry, { caller: options.caller, signal: options.signal }) } };
+}
 
 /**
  * Calls a tool by its WebMCP name (cart_add) or its command name (cart add), the way an agent's host would. For code
@@ -177,7 +185,7 @@ const status = async (registry, caller, signal) => ({ code: EXIT.OK, data: { pro
  */
 export async function callTool(name, input = {}, { registry = getRegistry(), confirmed = false, caller = "agent", signal } = {}) {
   const options = { confirmed, caller, signal, interactive: false };
-  if (name === STATUS_TOOL.name) return status(registry, caller, signal);
+  if (name === STATUS_TOOL.name) return status(registry, options);
   if (name === BATCH_TOOL.name) return runBatchTool(registry, input, options);
   const def = findTool(registry, name);
   if (!def) return { code: EXIT.NOT_FOUND, message: `${noSuchTool(registry, name)} Call tools() for the list.` };
@@ -207,7 +215,7 @@ export function connectWebMCP(registry = getRegistry(), modelContext = findModel
 
   // An agent's JSON arrives typed: "off" stays a string, which is not a boolean.
   const options = (signal) => ({ caller: "agent", signal, interactive: true, strict: true });
-  add("\0status", STATUS_TOOL, (_, { signal } = {}) => status(registry, "agent", signal));
+  add("\0status", STATUS_TOOL, (_, { signal } = {}) => status(registry, options(signal)));
   add("\0batch", BATCH_TOOL, (input, { signal } = {}) => runBatchTool(registry, input, options(signal)));
   // The definition is looked up at call time: it may have been replaced since.
   const addCommand = (def) => add(def.name, toTool(def, registry.formats), (input, { signal } = {}) => runForAgent(registry, registry.get(def.name) || def, input || {}, options(signal)));

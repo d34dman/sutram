@@ -103,7 +103,8 @@ A command cannot declare inputs named `help`, `json` or `wide`.
 | `status` | Run every `<provider> status` |
 | `clear` | Clear the console |
 
-Command names cannot start with these words.
+Command names cannot start with these words, or with `sutram`, which
+Sutram's own WebMCP tools (`sutram_status`, `sutram_batch`) use.
 
 ## Exit codes
 

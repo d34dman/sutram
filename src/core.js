@@ -223,6 +223,8 @@ function checkDefinition(def) {
   if (def.suggest !== undefined && typeof def.suggest !== "function") throw new TypeError(`register: "${def.name}" has a suggest that is not a function`);
   if (!NAME.test(def.name)) throw new TypeError(`register: "${def.name}" is not a valid name; use lowercase words separated by single spaces`);
   if (RESERVED_WORDS.includes(def.name.split(" ")[0])) throw new TypeError(`register: "${def.name}" starts with a word reserved for clients`);
+  // sutram_status and sutram_batch are Sutram's own tools; a command must not shadow them.
+  if (def.name.split(" ")[0] === "sutram") throw new TypeError(`register: "${def.name}" starts with "sutram", which Sutram's own tools use`);
   const props = def.input.properties || {};
   for (const key of CLIENT_OPTIONS) {
     if (own(props, key)) throw new TypeError(`register: "${def.name}" cannot declare --${key}; clients own it`);
