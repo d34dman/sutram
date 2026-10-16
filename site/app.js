@@ -216,7 +216,7 @@ registry.onResult(({ name, input, caller, result }) => {
 let known = new Set();
 function renderTools() {
   const tools = Sutram.tools();
-  document.getElementById("tool-count").textContent = `${tools.length} tools · Sutram.tools()`;
+  document.getElementById("tool-count").textContent = `${tools.length} tools`;
   document.getElementById("tools").replaceChildren(...tools.map((t) => {
     const hints = t.annotations || {};
     return el("li", { className: known.size && !known.has(t.name) ? "new" : "" },

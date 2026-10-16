@@ -55,15 +55,17 @@
   .row.res { background: #ffffff06; }
   .who { font: 600 11.5px var(--sans); text-transform: uppercase; letter-spacing: .06em; border-radius: 6px; padding: 3px 0; text-align: center; background: #9aa2ff22; color: var(--accent); }
   .who.js { background: #7dcfff1f; color: var(--option); }
-  .who.con { background: #c3e88d1a; color: var(--string); }
   .who.dimw { background: transparent; color: var(--muted); }
+  .who.con { background: #6fd69a1f; color: var(--ok); }
+  .yn { border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 1px 9px; margin-left: 6px; font-family: var(--sans); }
+  .bar.foot { border-bottom: 0; border-top: 1px solid var(--line); }
 </style>
 </head>
 <body>
   <div>
     <div class="brand"><img src="../site/logo.svg" alt="">sutram</div>
-    <h1>Let agents use your web app through <em>commands</em>.</h1>
-    <p>Register commands once. <b>Agents</b> call them through WebMCP, from JavaScript, or in the console.</p>
+    <h1>Make your web app ready for <em>AI agents</em>.</h1>
+    <p>A few lines of JavaScript per action. <b>Browser agents, ChatGPT, Claude</b> and WebMCP browsers can use it.</p>
     <div class="meta">
       <span class="pill"><span>$</span> npm i @d34dman/sutram</span>
       <span class="pill">d34dman.github.io/sutram</span>
@@ -71,15 +73,15 @@
   </div>
 
   <div class="term">
-    <div class="bar"><span><b>cart add</b> · one command, every way in</span><span>exit 0</span></div>
+    <div class="bar"><span><b>An agent shopping on Brew &amp; Co.</b></span><span>WebMCP</span></div>
     <div class="body">
-      <div class="row"><span class="who">WebMCP</span><span class="code">cart_add({ <span class="o">"sku"</span>: <span class="s">"V60-02"</span>, <span class="o">"qty"</span>: 2 })</span></div>
-      <div class="row"><span class="who js">Script</span><span class="code">Sutram.call(<span class="s">"cart_add"</span>, { sku: <span class="s">"V60-02"</span>, qty: 2 })</span></div>
-      <div class="row"><span class="who con">Console</span><span class="code"><span class="p">›</span> <span class="c">cart add</span> V60-02 <span class="o">--qty=</span><span class="s">2</span></span></div>
-      <div class="row res"><span class="who dimw">Result</span><span class="code"><span class="ok">{ code: 0, data: { count: 2, total: 48 } }</span></span></div>
-      <div class="row"><span class="who js">Script</span><span class="code">Sutram.call(<span class="s">"checkout"</span>)</span></div>
-      <div class="row res"><span class="who dimw">Result</span><span class="code"><span style="color: var(--warn)">code 130: ask the user first</span></span></div>
+      <div class="row"><span class="who">Agent</span><span class="code">sutram_status()<br><span class="dim">→ The cart is empty.</span></span></div>
+      <div class="row"><span class="who">Agent</span><span class="code">cart_add({ <span class="o">"sku"</span>: <span class="s">"V60-02"</span>, <span class="o">"qty"</span>: 2 })<br><span class="ok">→ Added 2 × V60 dripper, size 02.</span></span></div>
+      <div class="row"><span class="who">Agent</span><span class="code">checkout()<br><span style="color: var(--warn)">→ Asks the person first</span></span></div>
+      <div class="row res"><span class="who dimw">Page</span><span class="code">Place an order for 2 items, €48.00? <span class="yn">Yes</span></span></div>
+      <div class="row"><span class="who con">You</span><span class="code">Yes<br><span class="ok">→ Order placed.</span></span></div>
     </div>
+    <div class="bar foot">No screenshots. No guessing which button to click.</div>
   </div>
 </body>
 </html>

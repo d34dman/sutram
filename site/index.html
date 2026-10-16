@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sutram: let AI agents use your web app through commands</title>
-<meta name="description" content="A standard way for web apps to expose their commands to AI agents: as WebMCP tools, through JavaScript in headless browsers, or typed into a terminal-like console. Register once, with help, schemas and safety prompts built in.">
+<title>Sutram: make your web app ready for AI agents</title>
+<meta name="description" content="Make your web app usable by AI agents. Describe what it can do in a few lines of JavaScript: browser agents, ChatGPT and Claude use it today, and WebMCP browsers get native tools. Open source, no dependencies.">
 <meta name="theme-color" content="#fafaf8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0d14" media="(prefers-color-scheme: dark)">
-<meta property="og:title" content="Sutram: let AI agents use your web app through commands">
-<meta property="og:description" content="Register your app's commands once. Agents call them through WebMCP, from a headless browser, or by typing into the console.">
+<meta property="og:title" content="Sutram: make your web app ready for AI agents">
+<meta property="og:description" content="Describe what your web app can do in a few lines of JavaScript. Browser agents, ChatGPT, Claude and WebMCP browsers can then use it, in the user's own session.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://d34dman.github.io/sutram/">
 <meta property="og:image" content="https://d34dman.github.io/sutram/social-preview.png">
 <meta property="og:image:width" content="1280">
 <meta property="og:image:height" content="640">
-<meta property="og:image:alt" content="Sutram: let agents use your web app through commands, not clicks. The same cart_add command, called through WebMCP, from JavaScript, and typed into the console.">
+<meta property="og:image:alt" content="Sutram: make your web app ready for AI agents. An agent checks a shop page, adds two drippers to the cart, and asks the person before it checks out.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="./logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -92,13 +92,14 @@ h1 em { font-style: normal; color: var(--accent); }
 .copy:hover { background: #ffffff1c; }
 .hint { margin: 20px 0 0; font-size: 14px; color: var(--muted); }
 
-/* Hero shot: the console and an agent, running the same command */
+/* Hero shot: the code you write, and what agents and people get */
 .shot { position: relative; min-width: 0; }
 .window { background: var(--term); border: 1px solid var(--term-line); border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow: hidden; color: var(--term-ink); }
 .window .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--term-line); font: 12.5px var(--mono); color: var(--term-dim); }
 .window .bar b { color: var(--term-ink); font-weight: 600; }
 .window .bar .k { border: 1px solid var(--term-line); border-radius: 5px; padding: 0 6px; }
-.window .body { font-variant-ligatures: none; padding: 16px 18px 20px; font: 13.5px/1.75 var(--mono); overflow-x: auto; white-space: pre; }
+.window .body { padding: 16px 18px 20px; font: 13.5px/1.75 var(--mono); font-variant-ligatures: none; overflow-x: auto; white-space: pre; }
+.window .body.src { font-size: 12.5px; line-height: 1.7; }
 .t-p { color: var(--term-accent); } .t-c { color: var(--term-accent); } .t-o { color: var(--term-option); } .t-s { color: var(--term-string); } .t-d { color: var(--term-dim); } .t-ok { color: var(--term-ok); } .t-w { color: var(--term-warn); }
 .caret { display: inline-block; width: .6em; height: 1.1em; vertical-align: -2px; background: var(--term-accent); animation: blink 1.1s steps(1) infinite; }
 .yn { border: 1px solid var(--term-line); border-radius: 5px; padding: 1px 8px; color: var(--term-ink); }
@@ -111,19 +112,14 @@ h1 em { font-style: normal; color: var(--accent); }
 .lbl { font: 600 10.5px var(--sans); text-transform: uppercase; letter-spacing: .06em; border-radius: 5px; padding: 2px 0; text-align: center; background: #a3aaff1f; color: var(--term-accent); }
 .lbl.js { background: #7dcfff1f; color: var(--term-option); }
 .lbl.con { background: #c3e88d1a; color: var(--term-string); }
-.lbl.res { background: transparent; color: var(--term-dim); }
-.wrow.result { background: var(--term-2); }
 .window .bar .k { white-space: nowrap; }
+.window .bar.mid { border-top: 1px solid var(--term-line); }
 @media (max-width: 600px) {
   .window .bar .sub { display: none; }
   .wrow { grid-template-columns: 1fr; gap: 6px; }
   .lbl { justify-self: start; padding: 2px 8px; }
   .wrow code { white-space: pre-wrap; overflow-wrap: anywhere; }
 }
-.agent-card { position: relative; margin: -14px -14px 0 auto; width: min(360px, 86%); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 12px 14px; font: 12.5px/1.6 var(--mono); }
-.agent-card .head { display: flex; align-items: center; gap: 8px; font: 600 12px var(--sans); color: var(--muted); margin-bottom: 6px; }
-.agent-card .k { color: var(--accent); } .agent-card .s { color: var(--ok); } .agent-card .d { color: var(--muted); }
-@media (max-width: 960px) { .agent-card { margin-right: 12px; } }
 @media (prefers-reduced-motion: reduce) { .caret { animation: none; } html { scroll-behavior: auto; } .btn:hover { transform: none; } }
 
 /* Sections */
@@ -135,21 +131,10 @@ h3 { letter-spacing: -0.015em; }
 .sub { color: var(--muted); font-size: 17.5px; max-width: 42rem; margin: 0 0 36px; text-wrap: pretty; }
 @media (max-width: 600px) { section { padding: 64px 0; } }
 
-/* Four ways in */
-.ways-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 860px) { .ways-grid { grid-template-columns: 1fr; } }
-.way { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.way header { display: flex; align-items: center; gap: 12px; }
-.way .num { font: 600 12px var(--mono); color: var(--muted); margin-left: auto; }
-.way .ico { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line); flex: none; }
-.way h3 { margin: 0; font-size: 17px; font-weight: 620; }
-.way .for { margin: 0; font: 12.5px var(--mono); color: var(--muted); }
-.way p { margin: 0; color: var(--muted); font-size: 15px; }
-.way pre.code { margin-top: auto; font-size: 12.5px; padding: 12px 14px; border-radius: 10px; }
 
 /* Demo */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
-.chip { font: 13.5px var(--mono); border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); border-radius: 8px; padding: 6px 11px; cursor: pointer; transition: border-color .12s, color .12s; }
+.chip { min-height: 36px; font: 13.5px var(--mono); border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); border-radius: 8px; padding: 6px 11px; cursor: pointer; transition: border-color .12s, color .12s; }
 .chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .chip .p { color: var(--accent); margin-right: 7px; }
 .demo { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; }
@@ -171,6 +156,7 @@ h3 { letter-spacing: -0.015em; }
 .cart li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; color: var(--ink-2); }
 .cart .total { display: flex; justify-content: space-between; font-weight: 640; border-top: 1px dashed var(--line-2); padding-top: 8px; }
 .cart .empty, .note { color: var(--muted); font-size: 14px; }
+.assist .note { font-size: 15px; margin: 0; }
 .order { margin-top: 8px; color: var(--ok); font-weight: 600; font-size: 14px; }
 .side { display: grid; gap: 20px; align-content: start; }
 .log { list-style: none; margin: 0; padding: 8px 0; max-height: 236px; overflow: auto; font: 12.5px/1.5 var(--mono); }
@@ -206,19 +192,10 @@ h3 { letter-spacing: -0.015em; }
 .assist-actions .btn { font-size: 14.5px; padding: 8px 14px; }
 .assist details summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 .assist details pre { margin-top: 10px; max-height: 320px; white-space: pre-wrap; font-size: 12.5px; }
-.assist-steps { list-style: none; margin: 0; padding: 0; color: var(--muted); font-size: 15px; display: grid; gap: 14px; counter-reset: a; }
-.assist-steps li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; }
-.assist-steps li::before { counter-increment: a; content: counter(a); width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line-2); display: grid; place-items: center; font: 600 12px var(--mono); color: var(--ink-2); margin-top: 1px; }
-.assist-steps b { color: var(--ink); font-weight: 600; }
 
-/* Two shapes */
-.shapes { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: stretch; }
-@media (max-width: 900px) { .shapes { grid-template-columns: 1fr; } }
+pre.code, .window .body { color-scheme: dark; }
 pre.code { margin: 0; background: var(--term); color: var(--term-ink); border: 1px solid var(--term-line); border-radius: var(--radius); padding: 18px 20px; overflow: auto; font-size: 13px; line-height: 1.7; }
-.code .c { color: var(--term-dim); } .code .k { color: var(--term-accent); } .code .s { color: var(--term-string); } .code .o { color: var(--term-option); }
-.who-gets { display: grid; gap: 16px; align-content: start; }
-.who-gets .label { display: flex; align-items: center; gap: 8px; font: 600 12.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
-.arrow { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; padding: 4px 2px; }
+.code .e { color: var(--term-warn); } .code .c { color: var(--term-dim); } .code .k { color: var(--term-accent); } .code .s { color: var(--term-string); } .code .o { color: var(--term-option); }
 
 /* Features */
 .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
@@ -230,24 +207,104 @@ pre.code { margin: 0; background: var(--term); color: var(--term-ink); border: 1
 .feature p { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
 .feature .meta { font: 12px var(--mono); color: var(--muted); }
 
-/* Start */
-.steps { display: grid; gap: 28px; counter-reset: step; max-width: 860px; }
-.step { display: grid; grid-template-columns: 40px 1fr; gap: 18px; position: relative; }
-.step::before { counter-increment: step; content: counter(step); width: 32px; height: 32px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line-2); color: var(--ink); font: 600 14px var(--mono); display: grid; place-items: center; box-shadow: var(--shadow); }
-.step:not(:last-child)::after { content: ""; position: absolute; left: 16px; top: 40px; bottom: -24px; width: 1px; background: var(--line-2); }
-.step h3 { margin: 3px 0 6px; font-size: 18px; font-weight: 620; }
-.step p { margin: 0 0 12px; color: var(--muted); }
 .codebox { position: relative; }
 /* Let wide code scroll inside its box instead of widening the page. */
-.demo > *, .shapes > *, .who-gets > *, .step > *, .codebox, .hero .wrap > * { min-width: 0; }
+.demo > *, .compare > *, .how > *, .cta-band .wrap > *, .faq-wrap > *, .codebox, .hero .wrap > * { min-width: 0; }
 .codebox .copy { position: absolute; top: 10px; right: 10px; }
 
-.callout { display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); }
-.callout .ico { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent); }
-.callout .ico svg { width: 24px; height: 24px; }
-.callout h3 { margin: 0; font-size: 19px; font-weight: 620; }
-.callout p { margin: 4px 0 0; color: var(--muted); max-width: 46rem; }
-@media (max-width: 760px) { .callout { grid-template-columns: 1fr; } }
+
+/* Header call to action */
+.btn.sm { font-size: 14px; padding: 7px 13px; border-radius: 9px; box-shadow: none; }
+nav.links a.btn.primary { color: var(--accent-ink); margin-left: 6px; }
+nav.links a.btn.primary:hover { color: var(--accent-ink); background: color-mix(in srgb, var(--accent) 90%, var(--ink)); }
+
+/* Hero: trust line and the agent session */
+.trust { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 28px 0 0; padding: 0; font-size: 14px; color: var(--muted); }
+.trust li { display: inline-flex; align-items: center; gap: 7px; }
+.trust li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+.trust a { color: inherit; }
+figure.shot { margin: 0; }
+.steps-live { list-style: none; margin: 0; padding: 10px 0; font: 13px/1.5 var(--mono); }
+.steps-live li { display: grid; grid-template-columns: 52px 1fr; gap: 4px 12px; padding: 9px 18px; animation: rise .5s ease-out both; animation-delay: var(--d); }
+.steps-live code { color: var(--term-ink); overflow-wrap: anywhere; background: none; border: 0; padding: 0; white-space: normal; font-size: inherit; }
+.steps-live .out { grid-column: 2; color: var(--term-dim); }
+.steps-live .out::before { content: "→ "; }
+.steps-live .out.ok { color: var(--term-ok); }
+.steps-live .out.warn { color: var(--term-warn); }
+.who-l { font: 600 10.5px/1.9 var(--sans); text-transform: uppercase; letter-spacing: .06em; text-align: center; border-radius: 5px; align-self: start; background: #a3aaff1f; color: var(--term-accent); }
+.who-l.you { background: #6fd69a1f; color: var(--term-ok); }
+.steps-live li.ask { display: block; padding: 4px 18px 10px 82px; }
+.dialog { background: var(--term-2); border: 1px solid var(--term-line); border-radius: 10px; padding: 12px 14px; font-family: var(--sans); }
+.dialog p { margin: 0 0 10px; font-size: 14px; color: var(--term-ink); }
+.window .bar.foot { border-bottom: 0; border-top: 1px solid var(--term-line); font-family: var(--sans); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .steps-live li { animation: none; } }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 600px) { .steps-live li { grid-template-columns: 1fr; } .steps-live .out { grid-column: 1; } .who-l { justify-self: start; padding: 0 8px; } .steps-live li.ask { padding-left: 18px; } }
+
+/* Proof strip */
+section.proof { padding: 0 0 24px; }
+section#problem { padding-top: 72px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+.stat { padding: 24px 26px; display: grid; gap: 4px; }
+.stat + .stat { border-left: 1px solid var(--line); }
+.stat b { font-size: clamp(28px, 3vw, 36px); font-weight: 650; letter-spacing: -0.04em; line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 15px; }
+.stats-note { margin: 14px 0 0; font-size: 14px; color: var(--muted); }
+@media (max-width: 760px) { .stats { grid-template-columns: 1fr; } .stat + .stat { border-left: 0; border-top: 1px solid var(--line); } }
+
+/* Problem: without and with */
+.compare { display: grid; grid-template-columns: 1fr 1.25fr; gap: 20px; }
+@media (max-width: 900px) { .compare { grid-template-columns: 1fr; } }
+.side-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; background: var(--surface); box-shadow: var(--shadow); }
+.side-card h3 { margin: 0 0 16px; font-size: 16px; font-weight: 620; display: flex; align-items: center; gap: 8px; }
+.side-card h3::before { content: ""; width: 8px; height: 8px; border-radius: 50%; }
+.side-card.without h3::before { background: var(--err); }
+.side-card.with h3::before { background: var(--ok); }
+.side-card.with { border-color: var(--accent-line); }
+.side-card .note { margin: 14px 0 0; }
+.pains { margin: 0; padding: 0; list-style: none; counter-reset: pain; display: grid; gap: 12px; color: var(--ink-2); }
+.pains li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; }
+.pains li::before { counter-increment: pain; content: counter(pain); width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--mono); color: var(--err); background: color-mix(in srgb, var(--err) 10%, transparent); }
+
+/* How it works */
+.how-side { display: grid; gap: 20px; }
+.gen { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 20px 22px; box-shadow: var(--shadow); }
+.gen .label { margin: 0 0 12px; font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.gen ul { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 9px; color: var(--ink-2); font-size: 15px; }
+.gen li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; }
+.gen li::before { content: ""; width: 16px; height: 16px; margin-top: 4px; border-radius: 50%; background: color-mix(in srgb, var(--ok) 14%, transparent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4.5 8.2 2.3 2.3 4.7-4.9' fill='none' stroke='%231a7f4b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat; }
+.gen .btn { font-size: 14.5px; padding: 8px 14px; }
+.how { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .how { grid-template-columns: 1fr; } }
+.lbl.chat { background: #f5a35c1f; color: var(--term-warn); }
+
+/* FAQ */
+.faq-wrap { display: grid; grid-template-columns: 1fr 1.6fr; gap: 48px; align-items: start; }
+.faq-wrap > div:first-child { position: sticky; top: 96px; }
+@media (max-width: 900px) { .faq-wrap { grid-template-columns: 1fr; gap: 8px; } .faq-wrap > div:first-child { position: static; } }
+.faq { border-top: 1px solid var(--line); }
+.faq details { border-bottom: 1px solid var(--line); }
+.faq summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; padding: 18px 2px; font-weight: 580; font-size: 17px; }
+
+.faq summary:hover { color: var(--accent); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font: 400 22px/1 var(--sans); color: var(--muted); transition: transform .15s; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { margin: 0 0 20px; color: var(--muted); max-width: 44rem; }
+
+/* Closing call to action */
+.cta-band { background: var(--term); color: var(--term-ink); border-top: 1px solid var(--line); }
+.cta-band .wrap { display: grid; grid-template-columns: 1fr 1.15fr; gap: 48px; align-items: center; }
+@media (max-width: 960px) { .cta-band .wrap { grid-template-columns: 1fr; } }
+.cta-band h2 { color: #fff; }
+.cta-band .kicker { color: var(--term-accent); }
+.cta-band .sub { color: var(--term-dim); margin-bottom: 28px; }
+.cta-band .btn:not(.primary) { background: transparent; color: var(--term-ink); border-color: var(--term-line); box-shadow: none; }
+.cta-band :not(pre) > code, .cta-band kbd { background: var(--term-2); border-color: var(--term-line); color: var(--term-ink); }
+.cta-band pre.code { background: var(--term-2); font-size: 12.5px; }
+.nw { white-space: nowrap; }
+.alt-install { margin: 20px 0 0; font-size: 14px; color: var(--term-dim); }
+.gh-i { fill: currentColor; stroke: none; width: 16px; height: 16px; }
 
 footer { border-top: 1px solid var(--line); padding: 40px 0 56px; color: var(--muted); font-size: 14px; }
 footer .wrap { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px 48px; align-items: start; }
@@ -283,12 +340,12 @@ footer p { margin: 10px 0 0; max-width: 34rem; }
   <div class="wrap">
     <a class="brand" href="#" aria-label="Sutram, home"><img src="./logo.svg" alt="" width="28" height="28">sutram</a>
     <nav class="links" aria-label="Main">
-      <a class="hide-sm" href="#ways">Ways in</a>
-      <a href="#demo">Demo</a>
-      <a class="hide-xs" href="#start">Get started</a>
+      <a class="hide-sm" href="#how">How it works</a>
+      <a class="hide-xs" href="#demo">Demo</a>
+      <a class="hide-sm" href="#faq">FAQ</a>
       <a class="hide-sm" href="./docs/index.html">Docs</a>
-      <a class="hide-sm" href="https://www.npmjs.com/package/@d34dman/sutram">npm</a>
       <a class="gh" href="https://github.com/d34dman/sutram"><svg aria-hidden="true"><use href="#i-github"/></svg>GitHub</a>
+      <a class="btn primary sm" href="#start">Get started</a>
     </nav>
   </div>
 </header>
@@ -297,91 +354,143 @@ footer p { margin: 10px 0 0; max-width: 34rem; }
   <div class="hero">
     <div class="wrap">
       <div class="hero-copy">
-        <span class="eyebrow"><b>For app authors</b> With or without WebMCP</span>
-        <h1>Let agents use your web app through <em>commands</em>, not clicks.</h1>
-        <p class="lede">Sutram gives your app one standard way to expose what it can do. <b>Agents</b> call your commands as WebMCP tools, from JavaScript in a headless browser, or by typing into a terminal-like console. <b>People</b> can use the same console.</p>
+        <span class="eyebrow"><b>Open source</b> Commands, not clicks</span>
+        <h1>Make your web app ready for <em>AI agents</em>.</h1>
+        <p class="lede">Describe what your app can do in a few lines of JavaScript. Browser agents, ChatGPT, Claude and WebMCP browsers can then use it reliably, in the user's own session. No screenshots, no new API.</p>
         <div class="ctas">
-          <button class="btn primary" type="button" data-open-console>Try it now <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></button>
-          <span class="install"><span>$</span> npm i @d34dman/sutram <button class="copy" type="button" data-copy="npm i @d34dman/sutram">Copy</button></span>
+          <a class="btn primary" href="#start">Get started <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <button class="btn" type="button" data-open-console>Try the live demo</button>
         </div>
-        <p class="hint">Or press <kbd>`</kbd> anywhere on this page.</p>
+        <ul class="trust" aria-label="At a glance">
+          <li>WebMCP-ready</li>
+          <li>0 dependencies</li>
+          <li>MIT or GPL</li>
+          <li><a href="https://www.drupal.org/project/sutram">Drupal module</a></li>
+        </ul>
       </div>
 
-      <div class="shot" aria-hidden="true">
-        <div class="window">
-          <div class="bar"><span><b>cart add</b><span class="sub"> · one command, every way in</span></span><span class="k">exit 0</span></div>
-          <div class="body ways">
-            <div class="wrow"><span class="lbl">WebMCP</span><code>cart_add({ <span class="t-o">"sku"</span>: <span class="t-s">"V60-02"</span>, <span class="t-o">"qty"</span>: 2 })</code></div>
-            <div class="wrow"><span class="lbl js">Script</span><code>Sutram.call(<span class="t-s">"cart_add"</span>, { sku: <span class="t-s">"V60-02"</span>, qty: 2 })</code></div>
-            <div class="wrow"><span class="lbl con">Console</span><code><span class="t-p">›</span> <span class="t-c">cart add</span> V60-02 <span class="t-o">--qty=</span><span class="t-s">2</span></code></div>
-            <div class="wrow result"><span class="lbl res">Result</span><code><span class="t-ok">{ code: 0, data: { count: 2, total: 48 } }</span></code></div>
-          </div>
+      <figure class="shot">
+        <div class="window session" role="img" aria-label="An agent checks the page, adds two drippers to the cart, and asks the person before it checks out.">
+          <div class="bar"><span><b>An agent shopping on Brew &amp; Co.</b></span><span class="k">WebMCP</span></div>
+          <ol class="steps-live" aria-hidden="true">
+            <li style="--d: .2s"><span class="who-l agent">agent</span><code>sutram_status()</code><span class="out">The cart is empty.</span></li>
+            <li style="--d: 1.1s"><span class="who-l agent">agent</span><code>cart_add({ <span class="t-o">"sku"</span>: <span class="t-s">"V60-02"</span>, <span class="t-o">"qty"</span>: 2 })</code><span class="out ok">Added 2 × V60 dripper, size 02.</span></li>
+            <li style="--d: 2.0s"><span class="who-l agent">agent</span><code>checkout()</code><span class="out warn">Consequential: asks the person first</span></li>
+            <li class="ask" style="--d: 2.8s"><div class="dialog"><p>Place an order for 2 items, €48.00?</p><span class="yn yes">Yes</span> <span class="yn">No</span></div></li>
+            <li style="--d: 3.7s"><span class="who-l you">you</span><code>Yes</code><span class="out ok">Order placed.</span></li>
+          </ol>
+          <div class="bar foot"><span>No screenshots. No guessing which button to click.</span></div>
         </div>
-        <div class="agent-card">
-          <div class="head"><svg class="i" style="width:15px;height:15px"><use href="#i-shield"/></svg>Consequential commands ask first</div>
-          <div><span class="k">Sutram.call</span>(<span class="s">"checkout"</span>)</div>
-          <div class="d">→ code 130: did not run. Ask the user, then call again with { confirmed: true }.</div>
-        </div>
-      </div>
+      </figure>
     </div>
   </div>
 
-  <section id="ways">
+  <section class="proof" aria-label="Measured results">
     <div class="wrap">
-      <span class="kicker">Every way in</span>
-      <h2>However an agent reaches the page, your commands are there</h2>
-      <p class="sub">You register commands once. Sutram exposes them four ways, with the same schema, checks, handler and exit codes behind each one.</p>
-      <div class="ways-grid">
-        <article class="way">
-          <header><span class="ico"><svg class="i"><use href="#i-agent"/></svg></span><div><h3>WebMCP tools</h3><p class="for">browsers with WebMCP</p></div><span class="num">01</span></header>
-          <p>Each command becomes a tool with its JSON Schema and hints such as read-only or ask-first, and the list follows the page as commands come and go.</p>
-<pre class="code">cart_add({ <span class="o">"sku"</span>: <span class="s">"V60-02"</span>, <span class="o">"qty"</span>: 2 })</pre>
-        </article>
-        <article class="way">
-          <header><span class="ico"><svg class="i"><use href="#i-code"/></svg></span><div><h3>JavaScript in the page</h3><p class="for">headless Chrome, Playwright, Puppeteer, browser agents</p></div><span class="num">02</span></header>
-          <p><code>Sutram.tools()</code> returns what a WebMCP agent would see, and <code>Sutram.call()</code> runs a tool. Consequential tools run only with <code>{ confirmed: true }</code>.</p>
-<pre class="code"><span class="k">await</span> page.evaluate(() =&gt;
-  Sutram.call(<span class="s">"cart_add"</span>, { sku: <span class="s">"V60-02"</span>, qty: 2 }));</pre>
-        </article>
-        <article class="way">
-          <header><span class="ico"><svg class="i"><use href="#i-term"/></svg></span><div><h3>The console</h3><p class="for">agents that type and read, and people</p></div><span class="num">03</span></header>
-          <p>A terminal in the page: type a line, read text back. <code>help</code>, <code>man</code> and <code>--json</code> are built in. No screenshots, no hunting for buttons.</p>
-<pre class="code"><span class="k">›</span> cart add V60-02 <span class="o">--qty=</span><span class="s">2</span>
-Added 2 × V60 dripper, size 02.</pre>
-        </article>
-        <article class="way">
-          <header><span class="ico"><svg class="i"><use href="#i-chat"/></svg></span><div><h3>A chat assistant</h3><p class="for">ChatGPT or Claude, with no browser access</p></div><span class="num">04</span></header>
-          <p>The assistant gets a generic prompt, finds the page's commands with <code>help</code> and <code>man</code>, and answers with command lines. A person pastes them into the console and pastes the output back. <a href="#assist">Try it below.</a></p>
-<pre class="code"><span class="c">```sh</span>
-cart add V60-02 2
-cart status
-<span class="c">```</span></pre>
-        </article>
+      <div class="stats">
+        <div class="stat"><b>2.5–5×</b><span>less for an agent to read than the page itself</span></div>
+        <div class="stat"><b>17–44 tokens</b><span>to fix a wrong value, instead of about 3,300</span></div>
+        <div class="stat"><b>~10 lines</b><span>of JavaScript for each thing your app can do</span></div>
+      </div>
+      <p class="stats-note">Measured on Drupal's article form, against a browser agent reading the page. <a href="./docs/measurements.html">How we measured</a></p>
+    </div>
+  </section>
+
+  <section id="problem">
+    <div class="wrap">
+      <span class="kicker">The problem</span>
+      <h2>Today, agents guess their way through your app</h2>
+      <p class="sub">An agent that can't see your app's actions has to read the page, guess what to click, and read it again to find out whether it worked. Sutram gives it the actions directly, and answers it can act on.</p>
+      <div class="compare">
+        <div class="side-card without">
+          <h3>Without Sutram</h3>
+          <ol class="pains">
+            <li>Read the whole page, or take a screenshot</li>
+            <li>Guess which element is the field or the button</li>
+            <li>Click, type, then read the page again</li>
+            <li>No error message: work out what went wrong</li>
+            <li>Start over when the layout changes</li>
+          </ol>
+        </div>
+        <div class="side-card with">
+          <h3>With Sutram</h3>
+<pre class="code"><span class="k">›</span> form request set topic billing
+topic set. The form now also asks for: invoice, amount.
+<span class="k">›</span> form request set invoice 2024-17
+<span class="e">form request set: "2024-17" is not a valid invoice number.</span>
+<span class="e">Use INV- and at least four digits, such as INV-20417.</span>
+<span class="k">›</span> form request set invoice INV-20417
+invoice set.</pre>
+          <p class="note">Every answer says what happened and what to do next. <a href="./example/forms.html">Try the forms example</a></p>
+        </div>
       </div>
     </div>
   </section>
 
-  <section id="demo" class="alt">
+  <section id="how" class="alt">
+    <div class="wrap">
+      <span class="kicker">How it works</span>
+      <h2>Write a few lines per action. Every agent can use it.</h2>
+      <p class="sub">Give each action a name, a JSON Schema for its input, and a function. Sutram does the rest: the tools, the console, the help pages and the input checks.</p>
+      <div class="how">
+        <div class="window">
+          <div class="bar"><span><b>You write</b></span><span class="k">app.js</span></div>
+<div class="body src"><span class="t-c">Sutram</span>.register({
+  name: <span class="t-s">"cart add"</span>,
+  provider: <span class="t-s">"cart"</span>,
+  description: <span class="t-s">"Add a product to the cart"</span>,
+  input: {            <span class="t-d">// JSON Schema</span>
+    type: <span class="t-s">"object"</span>,
+    properties: { sku: { type: <span class="t-s">"string"</span> },
+                  qty: { type: <span class="t-s">"integer"</span>, default: 1 } },
+    required: [<span class="t-s">"sku"</span>],
+  },
+  annotations: {},    <span class="t-d">// readOnly, consequential…</span>
+  run: ({ sku, qty }) =&gt; cart.add(sku, qty),
+});</div>
+        </div>
+        <div class="how-side">
+        <div class="window">
+          <div class="bar"><span><b>Agents and people get</b></span><span class="k">same checks, same function</span></div>
+          <div class="body ways">
+            <div class="wrow"><span class="lbl">WebMCP</span><code>cart_add({ <span class="t-o">"sku"</span>: <span class="t-s">"V60-02"</span>, <span class="t-o">"qty"</span>: 2 })</code></div>
+            <div class="wrow"><span class="lbl js">Script</span><code>Sutram.call(<span class="t-s">"cart_add"</span>, { sku: <span class="t-s">"V60-02"</span>, qty: 2 })</code></div>
+            <div class="wrow"><span class="lbl con">Console</span><code><span class="t-p">›</span> <span class="t-c">cart add</span> <span class="t-o">--sku=</span><span class="t-s">V60-02</span> <span class="t-o">--qty=</span><span class="t-s">2</span></code></div>
+            <div class="wrow"><span class="lbl chat">Chat</span><code><span class="t-d">ChatGPT replies</span> cart add <span class="t-o">--sku=</span><span class="t-s">V60-02</span></code></div>
+          </div>
+        </div>
+        <div class="gen">
+          <p class="label">Also generated from the same definition</p>
+          <ul>
+            <li><span>Input checks, with errors that name the field and the fix</span></li>
+            <li><span>Help, manual pages and Tab completion in the console</span></li>
+            <li><span>A question to the person before consequential actions</span></li>
+            <li><span>One <code>status</code> of the whole page for agents</span></li>
+          </ul>
+          <a class="btn" href="./docs/quick-start.html">Read the quick start <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+        </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="demo">
     <div class="wrap">
       <span class="kicker">Live demo</span>
       <h2>Try it on a tiny coffee shop</h2>
-      <p class="sub">This page registers a handful of commands with Sutram. Click one, or open the console and type. The shop's buttons, the console and agents all run the same commands, and each run shows up below. Have a headless browser? Open DevTools and try <code>await Sutram.call("cart_status")</code>.</p>
+      <p class="sub">This page registers a handful of commands. Click one, or press <kbd>`</kbd> and type. The shop's buttons, the console and agents all run the same commands.</p>
       <div class="chips" aria-label="Commands to try">
         <button class="chip" type="button" data-run="help"><span class="p">›</span>help</button>
-        <button class="chip" type="button" data-run="shop list"><span class="p">›</span>shop list</button>
         <button class="chip" type="button" data-run="cart add V60-02 2"><span class="p">›</span>cart add V60-02 2</button>
-        <button class="chip" type="button" data-run="cart add GUJI-250 --qty=1"><span class="p">›</span>cart add GUJI-250 --qty=1</button>
         <button class="chip" type="button" data-run="cart status"><span class="p">›</span>cart status</button>
         <button class="chip" type="button" data-run="checkout"><span class="p">›</span>checkout</button>
         <button class="chip" type="button" data-run="man cart add"><span class="p">›</span>man cart add</button>
         <button class="chip" type="button" data-run="cart add V61"><span class="p">›</span>cart add V61</button>
-        <button class="chip" type="button" data-run="shop find filter"><span class="p">›</span>shop find filter</button>
-        <button class="chip" type="button" data-run="cart status --json"><span class="p">›</span>cart status --json</button>
         <button class="chip" type="button" data-run="status"><span class="p">›</span>status</button>
       </div>
       <div class="demo">
         <div class="card">
-          <h3>Brew &amp; Co. <small>rendered from its own state</small></h3>
+          <h3>Brew &amp; Co. <small>a demo shop</small></h3>
           <div class="shop" id="shop"></div>
           <div class="cart" id="cart"></div>
         </div>
@@ -392,13 +501,13 @@ cart status
             <div class="webmcp" id="webmcp"></div>
           </div>
           <div class="card">
-            <h3>Who ran what <small>registry.onResult()</small></h3>
+            <h3>Who ran what <small>live</small></h3>
             <ul class="log" id="log"><li class="empty">Click a button or a command above.</li></ul>
           </div>
         </div>
       </div>
       <div class="card assist" id="assist">
-        <h3>No browser access? Use ChatGPT or Claude. <small>one generic prompt: the assistant finds the commands itself</small></h3>
+        <h3>No browser access? Use ChatGPT or Claude. <small>no integration needed</small></h3>
         <div class="assist-body">
           <div>
             <label for="task">What should the assistant do?</label>
@@ -410,52 +519,7 @@ cart status
             </div>
             <details><summary>See the prompt</summary><pre class="code" id="prompt"></pre></details>
           </div>
-          <ol class="assist-steps">
-            <li><span><b>Send the prompt.</b> The assistant starts with <code>help</code> and <code>status</code> to learn the page, then answers with commands in a code block.</span></li>
-            <li><span><b>Paste its commands into the console.</b> Press <kbd>`</kbd>, then paste. All lines run in order, stop at the first error, and anything consequential asks you once.</span></li>
-            <li><span><b>Send back what the console printed.</b> Click <i>Copy</i> in the console's top bar and paste it into the chat. Repeat until it is done.</span></li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="how">
-    <div class="wrap">
-      <span class="kicker">How it works</span>
-      <h2>One definition, every shape</h2>
-      <p class="sub">A command is a name, a JSON Schema for its input, and a function. Sutram turns it into a tool for agents and a command line that agents and people can type. Your handler never knows who called it.</p>
-      <div class="shapes">
-<pre class="code"><span class="k">Sutram</span>.register({
-  name: <span class="s">"cart add"</span>,
-  provider: <span class="s">"cart"</span>,
-  description: <span class="s">"Add a product to the cart"</span>,
-  input: {                         <span class="c">// JSON Schema</span>
-    type: <span class="s">"object"</span>,
-    properties: {
-      sku: { type: <span class="s">"string"</span> },
-      qty: { type: <span class="s">"integer"</span>, minimum: 1, default: 1 },
-    },
-    required: [<span class="s">"sku"</span>],
-  },
-  positional: [<span class="s">"sku"</span>, <span class="s">"qty"</span>],
-  annotations: {},                 <span class="c">// readOnly, consequential, …</span>
-  run: ({ sku, qty }) =&gt; cart.add(sku, qty),
-});</pre>
-        <div class="who-gets">
-          <div>
-            <p class="label">Typed into the console</p>
-<pre class="code"><span class="k">›</span> cart add V60-02 2
-<span class="k">›</span> cart add <span class="o">--sku=</span><span class="s">V60-02</span> <span class="o">--qty=</span><span class="s">2</span>
-<span class="k">›</span> cart add -h
-<span class="k">›</span> man cart add</pre>
-          </div>
-          <div>
-            <p class="label">Called as a tool</p>
-<pre class="code">cart_add({ <span class="o">"sku"</span>: <span class="s">"V60-02"</span>, <span class="o">"qty"</span>: 2 })          <span class="c">// WebMCP</span>
-Sutram.call(<span class="s">"cart_add"</span>, { sku: <span class="s">"V60-02"</span>, qty: 2 }) <span class="c">// JavaScript</span>
-<span class="c">// same schema, same checks, same handler</span></pre>
-          </div>
+          <p class="note">The assistant learns the page with <code>help</code> and <code>status</code>, then answers with command lines. Paste them into the console (press <kbd>`</kbd>), then copy what it prints back into the chat. <a href="./docs/guides/chat-assistants.html">How it works</a></p>
         </div>
       </div>
     </div>
@@ -463,101 +527,90 @@ Sutram.call(<span class="s">"cart_add"</span>, { sku: <span class="s">"V60-02"</
 
   <section class="alt">
     <div class="wrap">
-      <span class="kicker">Features</span>
-      <h2>Everything a command line should have</h2>
-      <p class="sub">You write the commands. Sutram does the rest, the same way for every app on the page.</p>
+      <span class="kicker">What you get</span>
+      <h2>Works with today's agents. Ready for WebMCP.</h2>
+      <p class="sub">You don't wait for browsers to catch up. However an agent reaches the page, it gets the same commands, the same checks and the same function behind them.</p>
       <div class="features">
-        <div class="feature"><span class="ico"><svg class="i"><use href="#i-agent"/></svg></span><h3>Agents without screenshots</h3><p>Agents call your app's own logic instead of reading pixels and guessing which button to click. Results come back as data.</p><span class="meta">WebMCP · Sutram.call()</span></div>
-        <div class="feature"><span class="ico"><svg class="i"><use href="#i-shield"/></svg></span><h3>Asks before it matters</h3><p>Mark a command consequential. The console asks, WebMCP hosts get the hint, and <code>Sutram.call()</code> waits for <code>confirmed: true</code>.</p><span class="meta">readOnly · consequential</span></div>
-        <div class="feature"><span class="ico"><svg class="i"><use href="#i-book"/></svg></span><h3>Agents learn the app</h3><p>Help, manual pages and a <code>status</code> of the whole page are generated from your definitions, so they always match what the page can do right now.</p><span class="meta">help · man · status</span></div>
-        <div class="feature"><span class="ico"><svg class="i"><use href="#i-lock"/></svg></span><h3>The user's session, nothing more</h3><p>Commands run in the browser and call your own endpoints, so they can do exactly what the user could already do.</p><span class="meta">no new API</span></div>
-        <div class="feature"><span class="ico"><svg class="i"><use href="#i-table"/></svg></span><h3>Data for agents, tables for people</h3><p>Return data. Agents and <code>--json</code> get it exactly as you returned it; people get tables and key: value lines.</p><span class="meta">--json · --wide</span></div>
-        <div class="feature"><span class="ico"><svg class="i"><use href="#i-box"/></svg></span><h3>Small and plain</h3><p>ES modules, or one file from a CDN. A web component for the console. Works with any framework, or none.</p><span class="meta">0 dependencies</span></div>
+        <div class="feature"><span class="ico"><svg class="i"><use href="#i-code"/></svg></span><h3>Browser agents and tests</h3><p>Playwright, Puppeteer and browser agents call <code>Sutram.call()</code> in the page and get data back, instead of clicking through it.</p><span class="meta">Sutram.call()</span></div>
+        <div class="feature"><span class="ico"><svg class="i"><use href="#i-chat"/></svg></span><h3>ChatGPT and Claude</h3><p>No browser access needed: one generic prompt, and the assistant answers with command lines a person pastes into the page.</p><span class="meta">agentPrompt()</span></div>
+        <div class="feature"><span class="ico"><svg class="i"><use href="#i-agent"/></svg></span><h3>WebMCP tools</h3><p>In browsers with WebMCP, every command is a native tool with its schema and hints, and the list follows the page.</p><span class="meta">WebMCP</span></div>
+        <div class="feature"><span class="ico"><svg class="i"><use href="#i-term"/></svg></span><h3>A console for people</h3><p>A terminal in the page, with help, manual pages and Tab completion, all generated from your definitions.</p><span class="meta">help · man · --json</span></div>
+        <div class="feature"><span class="ico"><svg class="i"><use href="#i-shield"/></svg></span><h3>Asks before it matters</h3><p>Mark an action consequential, and the person is asked before an agent runs it. The page decides, not the agent.</p><span class="meta">readOnly · consequential</span></div>
+        <div class="feature"><span class="ico"><svg class="i"><use href="#i-lock"/></svg></span><h3>The user's session, nothing more</h3><p>Commands run in the browser and call your own code, so an agent can do exactly what the user could, and nothing else.</p><span class="meta">no new API</span></div>
       </div>
     </div>
   </section>
 
-  <section id="why">
-    <div class="wrap">
-      <span class="kicker">Why commands</span>
-      <h2>A standard interface, not screenshots</h2>
-      <p class="sub">Without Sutram, an agent reads the page, guesses which elements to click, and reads it again to see whether it worked. With Sutram, every part of the app hooks in the same way, and agents get one short list of commands, in the user's own logged-in session.</p>
-      <div class="shapes">
-<pre class="code" style="align-self: start"><span class="c"># the form grows as it is filled in</span>
-<span class="k">›</span> form request set topic billing
-topic set. The form now also asks for: invoice, amount.
-<span class="k">›</span> form request set invoice 2024-17
-<span class="c">form request set: "2024-17" is not a valid invoice number.</span>
-<span class="c">Use INV- and at least four digits, such as INV-20417.</span>
-<span class="k">›</span> form request set invoice INV-20417
-invoice set.</pre>
-        <div class="who-gets">
-          <div><p class="label">In the user's session</p><p>The person logs in, the agent takes over. It can do exactly what the person could, through no new API.</p></div>
-          <div><p class="label">The same everywhere</p><p>Headless browser, WebMCP, JavaScript in the page or a chat assistant: the same commands and the same answers.</p></div>
-          <div><p class="label">Cheaper by far</p><p>On Drupal's article form, reading the page costs a browser agent 2.5 to 5 times more, and correcting one wrong value about 3,300 tokens against 17 to 44 with Sutram.</p></div>
-          <div class="assist-actions">
-            <a class="btn primary" href="./docs/why.html">Why commands</a>
-            <a class="btn" href="./example/forms.html">Try the forms example</a>
-            <a class="btn" href="./docs/measurements.html">Measurements</a>
-          </div>
-        </div>
+  <section id="faq">
+    <div class="wrap faq-wrap">
+      <div>
+        <span class="kicker">FAQ</span>
+        <h2>Questions you might have</h2>
+        <p class="sub">Something missing? <a href="https://github.com/d34dman/sutram/issues">Ask on GitHub</a>.</p>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Why not build an API or an MCP server instead?</summary>
+          <p>For server-to-server work, do. Sutram is for the app the user already has open: commands run in the browser, in the user's logged-in session, and call your own code and endpoints. There is no new backend, no new login and no token to hand out.</p>
+        </details>
+        <details>
+          <summary>Is it safe to let agents act in my app?</summary>
+          <p>An agent can do exactly what the user could already do, and nothing more: access checks stay on your server. Mark an action consequential, and the person is asked before an agent runs it.</p>
+        </details>
+        <details>
+          <summary>How is this different from Playwright or browser-use?</summary>
+          <p>Those drive a browser. Sutram gives them something better to drive: instead of reading the page and clicking, they call <code>Sutram.call("cart_add", …)</code>, get data back, and get errors that say what to fix.</p>
+        </details>
+        <details>
+          <summary>Do browsers support WebMCP yet?</summary>
+          <p>Support is still arriving, which is why Sutram doesn't depend on it. Browser agents, tests and chat assistants use your commands today, and browsers with WebMCP get them as native tools. Nothing changes in your code when support arrives.</p>
+        </details>
+        <details>
+          <summary>What does it cost to add?</summary>
+          <p>One script with no dependencies, about 31 kB gzipped when minified, and about ten lines for each action. It works with any framework, or none.</p>
+        </details>
+        <details>
+          <summary>Is it ready for production?</summary>
+          <p>Sutram is at version 0.4: open source, tested, and published on npm and drupal.org. The command contract may still change before 1.0, and until then breaking changes bump the minor version. See the <a href="https://github.com/d34dman/sutram/blob/main/CHANGELOG.md">changelog</a>.</p>
+        </details>
+        <details>
+          <summary>I build on Drupal. Is there a module?</summary>
+          <p>Yes: <code>composer require drupal/sutram</code>. It ships the package build, and its demo modules expose menus, pages and node forms as commands. <a href="https://github.com/d34dman/drupal-sutram-demo">See the Drupal demo</a>.</p>
+        </details>
       </div>
     </div>
   </section>
 
-  <section id="start">
+  <section id="start" class="cta-band">
     <div class="wrap">
-      <span class="kicker">Get started</span>
-      <h2>Up and running in a minute</h2>
-      <p class="sub">No build step needed. Paste this into an HTML file and open it.</p>
-      <div class="steps">
-        <div class="step">
-          <div>
-            <h3>Load Sutram</h3>
-            <p>From the CDN, or install <code>@d34dman/sutram</code> from npm and import it.</p>
-            <div class="codebox"><pre class="code" id="snippet-load">&lt;script type="module"&gt;
-  import Sutram from "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.4/dist/sutram.js";
-&lt;/script&gt;</pre><button class="copy" type="button" data-copy-from="snippet-load">Copy</button></div>
-          </div>
+      <div class="cta-copy">
+        <span class="kicker">Get started</span>
+        <h2>Make your app agent&#8209;ready in a minute</h2>
+        <p class="sub">Paste this into an HTML file, open it, and <span class="nw">press <kbd>`</kbd>.</span> In a browser with WebMCP, agents already have a <code>hello_world</code> tool.</p>
+        <div class="ctas">
+          <a class="btn primary" href="./docs/quick-start.html">Read the quick start <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn" href="https://github.com/d34dman/sutram"><svg class="i gh-i" aria-hidden="true"><use href="#i-github"/></svg>Star on GitHub</a>
         </div>
-        <div class="step">
-          <div>
-            <h3>Register a command</h3>
-            <p>Give it a name, an input schema and a function.</p>
-            <div class="codebox"><pre class="code" id="snippet-register">Sutram.register({
-  name: "hello world",
-  provider: "hello",
-  description: "Say hello",
-  input: { type: "object", properties: { who: { type: "string", default: "you" } } },
-  positional: ["who"],
-  annotations: { readOnly: true },
-  run: ({ who }) =&gt; ({ text: `Hello, ${who}.` }),
-});
-Sutram.mountConsole();</pre><button class="copy" type="button" data-copy-from="snippet-register">Copy</button></div>
-          </div>
-        </div>
-        <div class="step">
-          <div>
-            <h3>Call it</h3>
-            <p>Press <kbd>`</kbd> and type <code>hello world Ada</code>. In a browser with WebMCP, agents get a <code>hello_world</code> tool. From a headless browser or DevTools:</p>
-            <div class="codebox"><pre class="code" id="snippet-call"><span class="k">await</span> Sutram.call(<span class="s">"hello_world"</span>, { who: <span class="s">"Ada"</span> });
-<span class="c">// → { code: 0, text: "Hello, Ada." }</span></pre><button class="copy" type="button" data-copy-from="snippet-call">Copy</button></div>
-          </div>
-        </div>
+        <p class="alt-install">Or <code>npm i @d34dman/sutram</code> · on Drupal, <code>composer require drupal/sutram</code></p>
       </div>
-    </div>
-  </section>
+      <div class="codebox"><pre class="code" id="snippet-start">&lt;script type="module"&gt;
+  import Sutram from
+    "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.4/dist/sutram.js";
 
-  <section style="padding-top: 0">
-    <div class="wrap">
-      <div class="callout">
-        <span class="ico"><svg class="i" aria-hidden="true"><use href="#i-plug"/></svg></span>
-        <div>
-          <h3>Building on Drupal?</h3>
-          <p>The Drupal module exposes menus, pages and node forms as commands: <code>nav go "Content types"</code>, <code>form node-article-form set title …</code>, <code>form node-article-form save</code>.</p>
-        </div>
-        <a class="btn" href="https://github.com/d34dman/drupal-sutram-demo">See the Drupal demo <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-      </div>
+  Sutram.register({
+    name: "hello world",
+    provider: "hello",
+    description: "Say hello",
+    input: {
+      type: "object",
+      properties: { who: { type: "string", default: "you" } },
+    },
+    positional: ["who"],
+    annotations: { readOnly: true },
+    run: ({ who }) =&gt; ({ text: `Hello, ${who}.` }),
+  });
+  Sutram.mountConsole();
+&lt;/script&gt;</pre><button class="copy" type="button" data-copy-from="snippet-start">Copy</button></div>
     </div>
   </section>
 </main>
