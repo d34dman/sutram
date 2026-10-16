@@ -5,6 +5,7 @@ import { agentPrompt } from "../src/index.js";
 test("agentPrompt lists no commands: the assistant discovers them", () => {
   const p = agentPrompt("Buy filters", { title: "Brew & Co.", url: "https://example.com/" });
   assert.match(p, /first block is: help, then status/);
+  assert.match(p, /fix that one command/);
   assert.match(p, /man <command>/);
   assert.match(p, /The page: Brew & Co\. \(https:\/\/example\.com\/\)/);
   assert.match(p, /My task: Buy filters$/);
