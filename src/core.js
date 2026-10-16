@@ -3,6 +3,7 @@
 // It holds no app state and touches no DOM.
 
 import { getFormats } from "./formats.js";
+import { createPolicy } from "./policy.js";
 
 /** Exit codes, borrowed from the shell. */
 export const EXIT = Object.freeze({
@@ -133,6 +134,7 @@ function checkDefinition(def) {
     if (!def || def[field] === undefined) throw new TypeError(`register: "${(def && def.name) || "?"}" has no ${field}`);
   }
   if (typeof def.run !== "function") throw new TypeError(`register: "${def.name}" has no run function`);
+  if (def.suggest !== undefined && typeof def.suggest !== "function") throw new TypeError(`register: "${def.name}" has a suggest that is not a function`);
   if (!NAME.test(def.name)) throw new TypeError(`register: "${def.name}" is not a valid name; use lowercase words separated by single spaces`);
   if (RESERVED_WORDS.includes(def.name.split(" ")[0])) throw new TypeError(`register: "${def.name}" starts with a word reserved for clients`);
   for (const key of CLIENT_OPTIONS) {
@@ -147,8 +149,9 @@ function checkDefinition(def) {
  * Creates a registry. Most pages should use getRegistry() instead, so that
  * every copy of Sutram bundled on the page shares one list.
  */
-export function createRegistry({ checkResults = true, formats = getFormats() } = {}) {
+export function createRegistry({ checkResults = true, formats = getFormats(), policy = createPolicy() } = {}) {
   const commands = new Map();
+  const batchHooks = new Map(); // provider → { begin, commit, rollback }
   const changeFns = new Set();
   const runFns = new Set();
   const resultFns = new Set();
@@ -160,6 +163,9 @@ export function createRegistry({ checkResults = true, formats = getFormats() } =
   const registry = {
     /** The format registry this registry checks input and results against. */
     formats,
+
+    /** Who clients ask before a command runs. See policy.js. */
+    policy,
 
     /**
      * Adds a command. Returns a function that removes it again.
@@ -219,6 +225,91 @@ export function createRegistry({ checkResults = true, formats = getFormats() } =
       })();
       notify(resultFns, { name, input: value, caller, result });
       return result;
+    },
+
+    /**
+     * Lets a provider group the commands of a batch into one change, such as
+     * one undo step. In a batch, begin() is called before the provider's first
+     * command, then commit() when every command succeeded, or rollback() when
+     * one failed. Any of them may be async. Returns a function that removes them.
+     */
+    defineBatch(provider, hooks = {}) {
+      if (batchHooks.has(provider)) throw new Error(`defineBatch: ${provider} already has batch hooks`);
+      batchHooks.set(provider, hooks);
+      return () => { if (batchHooks.get(provider) === hooks) batchHooks.delete(provider); };
+    },
+
+    /**
+     * Starts a batch for a client that runs commands one at a time, such as
+     * the console running pasted lines. Run commands with batch.run(name,
+     * input), then call batch.commit() or batch.rollback(). Both resolve to
+     * { rolledBack, kept }: the providers whose changes were undone, and those
+     * whose changes stay because they have no batch hooks.
+     */
+    startBatch({ caller = "code", signal } = {}) {
+      const begun = []; // [{ provider, hooks }]
+      const kept = new Set();
+      let finished = false;
+      const finish = async (how) => {
+        if (finished) throw new Error("batch: already finished");
+        finished = true;
+        const list = how === "commit" ? begun : [...begun].reverse();
+        let error = null;
+        for (const { hooks } of list) {
+          try { if (hooks[how]) await hooks[how](); } catch (err) { error = error || err; if (how === "rollback") console.error(err); }
+        }
+        if (error && how === "commit") throw error;
+        return { rolledBack: how === "rollback" ? begun.map((b) => b.provider) : [], kept: [...kept] };
+      };
+      return {
+        async run(name, input = {}) {
+          if (finished) throw new Error("batch: already finished");
+          const def = commands.get(name);
+          const hooks = def && batchHooks.get(def.provider);
+          if (hooks && !begun.some((b) => b.provider === def.provider)) {
+            try { if (hooks.begin) await hooks.begin(); } catch (err) {
+              return { code: EXIT.FAILED, message: `${name}: ${def.provider} could not start a batch: ${(err && err.message) || err}` };
+            }
+            begun.push({ provider: def.provider, hooks });
+          }
+          const result = await registry.run(name, input, { caller, signal });
+          if (result.code === EXIT.OK && def && !hooks && !def.annotations.readOnly) kept.add(def.provider);
+          return result;
+        },
+        commit: () => finish("commit"),
+        rollback: () => finish("rollback"),
+      };
+    },
+
+    /**
+     * Runs steps, [{ name, input }], as one batch. Every step is checked
+     * before any runs, so a typo runs nothing. The batch stops at the first
+     * step that fails and rolls back what the providers' batch hooks can undo.
+     * Resolves to { code, results, completed, total, message?, rolledBack?, kept? }.
+     */
+    async batch(steps, { caller = "code", signal } = {}) {
+      const total = steps.length;
+      const refuse = (code, message) => ({ code, message, results: [], completed: 0, total });
+      for (const [i, { name, input }] of steps.entries()) {
+        const def = commands.get(name);
+        if (!def) return refuse(EXIT.NOT_FOUND, `step ${i + 1}: ${name}: command not found. Nothing ran.`);
+        const { errors } = checkInput(def.input, input, formats);
+        if (errors.length) return refuse(EXIT.USAGE, `step ${i + 1}: ${name}: ${errors.join("; ")}. Nothing ran.`);
+      }
+      const b = registry.startBatch({ caller, signal });
+      const results = [];
+      for (const [i, { name, input }] of steps.entries()) {
+        const result = await b.run(name, input);
+        results.push(result);
+        if (result.code !== EXIT.OK) {
+          const { rolledBack, kept } = await b.rollback();
+          return { code: result.code, message: `step ${i + 1} of ${total}: ${result.message}`, results, completed: i, total, rolledBack, kept };
+        }
+      }
+      try { await b.commit(); } catch (err) {
+        return { code: EXIT.FAILED, message: `the batch ran, but saving it failed: ${(err && err.message) || err}`, results, completed: total, total };
+      }
+      return { code: EXIT.OK, results, completed: total, total };
     },
   };
   return registry;

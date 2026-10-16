@@ -35,13 +35,14 @@ Place an order for 2 items, €48.00? Yes No
 ```
 
 - **Feels like a terminal.** `help`, `man`, `--json`, GNU-style options,
-  history with ↑, "did you mean", and syntax highlighting as you type.
+  history with ↑, Tab completion, "did you mean", and syntax highlighting
+  as you type.
 - **Agents see what people see.** Every command is also a tool, with its JSON
   Schema and hints such as "read-only" or "ask first", with or without WebMCP.
 - **No new way into your server.** Commands run in the browser with the
   user's own session, so they can do exactly what the user could already do.
-- **Small and dependency-free.** Plain ES modules, about 60 kB unminified,
-  no runtime dependencies.
+- **Small and dependency-free.** Plain ES modules, about 110 kB unminified
+  (32 kB gzipped), no runtime dependencies, TypeScript declarations included.
 
 ## Quick start
 
@@ -104,6 +105,9 @@ mountConsole();              // the console for people
 connectWebMCP(registry);     // the same commands as WebMCP tools, where the browser supports it
 ```
 
+TypeScript declarations ship with the package (`types/`), for every entry
+point and for `globalThis.Sutram`.
+
 Without a bundler, load one file: `dist/sutram.js` from the package (or from
 the CDN, as in the quick start). It sets up the console and WebMCP and exposes
 everything as `globalThis.Sutram`:
@@ -119,7 +123,7 @@ everything as `globalThis.Sutram`:
 | Import | What it is | Needs a DOM |
 |---|---|---|
 | `@d34dman/sutram` | The registry, the command line parser and the formatter | no |
-| `@d34dman/sutram/console` | `<sutram-console>`, the drop-down console, as a web component | yes |
+| `@d34dman/sutram/console` | `<sutram-console>`, the console, as a web component: a drop-down for the page, or inline in your own panel | yes |
 | `@d34dman/sutram/webmcp` | Mirrors the registry into `document.modelContext` as WebMCP tools | no |
 | `@d34dman/sutram/events` | Events your app declares and emits, and the `events list` and `events recent` commands | no |
 | `@d34dman/sutram/browser` | All of the above, as `globalThis.Sutram` | yes |
@@ -152,6 +156,8 @@ const remove = getRegistry().register({
   annotations: {},                         // see "Annotations"
   examples: ["cart add V60-02 --qty=2"],   // shown in man and given to agents
   seeAlso: ["cart status"],
+  suggest: (key, partial) =>               // optional: values for Tab completion
+    key === "sku" ? catalog.search(partial).map((p) => ({ value: p.sku, description: p.name })) : [],
   run: async ({ sku, qty }, { caller, signal }) => {
     await cart.add(sku, qty);              // your app's own code and endpoints
     return { text: `Added ${qty} × ${sku}.`, data: { count: cart.count, total: cart.total } };
@@ -170,6 +176,11 @@ no longer do. The console, `help` and the agent's tool list follow along.
 `text`); the console formats the data for people and agents get it as is.
 Throw an error to fail.
 
+`suggest(key, partial, { input, signal })` offers values for an argument
+when someone presses <kbd>Tab</kbd>. It may be async, and returns strings or
+`{ value, label?, description? }`. Sutram completes command names, options,
+`enum` values, booleans and JSON Schema `examples` by itself.
+
 ### Tell people where things stand: `<provider> status`
 
 Give each provider a read-only `<provider> status` command that returns a
@@ -182,14 +193,62 @@ Annotations are hints. Clients decide what to do with them.
 
 | Annotation | Means | The console | Agents |
 |---|---|---|---|
-| *(none)* | An ordinary change | Runs it | Can call it |
+| *(none)* | An ordinary change | Runs it | Can call it, unless the page asks first (see below) |
 | `readOnly: true` | Changes nothing | Runs it; marks it read-only | Get `readOnlyHint` |
-| `consequential: true` | Significant or hard to undo | Asks first (a pasted batch asks once) | Get `consequentialHint`; hosts can ask the user |
+| `consequential: true` | Significant or hard to undo | Asks first (a pasted batch asks once) | Get `consequentialHint`; the page asks the user first |
 | `navigates: true` | Leaves the page | Runs it | Told in the description that the page reloads |
 | `untrustedContent: true` | Its output contains text from outside, such as user content | | Get `untrustedContentHint` |
 
 Use `confirm: (input) => "Place an order for 2 items?"` to word the question
 for a consequential command.
+
+### Who is asked first: the policy
+
+Annotations describe a command; the page's policy decides who has to agree
+before it runs. There are two kinds of caller, a person at the console and
+an agent, and three levels:
+
+| Level | Asks before |
+|---|---|
+| `"none"` | nothing |
+| `"consequential"` (the default for both) | consequential commands |
+| `"changes"` | every command that is not read-only |
+
+```js
+// An editor where an agent never changes the document unseen,
+// while people at the console are only asked about consequential commands:
+getRegistry().policy.set({ agent: "changes" });
+```
+
+When an agent needs approval, the console shows the commands it wants to run
+and asks. With `"changes"`, the user can answer *Yes, and stop asking*,
+which lowers that caller to `"consequential"` for the rest of the page's
+life; it never covers a consequential command. To ask in your own dialog,
+call `policy.setAsker(async ({ who, steps }) => true | false | "always")`.
+Without a console or an asker, the browser's `confirm()` asks. App code that
+calls `registry.run()` is never asked.
+
+### Batches: several commands as one change
+
+A pasted block, a multi-line entry and an agent's `sutram_batch` call each
+run as one batch. Every line is checked before any runs, so a batch with a
+typo runs nothing; the user is asked at most once; and the batch stops at the
+first command that fails. A provider can make a batch one change, such as
+one undo step, with batch hooks:
+
+```js
+registry.defineBatch("editor", {
+  begin: () => history.startTransaction(),    // before the provider's first command in the batch
+  commit: () => history.commitTransaction(),  // every command succeeded
+  rollback: () => history.cancelTransaction(), // one failed: undo the provider's earlier commands
+});
+```
+
+Providers without hooks keep what their earlier commands did, and the
+console says so. App code can run a batch too:
+`registry.batch([{ name: "cart add", input: { sku: "V60" } }, …])`, or
+`registry.startBatch()` to run commands one by one and `commit()` or
+`rollback()` at the end.
 
 ### Results and exit codes
 
@@ -252,7 +311,13 @@ the registry. Tool names are command names with underscores
 (`cart_add`). Each tool gets the input schema and the annotation hints, and
 its description says what it returns, whether it leaves the page, and what
 any app-defined formats mean. A `sutram_status` tool runs every
-`<provider> status` at once, so an agent can start there.
+`<provider> status` at once, so an agent can start there, and
+`sutram_batch` runs several tools as one change:
+`{ calls: [{ tool: "cart_add", input: { sku: "V60" } }, …] }`.
+
+WebMCP decides which sites' tools an agent may see, not whether a call may
+change the user's page, so every call goes through the page's policy first
+(see [Who is asked first](#who-is-asked-first-the-policy)).
 
 Agents cannot be notified, so they poll for what changed:
 `events recent --since=<id>` returns the events after an id. The page keeps
@@ -280,8 +345,9 @@ await page.evaluate(() => Sutram.call("checkout", {}, { confirmed: true }));
 ```
 
 `tools()` is the list a WebMCP agent gets. `call()` takes the tool name and
-acts on the hints like a careful host: a consequential tool runs only with
-`{ confirmed: true }`, which says the user agreed. Results and exit codes are
+follows the page's policy like a careful host: a tool that needs approval
+(by default, a consequential one) runs only with `{ confirmed: true }`,
+which says the user agreed. Results and exit codes are
 the same as everywhere else. App code that needs no asking, such as the
 page's own buttons, calls `Sutram.registry.run("cart add", …)` with the
 command name.
@@ -304,8 +370,11 @@ Open it with <kbd>`</kbd> (outside text fields) or
 | `<command> -h` | See a command's usage |
 | `status` | See every provider's status |
 | `clear` | Clear the screen |
+| <kbd>Tab</kbd> | Complete a command, an option or a value; with several choices, a list opens (<kbd>Tab</kbd> or ↑ / ↓ to choose, <kbd>Enter</kbd> to take one, <kbd>Esc</kbd> to close it) |
 | ↑ / ↓ | Walk through history |
-| Paste several lines | Run them in order as one batch. It asks once if any line is consequential, and stops at the first line that fails. |
+| <kbd>Enter</kbd> inside quotes | Start a new line of the value, for multi-line text such as a prompt |
+| <kbd>Shift</kbd>+<kbd>Enter</kbd> | Start a new line; several lines run as one batch |
+| Paste several lines | Run them as one batch (see [Batches](#batches-several-commands-as-one-change)). Pasted inside open quotes, they become part of the value instead. |
 | *Copy* (top bar) | Copy the output as text, for example to paste back to a chat assistant |
 
 `mountConsole({ greeting, locale })` sets a first line and the locale values
@@ -316,8 +385,39 @@ sutram-console {
   --sutram-bg: #11131c;  --sutram-fg: #e6e8f0;  --sutram-dim: #8c93a8;
   --sutram-accent: #9aa2ff;  --sutram-option: #7dcfff;  --sutram-string: #c3e88d;
   --sutram-ok: #6fd69a;  --sutram-warn: #f5a35c;  --sutram-err: #ff7b7b;
+  --sutram-font: ui-monospace, monospace;  --sutram-font-size: 13px;  --sutram-height: 55vh;
 }
 ```
+
+Parts can be styled with `::part()`: `panel`, `header`, `output`, `menu` and
+`prompt`. For example, `sutram-console::part(header) { display: none; }`
+hides the top bar.
+
+### In your own panel
+
+Give `mountConsole()` a container, and it adds an inline console there
+instead of the drop-down: it fills the container, has no hotkey and no close
+button, and the app decides when to show it.
+
+```js
+const el = mountConsole({ greeting: "Type help." }, document.querySelector("#editor-console"));
+```
+
+### In other languages
+
+Every text the console shows of its own is in `MESSAGES`. Assign the ones you
+translate; texts that take values are functions:
+
+```js
+el.messages = {
+  placeholder: "Befehl eingeben oder help",
+  count: (n) => `${n} Befehle auf dieser Seite`,
+  yes: "Ja", no: "Nein",
+};
+```
+
+What commands print is theirs to translate. `help` and `man` are still in
+English.
 
 ### Several copies on one page
 
@@ -357,7 +457,7 @@ one short line in place of clicks and screenshots.
 
 ## Status
 
-Version 0.2: early. The command contract may still change before 1.0; breaking
+Version 0.3: early. The command contract may still change before 1.0; breaking
 changes bump the minor version until then.
 
 ## License

@@ -17,8 +17,13 @@
   <li><code>help</code>, <code>status</code>, <code>man todo add</code></li>
   <li><code>todo add "Buy beans"</code>, <code>todo list</code>, <code>todo list --json</code></li>
   <li><code>todo done 1</code>, <code>todo clear</code> (asks first)</li>
+  <li><kbd>Tab</kbd> completes commands, options and values: <code>todo done </code><kbd>Tab</kbd> lists the open todos</li>
+  <li><code>todo add "Buy beans</code>, <kbd>Enter</kbd> inside the quotes starts a new line of the title</li>
+  <li>Paste <code>todo add a</code>, <code>todo add b</code>, <code>todo done 99</code> as three lines: the batch fails and undoes the first two</li>
 </ul>
+<p><a href="?inline">Show the console inline</a>, the way an app places it in its own panel.</p>
 <ul id="todos"></ul>
+<div id="panel" hidden style="height: 260px; border-radius: 8px; overflow: hidden;"></div>
 
 <script type="module" src="../src/browser.js"></script>
 <script type="module">
@@ -69,6 +74,9 @@
     name: "todo done", provider: "todo", description: "Mark a todo as done",
     input: { type: "object", properties: { id: { type: "integer", minimum: 1 } }, required: ["id"] },
     positional: ["id"], annotations: {}, output: item,
+    // Tab offers the open todos.
+    suggest: (key, partial) => todos.filter((t) => !t.done && String(t.id).startsWith(partial))
+      .map((t) => ({ value: String(t.id), description: t.title })),
     run: ({ id }, ctx) => {
       const t = todos.find((x) => x.id === id);
       if (!t) throw new CommandError(`todo done: no todo #${id}. See todo list.`);
@@ -84,7 +92,21 @@
     run: (_, ctx) => { todos.length = 0; changed(ctx.caller); return { text: "All todos removed." }; },
   });
 
-  mountConsole({ greeting: "Sutram console. Type help." }).open();
+  // A pasted batch is one change: if a line fails, the earlier lines are undone.
+  let snapshot = [];
+  Sutram.registry.defineBatch("todo", {
+    begin: () => { snapshot = todos.map((t) => ({ ...t })); },
+    commit: () => {},
+    rollback: () => { todos.splice(0, todos.length, ...snapshot); changed("batch"); },
+  });
+
+  if (new URLSearchParams(location.search).has("inline")) {
+    const panel = document.getElementById("panel");
+    panel.hidden = false;
+    mountConsole({ greeting: "An inline console. Type help." }, panel).open();
+  } else {
+    mountConsole({ greeting: "Sutram console. Type help." }).open();
+  }
 </script>
 </body>
 </html>

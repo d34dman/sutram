@@ -1,0 +1,228 @@
+// Type declarations for @d34dman/sutram. The package is plain JavaScript;
+// these describe its public API for TypeScript users and editors.
+
+/** The subset of JSON Schema that command input and output use. */
+export interface Schema {
+  type?: "object" | "array" | "string" | "number" | "integer" | "boolean" | "null";
+  title?: string;
+  description?: string;
+  properties?: Record<string, Schema>;
+  required?: string[];
+  items?: Schema;
+  enum?: unknown[];
+  examples?: unknown[];
+  default?: unknown;
+  format?: string;
+  minimum?: number;
+  maximum?: number;
+  $ref?: string;
+  $defs?: Record<string, Schema>;
+  [key: string]: unknown;
+}
+
+export declare const EXIT: Readonly<{ OK: 0; FAILED: 1; USAGE: 2; NOT_FOUND: 127; CANCELLED: 130 }>;
+export type ExitCode = 0 | 1 | 2 | 127 | 130 | number;
+
+export declare const RESERVED_WORDS: readonly ["help", "man", "status", "clear"];
+export declare const CLIENT_OPTIONS: readonly ["help", "json", "wide"];
+
+export declare class CommandError extends Error {
+  constructor(message: string, code?: ExitCode);
+  code: ExitCode;
+}
+
+/** Hints for clients. Unknown keys pass through. */
+export interface Annotations {
+  readOnly?: boolean;
+  consequential?: boolean;
+  navigates?: boolean;
+  untrustedContent?: boolean;
+  [key: string]: unknown;
+}
+
+/** Who ran a command: "console", "agent", "code", "status", or a client's own name. */
+export type Caller = "console" | "agent" | "code" | "status" | (string & {});
+
+export interface RunContext {
+  caller: Caller;
+  signal?: AbortSignal;
+}
+
+export interface CommandOutput<D = unknown> {
+  text?: string;
+  data?: D;
+}
+
+/** A completion a command offers for one of its arguments. */
+export type Suggestion = string | { value: string; label?: string; description?: string };
+
+export interface CommandDefinition<I extends Record<string, any> = Record<string, any>, D = unknown> {
+  /** Lowercase words separated by single spaces: "cart add". */
+  name: string;
+  /** Who owns it; help groups by this. */
+  provider: string;
+  description: string;
+  input: Schema;
+  output?: Schema;
+  /** Input keys that can be given without --, in order. The last takes the rest of the line. */
+  positional?: string[];
+  annotations: Annotations;
+  /** The question asked before the command runs, when the page's policy asks. */
+  confirm?: (input: I) => string;
+  /** Values for an argument, for completion. May be async. */
+  suggest?: (key: string, partial: string, context: { input: Partial<I>; signal?: AbortSignal }) => Suggestion[] | Promise<Suggestion[]>;
+  view?: { columns?: string[] };
+  examples?: string[];
+  seeAlso?: string[];
+  run: (input: I, context: RunContext) => CommandOutput<D> | void | Promise<CommandOutput<D> | void>;
+}
+
+export type Result<D = unknown> =
+  | { code: 0; text?: string; data?: D }
+  | { code: Exclude<ExitCode, 0>; message: string };
+
+export interface BatchHooks {
+  begin?: () => unknown;
+  commit?: () => unknown;
+  rollback?: () => unknown;
+}
+
+export interface BatchEnd {
+  /** Providers whose changes were undone. */
+  rolledBack: string[];
+  /** Providers whose changes stay because they have no batch hooks. */
+  kept: string[];
+}
+
+export interface Batch {
+  run(name: string, input?: Record<string, unknown>): Promise<Result>;
+  commit(): Promise<BatchEnd>;
+  rollback(): Promise<BatchEnd>;
+}
+
+export interface BatchResult {
+  code: ExitCode;
+  message?: string;
+  results: Result[];
+  completed: number;
+  total: number;
+  rolledBack?: string[];
+  kept?: string[];
+}
+
+export type ChangeEvent = { type: "register" | "unregister"; name: string; def: CommandDefinition };
+export type RunEvent = { name: string; input: Record<string, unknown>; caller: Caller };
+export type ResultEvent = RunEvent & { result: Result };
+
+export interface Registry {
+  readonly formats: Formats;
+  readonly policy: Policy;
+  register<I extends Record<string, any>, D>(def: CommandDefinition<I, D>): () => void;
+  get(name: string): CommandDefinition | undefined;
+  has(name: string): boolean;
+  list(): CommandDefinition[];
+  onChange(fn: (event: ChangeEvent) => void): () => void;
+  onRun(fn: (event: RunEvent) => void): () => void;
+  onResult(fn: (event: ResultEvent) => void): () => void;
+  run(name: string, input?: Record<string, unknown>, options?: { caller?: Caller; signal?: AbortSignal }): Promise<Result>;
+  defineBatch(provider: string, hooks: BatchHooks): () => void;
+  startBatch(options?: { caller?: Caller; signal?: AbortSignal }): Batch;
+  batch(steps: Array<{ name: string; input?: Record<string, unknown> }>, options?: { caller?: Caller; signal?: AbortSignal }): Promise<BatchResult>;
+}
+
+export declare function createRegistry(options?: { checkResults?: boolean; formats?: Formats; policy?: Policy }): Registry;
+export declare function getRegistry(): Registry;
+export declare function checkInput(schema: Schema, input?: Record<string, unknown>, formats?: Formats): { errors: string[]; value: Record<string, unknown> };
+export declare function checkOutput(schema: Schema, data: unknown, root?: Schema, formats?: Formats): string | null;
+export declare function deref(schema: Schema, root: Schema): Schema | undefined;
+export declare function isStatusCommand(def: CommandDefinition): boolean;
+export declare function runStatus(registry: Registry, options?: { caller?: Caller; signal?: AbortSignal }): Promise<Array<{ provider: string } & Result>>;
+
+// ---- parse ----------------------------------------------------------------
+
+export interface Token { value: string; quoted: boolean }
+export interface Parsed {
+  def: CommandDefinition;
+  input: Record<string, string | boolean>;
+  help: boolean;
+  json: boolean;
+  wide: boolean;
+  fields: string[] | null;
+}
+export type SpanKind = "space" | "command" | "client" | "unknown" | "option" | "bad-option" | "value" | "string" | "arg";
+export interface Completion { value: string; label: string; description: string }
+
+export declare function tokenize(line: string): Token[];
+export declare function parse(registry: Registry, line: string): Parsed;
+export declare function suggest(registry: Registry, words: string[]): string | null;
+export declare function distance(a: string, b: string): number;
+export declare function highlight(registry: Registry, line: string): Array<{ text: string; kind: SpanKind }>;
+export declare function complete(registry: Registry, line: string, options?: { signal?: AbortSignal; limit?: number }): Promise<{ start: number; end: number; items: Completion[] }>;
+export declare function splitLines(text: string): string[];
+export declare function openQuote(text: string): '"' | "'" | null;
+
+// ---- policy ---------------------------------------------------------------
+
+export type Level = "none" | "consequential" | "changes";
+export type Who = "person" | "agent";
+export interface AskRequest { who: Who; caller: Caller; steps: Array<{ def: CommandDefinition; input: Record<string, unknown> }> }
+export type Answer = boolean | "always";
+
+export interface Policy {
+  get(): { person: Level; agent: Level };
+  set(levels: Partial<{ person: Level; agent: Level }>): void;
+  relax(who: Who): void;
+  needs(def: CommandDefinition, who: Who | null | undefined): boolean;
+  setAsker(fn: (request: AskRequest) => Answer | Promise<Answer>): () => void;
+  hasAsker(): boolean;
+  ask(request: AskRequest): Promise<boolean>;
+}
+
+export declare const LEVELS: readonly Level[];
+export declare function createPolicy(levels?: Partial<{ person: Level; agent: Level }>): Policy;
+export declare function whoIs(caller: Caller): Who | null;
+export declare function ownQuestion(def: CommandDefinition, input: Record<string, unknown>): string | null;
+
+// ---- formats --------------------------------------------------------------
+
+export interface FormatDefinition {
+  type?: string;
+  description?: string;
+  validate?: (value: unknown) => boolean;
+  display?: (value: any, options: { locale?: string }) => string;
+  align?: "left" | "right";
+}
+
+export interface Formats {
+  define(name: string, def: FormatDefinition): () => void;
+  get(name: string): FormatDefinition | undefined;
+  has(name: string): boolean;
+  list(): Array<{ name: string } & FormatDefinition>;
+  valid(name: string, value: unknown): boolean;
+}
+
+export declare const STANDARD_FORMATS: readonly string[];
+export declare function createFormats(options?: { standard?: boolean }): Formats;
+export declare function getFormats(): Formats;
+
+// ---- format: how results read as text ---------------------------------------
+
+export interface Block { kind: string; text: string; head?: string; code?: ExitCode; commands?: CommandDefinition[] }
+export interface FormatOptions { locale?: string; formats?: Formats; json?: boolean; wide?: boolean; fields?: string[] | null }
+
+export declare function formatResult(result: Result, def?: Partial<CommandDefinition>, options?: FormatOptions): Block[];
+export declare function formatValue(value: unknown, prop?: Schema, options?: FormatOptions): string;
+export declare function formatTable(rows: Record<string, unknown>[], itemSchema: Schema, root?: Schema, options?: FormatOptions & { columns?: string[]; maxWidth?: number }): Block;
+export declare function blocksToText(blocks: Block[]): string;
+export declare function formatHelp(registry: Registry, prefix?: string): Block[];
+export declare function formatUsage(def: CommandDefinition): Block[];
+export declare function formatMan(def: CommandDefinition | undefined, name?: string, formats?: Formats): Block[];
+export declare function synopsis(def: CommandDefinition): string;
+export declare function longSynopsis(def: CommandDefinition): string | null;
+export declare function annotationLabel(annotations?: Annotations): "read-only" | "consequential" | "navigates" | null;
+export declare function describeShape(schema: Schema, root?: Schema, depth?: number): string;
+export declare function sentence(s: string): string;
+export declare function checkFields(def: CommandDefinition, fields: string[]): string | null;
+export declare function selectFields(data: unknown, fields: string[], schema?: Schema): { data?: unknown; error?: string };
+export declare function formatsUsed(def: CommandDefinition, formats?: Formats): Array<{ name: string } & FormatDefinition>;
+export declare function commandLine(def: CommandDefinition, input?: Record<string, unknown>): string;

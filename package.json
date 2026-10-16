@@ -4,13 +4,31 @@
   "description": "Let AI agents use your web app through commands, not clicks. Register commands once: agents call them through WebMCP, from JavaScript in a headless browser, or by typing into a console that people can use too.",
   "type": "module",
   "exports": {
-    ".": "./src/index.js",
-    "./events": "./src/events.js",
-    "./webmcp": "./src/webmcp.js",
-    "./console": "./src/console.js",
-    "./browser": "./src/browser.js",
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./events": {
+      "types": "./types/events.d.ts",
+      "default": "./src/events.js"
+    },
+    "./webmcp": {
+      "types": "./types/webmcp.d.ts",
+      "default": "./src/webmcp.js"
+    },
+    "./console": {
+      "types": "./types/console.d.ts",
+      "default": "./src/console.js"
+    },
+    "./browser": {
+      "types": "./types/browser.d.ts",
+      "default": "./src/browser.js"
+    },
     "./package.json": "./package.json",
-    "./dist/sutram.js": "./dist/sutram.js"
+    "./dist/sutram.js": {
+      "types": "./types/browser.d.ts",
+      "default": "./dist/sutram.js"
+    }
   },
   "files": [
     "LICENSE",
@@ -18,7 +36,8 @@
     "LICENSE-MIT",
     "dist",
     "docs",
-    "src"
+    "src",
+    "types"
   ],
   "sideEffects": [
     "./src/browser.js"
@@ -59,5 +78,6 @@
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "types": "./types/index.d.ts"
 }

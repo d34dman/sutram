@@ -10,6 +10,14 @@ Status: draft, 12 Oct 2026. Open questions are at the end.
 > `at:hero-2`; results carry exit codes and declared output; and annotations
 > outside WebMCP's fixed set go into the tool description instead of passing
 > through unchanged.
+>
+> **Update, 16 Oct 2026.** Autocomplete is built: commands may define
+> `suggest(key, partial)`. Who is asked before a command runs is now a page
+> policy per kind of caller (person or agent), not the annotation alone, and
+> WebMCP calls go through it. Batches run as one change when the provider
+> defines batch hooks, and agents get a `sutram_batch` tool. The console can
+> also sit inline in an app's own panel, and its texts can be translated.
+> These came out of the study of replacing the FlowDrop Console with Sutram.
 
 ## What Sutram is
 

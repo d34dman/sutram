@@ -38,12 +38,13 @@ test("the bridge follows the registry, and tools run commands", async () => {
   const r = createRegistry();
   const mc = fakeModelContext();
   const disconnect = connectWebMCP(r, mc);
-  assert.deepEqual([...mc.tools.keys()], ["sutram_status"]);
+  assert.deepEqual([...mc.tools.keys()], ["sutram_status", "sutram_batch"]);
   const off = r.register(goDef);
   assert.ok(mc.tools.has("nav_go"));
   assert.deepEqual(await mc.tools.get("nav_go").execute({ item: "/shop" }, {}), { code: 0, data: { url: "/shop" } });
   off();
   assert.ok(!mc.tools.has("nav_go"));
+  assert.equal(mc.tools.size, 2);
   disconnect();
   assert.equal(mc.tools.size, 0);
 });
@@ -57,7 +58,7 @@ test("listTools and callTool give code outside the page what an agent sees", asy
     input: { type: "object", properties: {} }, annotations: { consequential: true },
     confirm: () => "Place an order for 2 items?", run: () => { placed.push(1); return { data: { order: 1 } }; },
   });
-  assert.deepEqual(listTools(r).map((t) => t.name), ["sutram_status", "checkout", "nav_go"]);
+  assert.deepEqual(listTools(r).map((t) => t.name), ["sutram_status", "sutram_batch", "checkout", "nav_go"]);
 
   assert.deepEqual(await callTool("nav_go", { item: "/shop" }, { registry: r }), { code: 0, data: { url: "/shop" } });
   assert.equal((await callTool("nav_go", {}, { registry: r })).code, EXIT.USAGE);
@@ -70,4 +71,82 @@ test("listTools and callTool give code outside the page what an agent sees", asy
   assert.equal(placed.length, 0);
   assert.equal((await callTool("checkout", {}, { registry: r, confirmed: true })).code, 0);
   assert.equal(placed.length, 1);
+});
+
+const counter = () => {
+  const r = createRegistry();
+  const log = [];
+  r.register({
+    name: "doc add", provider: "doc", description: "Add an item",
+    input: { type: "object", properties: { item: { type: "string" } }, required: ["item"] },
+    positional: ["item"], annotations: {},
+    run: ({ item }) => { if (item === "bad") throw new Error("cannot add bad"); log.push(item); return { data: { item } }; },
+  });
+  r.register({
+    name: "doc clear", provider: "doc", description: "Remove every item",
+    input: { type: "object", properties: {} }, annotations: { consequential: true },
+    run: () => { log.length = 0; return {}; },
+  });
+  return { r, log };
+};
+
+test("the policy decides which agent calls need the user, and WebMCP asks through the asker", async () => {
+  const { r, log } = counter();
+  const mc = fakeModelContext();
+  connectWebMCP(r, mc);
+  const asked = [];
+  let answer = false;
+  r.policy.setAsker((req) => { asked.push(req.steps.map((s) => s.def.name)); return answer; });
+
+  // Default: only consequential commands ask.
+  assert.equal((await mc.tools.get("doc_add").execute({ item: "a" }, {})).code, 0);
+  assert.equal((await mc.tools.get("doc_clear").execute({}, {})).code, EXIT.CANCELLED);
+  assert.deepEqual(asked, [["doc clear"]]);
+
+  // "changes": every command that is not read-only asks; "always" relaxes it again.
+  r.policy.set({ agent: "changes" });
+  assert.equal((await mc.tools.get("doc_add").execute({ item: "b" }, {})).code, EXIT.CANCELLED);
+  answer = "always";
+  assert.equal((await mc.tools.get("doc_add").execute({ item: "c" }, {})).code, 0);
+  assert.equal(r.policy.get().agent, "consequential");
+  assert.deepEqual(log, ["a", "c"]);
+
+  // Bad input is reported before anyone is asked.
+  const before = asked.length;
+  r.policy.set({ agent: "changes" });
+  assert.equal((await mc.tools.get("doc_add").execute({}, {})).code, EXIT.USAGE);
+  assert.equal(asked.length, before);
+
+  // Sutram.call cannot ask; it says to.
+  const refused = await callTool("doc_add", { item: "d" }, { registry: r });
+  assert.match(refused.message, /needs the user's approval.*confirmed: true/);
+  assert.equal((await callTool("doc_add", { item: "d" }, { registry: r, confirmed: true })).code, 0);
+});
+
+test("sutram_batch runs calls as one batch, asks once, and checks everything first", async () => {
+  const { r, log } = counter();
+  const hooks = [];
+  r.defineBatch("doc", { begin: () => hooks.push("begin"), commit: () => hooks.push("commit"), rollback: () => { hooks.push("rollback"); log.length = 0; } });
+
+  const ok = await callTool("sutram_batch", { calls: [{ tool: "doc_add", input: { item: "a" } }, { tool: "doc_add", input: { item: "b" } }] }, { registry: r });
+  assert.equal(ok.code, 0);
+  assert.equal(ok.completed, 2);
+  assert.deepEqual(log, ["a", "b"]);
+  assert.deepEqual(hooks, ["begin", "commit"]);
+
+  log.length = 0;
+  const unknown = await callTool("sutram_batch", { calls: [{ tool: "doc_add", input: { item: "a" } }, { tool: "doc_nope" }] }, { registry: r });
+  assert.equal(unknown.code, EXIT.NOT_FOUND);
+  assert.deepEqual(log, []);
+
+  hooks.length = 0;
+  const failed = await callTool("sutram_batch", { calls: [{ tool: "doc_add", input: { item: "a" } }, { tool: "doc_add", input: { item: "bad" } }] }, { registry: r });
+  assert.equal(failed.code, 1);
+  assert.deepEqual(failed.rolledBack, ["doc"]);
+  assert.deepEqual(hooks, ["begin", "rollback"]);
+  assert.deepEqual(log, []);
+
+  const consequential = await callTool("sutram_batch", { calls: [{ tool: "doc_add", input: { item: "a" } }, { tool: "doc_clear" }] }, { registry: r });
+  assert.equal(consequential.code, EXIT.CANCELLED);
+  assert.match(consequential.message, /contains consequential commands.*doc add a\ndoc clear/s);
 });
