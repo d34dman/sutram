@@ -33,7 +33,11 @@ export function createEvents(registry, { bufferSize = 50 } = {}) {
       }
       const ls = [...(listeners.get(name) || []), ...(listeners.get("*") || [])];
       const event = { id: ++seq, name, payload, source, heardBy: ls.filter((l) => !l.hidden).map((l) => l.as) };
-      buffer.push(event);
+      // The buffer keeps a copy, so `events recent` shows the payload as it was
+      // emitted, even if the emitter changes the object afterwards.
+      let kept = payload;
+      try { kept = structuredClone(payload); } catch { /* not cloneable (a function, say): keep it as is */ }
+      buffer.push({ ...event, payload: kept });
       if (buffer.length > bufferSize) buffer.shift();
       for (const l of ls) {
         try { l.fn(event); } catch (err) { console.error(err); }

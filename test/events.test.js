@@ -49,3 +49,13 @@ test("event payloads are checked strictly and delivered as emitted", () => {
   const payload = { saved: 3 };
   assert.equal(events.emit("form.saved", payload).payload, payload);
 });
+
+test("the event buffer keeps the payload as it was emitted", async () => {
+  const r = createRegistry();
+  const ev = createEvents(r);
+  ev.define("doc.changed", { description: "Changed" });
+  const payload = { title: "a" };
+  ev.emit("doc.changed", payload);
+  payload.title = "b";
+  assert.deepEqual((await r.run("events recent", { since: 0 })).data.events[0].payload, { title: "a" });
+});

@@ -79,6 +79,10 @@ breaking changes bump the minor version.
   question (`MESSAGES.withdrawn`).
 - Checking a number is linear: a long non-number (40,000 digits and a
   letter, which an agent can send) took seconds on the main thread.
+- `enum`, `const` and `uniqueItems` compare objects and lists by value,
+  whatever the key order. `registry.batch()` refuses a step that is not
+  `{ name, input }` with a usage result instead of throwing. The event
+  buffer keeps a copy of each payload.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

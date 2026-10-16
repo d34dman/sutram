@@ -290,3 +290,17 @@ test("a long non-number is refused quickly", () => {
   }
   assert.equal(checkInput(prop, { n: "1.2.3" }).errors.length, 1);
 });
+
+test("enum, const and uniqueItems compare by value; batch refuses steps that are not objects", async () => {
+  const schema = { type: "object", properties: {
+    pick: { type: "object", enum: [{ a: 1, b: 2 }] },
+    fixed: { type: "array", const: [1, { x: true }] },
+    list: { type: "array", uniqueItems: true },
+  } };
+  assert.deepEqual(checkInput(schema, { pick: { b: 2, a: 1 }, fixed: [1, { x: true }], list: [{ a: 1, b: 2 }, { a: 1 }] }).errors, []);
+  assert.deepEqual(checkInput(schema, { list: [{ a: 1, b: 2 }, { b: 2, a: 1 }] }).errors, ["list must not repeat items"]);
+  assert.deepEqual(checkInput(schema, { pick: { a: 1 } }).errors.length, 1);
+  const r = createRegistry();
+  assert.deepEqual(await r.batch([null]), { code: EXIT.USAGE, message: "step 1: each step must be { name, input }. Nothing ran.", results: [], completed: 0, total: 1 });
+  assert.equal((await r.batch("cart add")).code, EXIT.USAGE);
+});

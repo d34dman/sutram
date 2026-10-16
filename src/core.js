@@ -54,6 +54,15 @@ const formatError = (formats, name) => {
 
 const own = (obj, key) => !!obj && Object.hasOwn(obj, key);
 const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+/** JSON Schema equality: by value, with object keys in any order. */
+function same(a, b) {
+  if (a === b) return true;
+  if (Array.isArray(a) || Array.isArray(b)) return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => same(x, b[i]));
+  if (!isPlainObject(a) || !isPlainObject(b)) return false;
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((k) => Object.hasOwn(b, k) && same(a[k], b[k]));
+}
 // Linear: each digit can match only one way, so a long non-number fails fast.
 const NUMBER = /^[+-]?(\d+(\.\d*)?|\.\d+)(e[+-]?\d+)?$/i;
 
@@ -104,8 +113,8 @@ function checkValue(name, prop, v, errors, formats, strict) {
 
   const before = errors.length;
   const err = (msg) => errors.push(`${name} ${msg}`);
-  if (prop.enum && !prop.enum.includes(v)) err(`must be one of: ${prop.enum.join(", ")}`);
-  if (own(prop, "const") && v !== prop.const) err(`must be ${JSON.stringify(prop.const)}`);
+  if (prop.enum && !prop.enum.some((x) => same(x, v))) err(`must be one of: ${prop.enum.join(", ")}`);
+  if (own(prop, "const") && !same(v, prop.const)) err(`must be ${JSON.stringify(prop.const)}`);
   if (typeof v === "number") {
     if (prop.minimum !== undefined && v < prop.minimum) err(`must be at least ${prop.minimum}`);
     if (prop.maximum !== undefined && v > prop.maximum) err(`must be at most ${prop.maximum}`);
@@ -126,7 +135,7 @@ function checkValue(name, prop, v, errors, formats, strict) {
   if (Array.isArray(v)) {
     if (prop.minItems !== undefined && v.length < prop.minItems) err(`must have at least ${prop.minItems} items`);
     if (prop.maxItems !== undefined && v.length > prop.maxItems) err(`must have at most ${prop.maxItems} items`);
-    if (prop.uniqueItems && new Set(v.map((x) => (typeof x === "object" ? JSON.stringify(x) : x))).size !== v.length) err("must not repeat items");
+    if (prop.uniqueItems && v.some((x, i) => v.findIndex((y) => same(x, y)) !== i)) err("must not repeat items");
   }
   if (errors.length === before && prop.format && !formats.valid(prop.format, v)) err(`must be ${formatError(formats, prop.format)}`);
   return v;
@@ -472,10 +481,13 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
      * Resolves to { code, results, completed, total, message?, rolledBack?, kept? }.
      */
     async batch(steps, { caller = "code", signal } = {}) {
+      if (!Array.isArray(steps)) return { code: EXIT.USAGE, message: "batch: steps must be a list of { name, input }", results: [], completed: 0, total: 0 };
       const total = steps.length;
       const refuse = (code, message) => ({ code, message, results: [], completed: 0, total });
       const defs = [];
-      for (const [i, { name, input, def: expected }] of steps.entries()) {
+      for (const [i, step] of steps.entries()) {
+        if (!isPlainObject(step) || typeof step.name !== "string") return refuse(EXIT.USAGE, `step ${i + 1}: each step must be { name, input }. Nothing ran.`);
+        const { name, input, def: expected } = step;
         const def = commands.get(name);
         if (expected !== undefined && def !== expected) return refuse(EXIT.CANCELLED, `step ${i + 1}: ${name} changed after it was approved. Nothing ran.`);
         if (!def) return refuse(EXIT.NOT_FOUND, `step ${i + 1}: ${name}: command not found. Nothing ran.`);
