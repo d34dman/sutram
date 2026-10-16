@@ -18,9 +18,12 @@ A provider can make a batch one change with batch hooks:
 
 ```js
 registry.defineBatch("editor", {
-  begin: () => history.startTransaction(),     // before the provider's first command in the batch
-  commit: () => history.commitTransaction(),   // every command succeeded
-  rollback: () => history.cancelTransaction(), // one failed: undo the provider's earlier commands
+  // Before the provider's first command in the batch.
+  begin: () => history.startTransaction(),
+  // Every command succeeded.
+  commit: () => history.commitTransaction(),
+  // One failed: undo the provider's earlier commands.
+  rollback: () => history.cancelTransaction(),
 });
 ```
 

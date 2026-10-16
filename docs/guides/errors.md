@@ -26,7 +26,11 @@ So the schema is your first error message. A `minimum`, an `enum` or a
 Throw a `CommandError` with a message and an exit code:
 
 ```js
-throw new CommandError(`${base} set: "${s}" is not a valid invoice number. Use INV- and at least four digits, such as INV-20417.`, EXIT.USAGE);
+throw new CommandError(
+  `${base} set: "${s}" is not a valid invoice number. ` +
+    "Use INV- and at least four digits, such as INV-20417.",
+  EXIT.USAGE,
+);
 ```
 
 A good message:

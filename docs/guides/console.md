@@ -37,7 +37,8 @@ instead of the drop-down. It fills the container, has no hotkey and no close
 button, and the app decides when to show it.
 
 ```js
-const el = mountConsole({ greeting: "Type help." }, document.querySelector("#editor-console"));
+const panel = document.querySelector("#editor-console");
+const el = mountConsole({ greeting: "Type help." }, panel);
 ```
 
 ## Styling
@@ -46,10 +47,21 @@ Restyle it with CSS custom properties on `sutram-console`:
 
 ```css
 sutram-console {
-  --sutram-bg: #11131c;  --sutram-fg: #e6e8f0;  --sutram-dim: #8c93a8;
-  --sutram-accent: #9aa2ff;  --sutram-option: #7dcfff;  --sutram-string: #c3e88d;
-  --sutram-ok: #6fd69a;  --sutram-warn: #f5a35c;  --sutram-err: #ff7b7b;
-  --sutram-font: ui-monospace, monospace;  --sutram-font-size: 13px;  --sutram-height: 55vh;
+  /* Colours */
+  --sutram-bg: #11131c;
+  --sutram-fg: #e6e8f0;
+  --sutram-dim: #8c93a8;
+  --sutram-accent: #9aa2ff;
+  --sutram-option: #7dcfff;
+  --sutram-string: #c3e88d;
+  --sutram-ok: #6fd69a;
+  --sutram-warn: #f5a35c;
+  --sutram-err: #ff7b7b;
+
+  /* Type and size */
+  --sutram-font: ui-monospace, monospace;
+  --sutram-font-size: 13px;
+  --sutram-height: 55vh;
 }
 ```
 

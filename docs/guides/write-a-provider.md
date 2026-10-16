@@ -34,9 +34,18 @@ Sutram.register({
   view: { columns: ["sku", "name", "qty", "price"] },
   annotations: { readOnly: true },
   seeAlso: ["cart add", "checkout"],
-  run: () => cart.size
-    ? { text: `${summary()}.`, data: { count: count(), total: total(), items: items() } }
-    : { text: "The cart is empty. Try shop list, then cart add.", data: { count: 0, total: 0, items: [] } },
+  run: () => {
+    if (!cart.size) {
+      return {
+        text: "The cart is empty. Try shop list, then cart add.",
+        data: { count: 0, total: 0, items: [] },
+      };
+    }
+    return {
+      text: `${summary()}.`,
+      data: { count: count(), total: total(), items: items() },
+    };
+  },
 });
 ```
 
@@ -56,20 +65,44 @@ Sutram.register({
   input: {
     type: "object",
     properties: {
-      sku: { type: "string", enum: products.map((p) => p.sku), description: "Product code, from shop list" },
-      qty: { type: "integer", minimum: 1, maximum: 20, default: 1, description: "How many" },
+      sku: {
+        type: "string",
+        enum: products.map((p) => p.sku),
+        description: "Product code, from shop list",
+      },
+      qty: {
+        type: "integer",
+        minimum: 1,
+        maximum: 20,
+        default: 1,
+        description: "How many",
+      },
     },
     required: ["sku"],
   },
   positional: ["sku", "qty"],
-  output: { type: "object", required: ["count", "total"], properties: { count: { type: "integer" }, total: { type: "number", format: "money" } } },
+  output: {
+    type: "object",
+    required: ["count", "total"],
+    properties: {
+      count: { type: "integer" },
+      total: { type: "number", format: "money" },
+    },
+  },
   annotations: {},
-  examples: ["cart add V60-02", "cart add GUJI-250 2", "cart add SCALE --qty=1"],
+  examples: [
+    "cart add V60-02",
+    "cart add GUJI-250 2",
+    "cart add SCALE --qty=1",
+  ],
   seeAlso: ["cart remove", "cart status", "checkout"],
   run: ({ sku, qty }, { caller }) => {
     cart.set(sku, (cart.get(sku) || 0) + qty);
     changed(caller);
-    return { text: `Added ${qty} × ${bySku.get(sku).name}. The cart has ${summary()}.`, data: { count: count(), total: total() } };
+    return {
+      text: `Added ${qty} × ${bySku.get(sku).name}. The cart has ${summary()}.`,
+      data: { count: count(), total: total() },
+    };
   },
 });
 ```
@@ -114,7 +147,10 @@ function toggleCheckout() {
 
 ```js
 run: ({ sku }) => {
-  if (!cart.has(sku)) throw new CommandError(`cart remove: ${sku} is not in the cart.`, EXIT.FAILED);
+  if (!cart.has(sku)) {
+    const message = `cart remove: ${sku} is not in the cart.`;
+    throw new CommandError(message, EXIT.FAILED);
+  }
   // …
 },
 ```

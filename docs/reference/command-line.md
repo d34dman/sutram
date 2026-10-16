@@ -11,7 +11,12 @@ redirection, variables or globbing.
 ## Grammar
 
 ```
-<command name> [positional …] [--option=value | --option value | --flag | --no-flag] [-- …]
+<command name> [positional …] [option …] [-- value …]
+
+option:  --name=value
+         --name value
+         --flag
+         --no-flag
 ```
 
 - **The command name** is one or more lowercase words: `cart add`,

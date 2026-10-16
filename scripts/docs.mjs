@@ -36,6 +36,65 @@ const ORDER = NAV.flatMap((s) => s.pages);
 
 // --- Generated files ---------------------------------------------------------
 
+// Long declarations read badly on one line: put one parameter (or interface
+// member) per line. Splits only at commas and semicolons outside brackets.
+function splitTop(text, sep) {
+  const parts = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if ("([{<".includes(ch)) depth++;
+    else if (")]}".includes(ch) || (ch === ">" && text[i - 1] !== "=")) depth--;
+    else if (ch === sep && depth === 0) { parts.push(text.slice(start, i)); start = i + 1; }
+  }
+  parts.push(text.slice(start));
+  return parts.map((p) => p.trim()).filter(Boolean);
+}
+function wrapDeclaration(line, max = 84) {
+  if (line.length <= max || /^\s*(\/\/|\/\*\*|\*)/.test(line)) return line;
+  const indent = line.match(/^\s*/)[0];
+  const iface = line.match(/^(\s*(?:export )?interface [^{]+)\{ (.*) \}$/);
+  if (iface) return `${iface[1]}{\n${splitTop(iface[2], ";").map((m) => `${indent}  ${m};`).join("\n")}\n${indent}}`;
+  // A function's parameters, one per line.
+  const open = line.indexOf("(");
+  const close = open < 0 ? -1 : matching(line, open);
+  if (close > 0) {
+    const params = splitTop(line.slice(open + 1, close), ",");
+    if (params.length > 1) {
+      return `${line.slice(0, open + 1)}\n${params.map((p) => wrapDeclaration(`${indent}  ${p},`, max)).join("\n")}\n${indent}${line.slice(close)}`;
+    }
+  }
+  // A union type, one member per line.
+  const union = line.match(/^(\s*(?:export )?type [^=]+=)(.*?)(;?)$/) || line.match(/^(.*\)):\s*(.*?)(;?)$/);
+  if (union && splitTop(union[2], "|").length > 2) {
+    const head = union[1].trimEnd() + (union[1].trimEnd().endsWith(")") ? ":" : "");
+    return `${head}\n${splitTop(union[2], "|").map((m) => `${indent}  | ${m}`).join("\n")}${union[3]}`;
+  }
+  // The longest inline object type, one member per line.
+  let best = null;
+  for (let i = line.indexOf("{ "); i >= 0; i = line.indexOf("{ ", i + 1)) {
+    const end = matching(line, i);
+    if (end > 0 && line.slice(i, end).includes(";") && (!best || end - i > best[1] - best[0])) best = [i, end];
+  }
+  if (best) {
+    const members = splitTop(line.slice(best[0] + 1, best[1]), ";");
+    return `${line.slice(0, best[0] + 1)}\n${members.map((m) => wrapDeclaration(`${indent}  ${m};`, max)).join("\n")}\n${indent}${line.slice(best[1])}`;
+  }
+  return line;
+}
+function matching(text, open) {
+  const pairs = { "(": ")", "{": "}", "[": "]" };
+  const want = pairs[text[open]];
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === text[open]) depth++;
+    else if (text[i] === want && --depth === 0) return i;
+  }
+  return -1;
+}
+const wrapDeclarations = (text) => text.split("\n").map((l) => wrapDeclaration(l)).join("\n");
+
 function apiReference() {
   const entries = [
     ["@d34dman/sutram", "index", "The registry, the parser, the formatter, policy, formats and agentPrompt(). No DOM."],
@@ -65,9 +124,9 @@ function apiReference() {
       .replace(/^\/\/ Type declarations[^\n]*\n(\/\/[^\n]*\n)*/, "").trim();
     const parts = body.split(/^\/\/ ---- (.+?) -+$/m);
     const first = parts.shift().trim();
-    if (first) out.push("```ts", first, "```", "");
+    if (first) out.push("```ts", wrapDeclarations(first), "```", "");
     for (let i = 0; i < parts.length; i += 2) {
-      out.push(`### ${parts[i].replace(/:.*/, "")}`, "", "```ts", parts[i + 1].trim(), "```", "");
+      out.push(`### ${parts[i].replace(/:.*/, "")}`, "", "```ts", wrapDeclarations(parts[i + 1].trim()), "```", "");
     }
   }
   return out.join("\n");
@@ -269,7 +328,10 @@ function render(src, link) {
       i++;
       while (i < lines.length && !lines[i].startsWith("```")) body.push(lines[i++]);
       i++;
-      out.push(`<pre class="code"${m[1] ? ` data-lang="${m[1]}"` : ""}><code>${highlight(body.join("\n"), m[1])}</code></pre>`);
+      const code = body.join("\n");
+      const lang = m[1] || (/^› /m.test(code) ? "console" : "");
+      const label = lang === "console" ? "Copy the commands" : "Copy the code";
+      out.push(`<div class="codebox"><pre class="code"${lang ? ` data-lang="${lang}"` : ""}><code>${highlight(code, m[1])}</code></pre><button class="copy" type="button" aria-label="${label}" title="${label}">Copy</button></div>`);
     } else if ((m = line.match(/^(#{1,4})\s+(.*)$/))) {
       const level = m[1].length;
       out.push(`<h${level} id="${slug(m[2])}">${inline(m[2], link)}${level > 1 ? ` <a class="anchor" href="#${slug(m[2])}" aria-hidden="true">#</a>` : ""}</h${level}>`);
@@ -371,6 +433,12 @@ article p, article li { color: var(--ink-2); }
 article strong { color: var(--ink); }
 pre.code { background: var(--term); color: var(--term-ink); border: 1px solid var(--term-line); border-radius: 12px; padding: 14px 18px; overflow: auto; font-size: 13.5px; line-height: 1.65; }
 pre.code code { font-size: inherit; }
+/* A console session's output is one long line in the console; wrap it here. */
+pre.code[data-lang="console"] { white-space: pre-wrap; overflow-wrap: anywhere; }
+.codebox { position: relative; margin: 16px 0; }
+.codebox pre.code { margin: 0; padding-right: 72px; }
+.codebox .copy { position: absolute; top: 8px; right: 8px; font: 500 12px var(--sans); color: #e6e8f0; background: #ffffff12; border: 1px solid #ffffff26; border-radius: 6px; padding: 4px 9px; cursor: pointer; opacity: .75; }
+.codebox .copy:hover, .codebox .copy:focus-visible { opacity: 1; background: #ffffff20; }
 pre.code .c { color: #8a91a6; font-style: italic; } pre.code .k { color: #c792ea; } pre.code .s { color: #c3e88d; } pre.code .n { color: #f78c6c; }
 pre.code .f { color: #82aaff; } pre.code .o { color: #7dcfff; } pre.code .t { color: #f07178; } pre.code .p { color: #a3aaff; } pre.code .out { color: #9aa1b5; }
 .table { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 12px; }
@@ -444,6 +512,27 @@ ${render(p.body, link)}
 </article>
 </main>
 </div>
+<script>
+// Copy buttons. For a console session, copy only the commands, without the
+// prompt and the output, so they can be pasted into a console.
+for (const button of document.querySelectorAll(".codebox .copy")) {
+  button.addEventListener("click", async () => {
+    const pre = button.previousElementSibling;
+    const code = pre.textContent;
+    const text = pre.dataset.lang === "console"
+      ? code.split("\\n").filter((l) => l.startsWith("› ")).map((l) => l.slice(2)).join("\\n")
+      : code;
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = "Copied";
+    } catch {
+      getSelection().selectAllChildren(pre);
+      button.textContent = "Press Ctrl+C";
+    }
+    setTimeout(() => { button.textContent = "Copy"; }, 1600);
+  });
+}
+</script>
 </body>
 </html>
 `;

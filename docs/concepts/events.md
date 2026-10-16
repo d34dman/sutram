@@ -14,7 +14,11 @@ import { getEvents } from "@d34dman/sutram/events";
 const events = getEvents();
 events.define("cart.changed", {
   description: "The cart changed",
-  payload: { type: "object", properties: { count: { type: "integer" } }, required: ["count"] },
+  payload: {
+    type: "object",
+    properties: { count: { type: "integer" } },
+    required: ["count"],
+  },
 });
 
 events.emit("cart.changed", { count: 2 }, { source: "agent" });

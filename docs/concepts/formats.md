@@ -14,13 +14,19 @@ import { getFormats } from "@d34dman/sutram";
 
 getFormats().define("money", {
   type: "number",
-  description: "an amount in euros",       // for man and agents
-  validate: (v) => Number.isFinite(v),     // bad input is a usage error
-  display: (v, { locale }) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(v),
-  align: "right",                          // in tables
+  // For man and agents.
+  description: "an amount in euros",
+  // Bad input is a usage error.
+  validate: (v) => Number.isFinite(v),
+  display: (v, { locale }) =>
+    new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" })
+      .format(v),
+  // In tables.
+  align: "right",
 });
 
-// then, in an output schema: total: { type: "number", format: "money" }
+// Then, in an output schema:
+//   total: { type: "number", format: "money" }
 ```
 
 - A format nobody defined is left alone.

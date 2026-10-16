@@ -33,7 +33,13 @@ export interface Schema {
   [key: string]: unknown;
 }
 
-export declare const EXIT: Readonly<{ OK: 0; FAILED: 1; USAGE: 2; NOT_FOUND: 127; CANCELLED: 130 }>;
+export declare const EXIT: Readonly<{
+  OK: 0;
+  FAILED: 1;
+  USAGE: 2;
+  NOT_FOUND: 127;
+  CANCELLED: 130;
+}>;
 export type ExitCode = 0 | 1 | 2 | 127 | 130 | number;
 
 export declare const RESERVED_WORDS: readonly ["help", "man", "status", "clear"];
@@ -67,7 +73,11 @@ export interface CommandOutput<D = unknown> {
 }
 
 /** A completion a command offers for one of its arguments. */
-export type Suggestion = string | { value: string; label?: string; description?: string };
+export type Suggestion = string | {
+  value: string;
+  label?: string;
+  description?: string;
+};
 
 export interface CommandDefinition<I extends Record<string, any> = Record<string, any>, D = unknown> {
   /** Lowercase words separated by single spaces: "cart add". */
@@ -83,11 +93,18 @@ export interface CommandDefinition<I extends Record<string, any> = Record<string
   /** The question asked before the command runs, when the page's policy asks. */
   confirm?: (input: I) => string;
   /** Values for an argument, for completion. May be async. */
-  suggest?: (key: string, partial: string, context: { input: Partial<I>; signal?: AbortSignal }) => Suggestion[] | Promise<Suggestion[]>;
+  suggest?: (
+    key: string,
+    partial: string,
+    context: { input: Partial<I>; signal?: AbortSignal },
+  ) => Suggestion[] | Promise<Suggestion[]>;
   view?: { columns?: string[] };
   examples?: string[];
   seeAlso?: string[];
-  run: (input: I, context: RunContext) => CommandOutput<D> | void | Promise<CommandOutput<D> | void>;
+  run: (
+    input: I,
+    context: RunContext,
+  ) => CommandOutput<D> | void | Promise<CommandOutput<D> | void>;
 }
 
 export type Result<D = unknown> =
@@ -123,8 +140,16 @@ export interface BatchResult {
   kept?: string[];
 }
 
-export type ChangeEvent = { type: "register" | "unregister"; name: string; def: CommandDefinition };
-export type RunEvent = { name: string; input: Record<string, unknown>; caller: Caller };
+export type ChangeEvent = {
+  type: "register" | "unregister";
+  name: string;
+  def: CommandDefinition;
+};
+export type RunEvent = {
+  name: string;
+  input: Record<string, unknown>;
+  caller: Caller;
+};
 export type ResultEvent = RunEvent & { result: Result };
 
 export interface Registry {
@@ -137,19 +162,42 @@ export interface Registry {
   onChange(fn: (event: ChangeEvent) => void): () => void;
   onRun(fn: (event: RunEvent) => void): () => void;
   onResult(fn: (event: ResultEvent) => void): () => void;
-  run(name: string, input?: Record<string, unknown>, options?: { caller?: Caller; signal?: AbortSignal }): Promise<Result>;
+  run(
+    name: string,
+    input?: Record<string, unknown>,
+    options?: { caller?: Caller; signal?: AbortSignal },
+  ): Promise<Result>;
   defineBatch(provider: string, hooks: BatchHooks): () => void;
   startBatch(options?: { caller?: Caller; signal?: AbortSignal }): Batch;
-  batch(steps: Array<{ name: string; input?: Record<string, unknown> }>, options?: { caller?: Caller; signal?: AbortSignal }): Promise<BatchResult>;
+  batch(
+    steps: Array<{ name: string; input?: Record<string, unknown> }>,
+    options?: { caller?: Caller; signal?: AbortSignal },
+  ): Promise<BatchResult>;
 }
 
-export declare function createRegistry(options?: { checkResults?: boolean; formats?: Formats; policy?: Policy }): Registry;
+export declare function createRegistry(options?: {
+  checkResults?: boolean;
+  formats?: Formats;
+  policy?: Policy;
+}): Registry;
 export declare function getRegistry(): Registry;
-export declare function checkInput(schema: Schema, input?: Record<string, unknown>, formats?: Formats): { errors: string[]; value: Record<string, unknown> };
-export declare function checkOutput(schema: Schema, data: unknown, root?: Schema, formats?: Formats): string | null;
+export declare function checkInput(
+  schema: Schema,
+  input?: Record<string, unknown>,
+  formats?: Formats,
+): { errors: string[]; value: Record<string, unknown> };
+export declare function checkOutput(
+  schema: Schema,
+  data: unknown,
+  root?: Schema,
+  formats?: Formats,
+): string | null;
 export declare function deref(schema: Schema, root: Schema): Schema | undefined;
 export declare function isStatusCommand(def: CommandDefinition): boolean;
-export declare function runStatus(registry: Registry, options?: { caller?: Caller; signal?: AbortSignal }): Promise<Array<{ provider: string } & Result>>;
+export declare function runStatus(
+  registry: Registry,
+  options?: { caller?: Caller; signal?: AbortSignal },
+): Promise<Array<{ provider: string } & Result>>;
 ```
 
 ### parse
@@ -164,15 +212,31 @@ export interface Parsed {
   wide: boolean;
   fields: string[] | null;
 }
-export type SpanKind = "space" | "command" | "client" | "unknown" | "option" | "bad-option" | "value" | "string" | "arg";
+export type SpanKind =
+  | "space"
+  | "command"
+  | "client"
+  | "unknown"
+  | "option"
+  | "bad-option"
+  | "value"
+  | "string"
+  | "arg";
 export interface Completion { value: string; label: string; description: string }
 
 export declare function tokenize(line: string): Token[];
 export declare function parse(registry: Registry, line: string): Parsed;
 export declare function suggest(registry: Registry, words: string[]): string | null;
 export declare function distance(a: string, b: string): number;
-export declare function highlight(registry: Registry, line: string): Array<{ text: string; kind: SpanKind }>;
-export declare function complete(registry: Registry, line: string, options?: { signal?: AbortSignal; limit?: number }): Promise<{ start: number; end: number; items: Completion[] }>;
+export declare function highlight(
+  registry: Registry,
+  line: string,
+): Array<{ text: string; kind: SpanKind }>;
+export declare function complete(
+  registry: Registry,
+  line: string,
+  options?: { signal?: AbortSignal; limit?: number },
+): Promise<{ start: number; end: number; items: Completion[] }>;
 export declare function splitLines(text: string): string[];
 export declare function openQuote(text: string): '"' | "'" | null;
 ```
@@ -182,7 +246,11 @@ export declare function openQuote(text: string): '"' | "'" | null;
 ```ts
 export type Level = "none" | "consequential" | "changes";
 export type Who = "person" | "agent";
-export interface AskRequest { who: Who; caller: Caller; steps: Array<{ def: CommandDefinition; input: Record<string, unknown> }> }
+export interface AskRequest {
+  who: Who;
+  caller: Caller;
+  steps: Array<{ def: CommandDefinition; input: Record<string, unknown> }>;
+}
 export type Answer = boolean | "always";
 
 export interface Policy {
@@ -196,9 +264,15 @@ export interface Policy {
 }
 
 export declare const LEVELS: readonly Level[];
-export declare function createPolicy(levels?: Partial<{ person: Level; agent: Level }>): Policy;
+export declare function createPolicy(levels?: Partial<{
+  person: Level;
+  agent: Level;
+}>): Policy;
 export declare function whoIs(caller: Caller): Who | null;
-export declare function ownQuestion(def: CommandDefinition, input: Record<string, unknown>): string | null;
+export declare function ownQuestion(
+  def: CommandDefinition,
+  input: Record<string, unknown>,
+): string | null;
 ```
 
 ### formats
@@ -228,32 +302,85 @@ export declare function getFormats(): Formats;
 ### format
 
 ```ts
-export interface Block { kind: string; text: string; head?: string; code?: ExitCode; commands?: CommandDefinition[] }
-export interface FormatOptions { locale?: string; formats?: Formats; json?: boolean; wide?: boolean; fields?: string[] | null }
+export interface Block {
+  kind: string;
+  text: string;
+  head?: string;
+  code?: ExitCode;
+  commands?: CommandDefinition[];
+}
+export interface FormatOptions {
+  locale?: string;
+  formats?: Formats;
+  json?: boolean;
+  wide?: boolean;
+  fields?: string[] | null;
+}
 
-export declare function formatResult(result: Result, def?: Partial<CommandDefinition>, options?: FormatOptions): Block[];
-export declare function formatValue(value: unknown, prop?: Schema, options?: FormatOptions): string;
-export declare function formatTable(rows: Record<string, unknown>[], itemSchema: Schema, root?: Schema, options?: FormatOptions & { columns?: string[]; maxWidth?: number }): Block;
+export declare function formatResult(
+  result: Result,
+  def?: Partial<CommandDefinition>,
+  options?: FormatOptions,
+): Block[];
+export declare function formatValue(
+  value: unknown,
+  prop?: Schema,
+  options?: FormatOptions,
+): string;
+export declare function formatTable(
+  rows: Record<string, unknown>[],
+  itemSchema: Schema,
+  root?: Schema,
+  options?: FormatOptions & { columns?: string[]; maxWidth?: number },
+): Block;
 export declare function blocksToText(blocks: Block[]): string;
 export declare function formatHelp(registry: Registry, prefix?: string): Block[];
 export declare function formatUsage(def: CommandDefinition): Block[];
-export declare function formatMan(def: CommandDefinition | undefined, name?: string, formats?: Formats): Block[];
+export declare function formatMan(
+  def: CommandDefinition | undefined,
+  name?: string,
+  formats?: Formats,
+): Block[];
 export declare function synopsis(def: CommandDefinition): string;
 export declare function longSynopsis(def: CommandDefinition): string | null;
-export declare function annotationLabel(annotations?: Annotations): "read-only" | "consequential" | "navigates" | null;
-export declare function describeShape(schema: Schema, root?: Schema, depth?: number): string;
+export declare function annotationLabel(annotations?: Annotations):
+  | "read-only"
+  | "consequential"
+  | "navigates"
+  | null;
+export declare function describeShape(
+  schema: Schema,
+  root?: Schema,
+  depth?: number,
+): string;
 export declare function sentence(s: string): string;
-export declare function checkFields(def: CommandDefinition, fields: string[]): string | null;
-export declare function selectFields(data: unknown, fields: string[], schema?: Schema): { data?: unknown; error?: string };
-export declare function formatsUsed(def: CommandDefinition, formats?: Formats): Array<{ name: string } & FormatDefinition>;
-export declare function commandLine(def: CommandDefinition, input?: Record<string, unknown>): string;
+export declare function checkFields(
+  def: CommandDefinition,
+  fields: string[],
+): string | null;
+export declare function selectFields(
+  data: unknown,
+  fields: string[],
+  schema?: Schema,
+): { data?: unknown; error?: string };
+export declare function formatsUsed(
+  def: CommandDefinition,
+  formats?: Formats,
+): Array<{ name: string } & FormatDefinition>;
+export declare function commandLine(
+  def: CommandDefinition,
+  input?: Record<string, unknown>,
+): string;
 
 /**
  * A prompt for a chat assistant without browser access. Generic: it lists no
  * commands; the assistant finds them with help, man and status, and answers
  * with command lines a person pastes into the console.
  */
-export declare function agentPrompt(task?: string, page?: { title?: string; url?: string }): string;
+export declare function agentPrompt(
+  task?: string,
+  page?: { title?: string; url?: string },
+): string;
 ```
 
 ## `@d34dman/sutram/console`
@@ -328,7 +455,10 @@ export interface MountAttributes {
 }
 
 /** Without a container: the page's drop-down console. With one: a new inline console inside it. */
-export declare function mountConsole(attributes?: MountAttributes, container?: Element | null): SutramConsole;
+export declare function mountConsole(
+  attributes?: MountAttributes,
+  container?: Element | null,
+): SutramConsole;
 ```
 
 ## `@d34dman/sutram/webmcp`
@@ -340,11 +470,21 @@ export interface Tool {
   name: string;
   description: string;
   inputSchema: Schema;
-  annotations: { readOnlyHint?: boolean; consequentialHint?: boolean; untrustedContentHint?: boolean };
+  annotations: {
+    readOnlyHint?: boolean;
+    consequentialHint?: boolean;
+    untrustedContentHint?: boolean;
+  };
 }
 
 export interface ModelContextLike {
-  registerTool(tool: Tool & { execute: (input: any, options?: { signal?: AbortSignal }) => Promise<unknown> }, options: { signal: AbortSignal }): unknown;
+  registerTool(
+    tool: Tool & { execute: (
+      input: any,
+      options?: { signal?: AbortSignal },
+    ) => Promise<unknown> },
+    options: { signal: AbortSignal },
+  ): unknown;
 }
 
 export declare const STATUS_TOOL: Tool;
@@ -356,9 +496,20 @@ export declare function listTools(registry?: Registry): Tool[];
 export declare function callTool(
   name: string,
   input?: Record<string, unknown>,
-  options?: { registry?: Registry; confirmed?: boolean; caller?: Caller; signal?: AbortSignal },
-): Promise<Result | BatchResult | { code: 0; providers: Array<{ provider: string } & Result> }>;
-export declare function connectWebMCP(registry?: Registry, modelContext?: ModelContextLike | null): () => void;
+  options?: {
+    registry?: Registry;
+    confirmed?: boolean;
+    caller?: Caller;
+    signal?: AbortSignal;
+  },
+): Promise<Result | BatchResult | {
+  code: 0;
+  providers: Array<{ provider: string } & Result>;
+}>;
+export declare function connectWebMCP(
+  registry?: Registry,
+  modelContext?: ModelContextLike | null,
+): () => void;
 ```
 
 ## `@d34dman/sutram/events`
@@ -376,14 +527,25 @@ export interface SutramEvent<P = Record<string, unknown>> {
 
 export interface Events {
   define(name: string, def: { description?: string; payload?: Schema }): void;
-  emit<P extends Record<string, unknown>>(name: string, payload?: P, options?: { source?: string }): SutramEvent<P>;
-  on(name: string, fn: (event: SutramEvent) => void, options?: { as?: string; hidden?: boolean }): () => void;
+  emit<P extends Record<string, unknown>>(
+    name: string,
+    payload?: P,
+    options?: { source?: string },
+  ): SutramEvent<P>;
+  on(
+    name: string,
+    fn: (event: SutramEvent) => void,
+    options?: { as?: string; hidden?: boolean },
+  ): () => void;
   list(): Array<{ name: string; description?: string }>;
   lastId(): number;
   clear(upTo?: number): void;
 }
 
-export declare function createEvents(registry: Registry, options?: { bufferSize?: number }): Events;
+export declare function createEvents(
+  registry: Registry,
+  options?: { bufferSize?: number },
+): Events;
 export declare function getEvents(registry?: Registry): Events;
 ```
 
@@ -399,7 +561,11 @@ export type SutramGlobal = typeof core & {
   defineFormat(name: string, def: core.FormatDefinition): () => void;
   register: core.Registry["register"];
   tools(): Tool[];
-  call(name: string, input?: Record<string, unknown>, options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal }): ReturnType<typeof callTool>;
+  call(
+    name: string,
+    input?: Record<string, unknown>,
+    options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal },
+  ): ReturnType<typeof callTool>;
   /** core.agentPrompt for this page: page defaults to document.title and location.href. */
   agentPrompt(task?: string, page?: { title?: string; url?: string }): string;
   mountConsole: typeof mountConsole;

@@ -21,8 +21,10 @@ import { connectWebMCP } from "@d34dman/sutram/webmcp";
 const registry = getRegistry();
 registry.register({ /* a command */ });
 
-mountConsole();              // the console for people
-connectWebMCP(registry);     // the same commands as WebMCP tools, where the browser supports it
+// The console, for people.
+mountConsole();
+// The same commands as WebMCP tools, where the browser supports them.
+connectWebMCP(registry);
 ```
 
 TypeScript declarations ship with the package (`types/`), for every entry

@@ -19,7 +19,11 @@ it: the console, an agent, a test or the app.
 ```js
 import { CommandError, EXIT } from "@d34dman/sutram";
 
-throw new CommandError("form request submit: email is required. For example: form request set email …", EXIT.FAILED);
+throw new CommandError(
+  "form request submit: email is required. " +
+    "For example: form request set email …",
+  EXIT.FAILED,
+);
 ```
 
 See [Errors that help agents](../guides/errors.md) for how to word them.

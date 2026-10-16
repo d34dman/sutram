@@ -13,10 +13,14 @@ people and agents. Your function never knows who called it.
 import { getRegistry } from "@d34dman/sutram";
 
 const remove = getRegistry().register({
-  name: "cart add",                        // "<provider> <verb>", lowercase words
-  provider: "cart",                        // who owns it; help groups by this
+  // "<provider> <verb>", lowercase words.
+  name: "cart add",
+  // Who owns it; help groups by this.
+  provider: "cart",
   description: "Add a product to the cart",
-  input: {                                 // JSON Schema: checked before run() is called
+
+  // JSON Schema, checked before run() is called.
+  input: {
     type: "object",
     properties: {
       sku: { type: "string", description: "Product code" },
@@ -24,19 +28,40 @@ const remove = getRegistry().register({
     },
     required: ["sku"],
   },
-  positional: ["sku", "qty"],              // cart add V60-02 2  ==  cart add --sku=V60-02 --qty=2
-  output: {                                // optional: drives tables, man and agents
+  // cart add V60-02 2  is the same as  cart add --sku=V60-02 --qty=2
+  positional: ["sku", "qty"],
+
+  // Optional: drives tables, man and agents.
+  output: {
     type: "object",
-    properties: { count: { type: "integer" }, total: { type: "number" } },
+    properties: {
+      count: { type: "integer" },
+      total: { type: "number" },
+    },
   },
-  annotations: {},                         // required, even when empty
-  examples: ["cart add V60-02 --qty=2"],   // shown in man and given to agents
+
+  // Required, even when empty.
+  annotations: {},
+  // Shown in man and given to agents.
+  examples: ["cart add V60-02 --qty=2"],
   seeAlso: ["cart status"],
-  suggest: (key, partial) =>               // optional: values for Tab completion
-    key === "sku" ? catalog.search(partial).map((p) => ({ value: p.sku, description: p.name })) : [],
+
+  // Optional: values for Tab completion.
+  suggest: (key, partial) => {
+    if (key !== "sku") return [];
+    return catalog.search(partial).map((p) => ({
+      value: p.sku,
+      description: p.name,
+    }));
+  },
+
   run: async ({ sku, qty }, { caller, signal }) => {
-    await cart.add(sku, qty);              // your app's own code and endpoints
-    return { text: `Added ${qty} × ${sku}.`, data: { count: cart.count, total: cart.total } };
+    // Your app's own code and endpoints.
+    await cart.add(sku, qty);
+    return {
+      text: `Added ${qty} × ${sku}.`,
+      data: { count: cart.count, total: cart.total },
+    };
   },
 });
 ```

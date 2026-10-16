@@ -37,8 +37,9 @@ argument to name it yourself, or import `agentPrompt` from
 ## A button for it
 
 ```js
-const url = `https://claude.ai/new?q=${encodeURIComponent(Sutram.agentPrompt(task))}`;
-// or https://chatgpt.com/?q=…
+const prompt = encodeURIComponent(Sutram.agentPrompt(task));
+const url = `https://claude.ai/new?q=${prompt}`;
+// or `https://chatgpt.com/?q=${prompt}`
 ```
 
 ## The loop

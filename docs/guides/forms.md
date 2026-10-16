@@ -35,18 +35,30 @@ follow this.
 registry.register({
   name: `${base} set`,
   provider: base,
-  description: "Change one field. Answers can add fields to the form: the result names them",
+  description:
+    "Change one field. Answers can add fields to the form: the result names them",
   input: {
     type: "object",
     properties: {
-      field: { type: "string", enum: visibleFields(), description: `A field of the form as it is now. ${base} fields lists them.` },
-      value: { type: "string", description: "The new value. Yes/no fields take true or false; choices take a key or its label." },
+      field: {
+        type: "string",
+        enum: visibleFields(),
+        description: `A field of the form now. ${base} fields lists them.`,
+      },
+      value: {
+        type: "string",
+        description:
+          "The new value. Yes/no fields take true or false; " +
+          "choices take a key or its label.",
+      },
     },
     required: ["field", "value"],
   },
   positional: ["field", "value"],
   annotations: {},
-  run: ({ field, value }) => { /* coerce, write into the real input, report */ },
+  run: ({ field, value }) => {
+    // Convert the value, write it into the real input, report what changed.
+  },
 });
 ```
 

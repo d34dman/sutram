@@ -11,16 +11,26 @@ Playwright, Puppeteer, raw Chrome DevTools Protocol, and agents that drive a
 browser.
 
 ```js
-// Playwright; Puppeteer and CDP work the same way
+// Playwright; Puppeteer and CDP work the same way.
 const tools = await page.evaluate(() => Sutram.tools());
-// → [{ name: "sutram_status", … }, { name: "cart_add", description, inputSchema, annotations }, …]
+// → [
+//     { name: "sutram_status", … },
+//     { name: "cart_add", description, inputSchema, annotations },
+//     …
+//   ]
 
-await page.evaluate(() => Sutram.call("cart_add", { sku: "V60-02", qty: 2 }));
+await page.evaluate(() =>
+  Sutram.call("cart_add", { sku: "V60-02", qty: 2 }),
+);
 // → { code: 0, text: "Added 2 × V60 dripper…", data: { count: 2, total: 48 } }
 
 await page.evaluate(() => Sutram.call("checkout"));
-// → { code: 130, message: "checkout is consequential, so it did not run. Ask the user …" }
-await page.evaluate(() => Sutram.call("checkout", {}, { confirmed: true }));
+// → { code: 130,
+//     message: "checkout is consequential, so it did not run. Ask the user …" }
+
+await page.evaluate(() =>
+  Sutram.call("checkout", {}, { confirmed: true }),
+);
 ```
 
 - `tools()` is the list a WebMCP agent gets.
@@ -36,7 +46,9 @@ import { test, expect } from "@playwright/test";
 
 test("an agent can fill the cart and check out", async ({ page }) => {
   await page.goto("/");
-  const add = await page.evaluate(() => Sutram.call("cart_add", { sku: "V60-02", qty: 2 }));
+  const add = await page.evaluate(() =>
+    Sutram.call("cart_add", { sku: "V60-02", qty: 2 }),
+  );
   expect(add.code).toBe(0);
   expect(add.data.count).toBe(2);
 

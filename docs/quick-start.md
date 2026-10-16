@@ -16,7 +16,8 @@ Save this as an HTML file and open it in a browser:
 <p>Press <kbd>`</kbd> and type <code>help</code>.</p>
 
 <script type="module">
-  import Sutram from "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.3/dist/sutram.js";
+  import Sutram from
+    "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.3/dist/sutram.js";
 
   Sutram.register({
     name: "hello world",
@@ -24,7 +25,9 @@ Save this as an HTML file and open it in a browser:
     description: "Say hello",
     input: {
       type: "object",
-      properties: { who: { type: "string", default: "you", description: "Who to greet" } },
+      properties: {
+        who: { type: "string", default: "you", description: "Who to greet" },
+      },
     },
     positional: ["who"],
     annotations: { readOnly: true },
@@ -60,8 +63,16 @@ Open the browser's developer tools and run:
 
 ```js
 Sutram.tools()
-// → [{ name: "sutram_status", … }, { name: "sutram_batch", … },
-//    { name: "hello_world", description: "Say hello.", inputSchema: {…}, annotations: { readOnlyHint: true } }]
+// → [
+//     { name: "sutram_status", … },
+//     { name: "sutram_batch", … },
+//     {
+//       name: "hello_world",
+//       description: "Say hello.",
+//       inputSchema: {…},
+//       annotations: { readOnlyHint: true },
+//     },
+//   ]
 
 await Sutram.call("hello_world", { who: "Ada" })
 // → { code: 0, text: "Hello, Ada." }
