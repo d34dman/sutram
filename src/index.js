@@ -1,5 +1,5 @@
 // sutram: what app authors use. The registry, formats, the policy, and
-// helpers to describe a command line or prompt a chat assistant. No DOM.
+// helpers to describe a command line or prompt a browser agent. No DOM.
 // Building a client of your own (a terminal, a console, a test harness)?
 // See @d34dman/sutram/client. The console, the WebMCP bridge and events are
 // separate entry points: /console, /webmcp, /events, /browser.

@@ -33,8 +33,8 @@ list on the Drupal demo (see [Measurements](../measurements.md)).
 
 - Through WebMCP or `Sutram.tools()`, an agent gets every command as a tool
   with its schema, plus `sutram_status`. Start with `sutram_status`.
-- Through a chat assistant, [`agentPrompt()`](../guides/chat-assistants.md)
-  tells the assistant to start with `help` and `status`.
+- [`agentPrompt()`](../guides/agent-prompt.md) sends an agent to the
+  console and tells it to start with `help` and `status`.
 
 ## Look again when things change
 

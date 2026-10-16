@@ -45,7 +45,7 @@ Access checks stay on the server, where they are today.
 
 The same commands answer the same way whether the agent drives a headless
 browser, uses WebMCP in the person's browser, runs JavaScript in the page, or
-works through a chat assistant and a person pasting command lines. Nothing
+types into the console. Nothing
 depends on screen size, layout or how the page looks.
 
 ## Precise edits

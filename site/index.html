@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sutram: make your web app ready for AI agents</title>
-<meta name="description" content="Make your web app usable by AI agents. Describe what it can do in a few lines of JavaScript: browser agents, ChatGPT and Claude use it today, and WebMCP browsers get native tools. Open source, no dependencies.">
+<meta name="description" content="Make your web app usable by AI agents. Describe what it can do in a few lines of JavaScript: browser agents use it today, and WebMCP browsers get native tools. Open source, no dependencies.">
 <meta name="theme-color" content="#fafaf8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0d14" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Sutram: make your web app ready for AI agents">
-<meta property="og:description" content="Describe what your web app can do in a few lines of JavaScript. Browser agents, ChatGPT, Claude and WebMCP browsers can then use it, in the user's own session.">
+<meta property="og:description" content="Describe what your web app can do in a few lines of JavaScript. Browser agents and WebMCP browsers can then use it, in the user's own session.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://d34dman.github.io/sutram/">
 <meta property="og:image" content="https://d34dman.github.io/sutram/social-preview.png">
@@ -276,7 +276,6 @@ section#problem { padding-top: 72px; }
 .gen .btn { font-size: 14.5px; padding: 8px 14px; }
 .how { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
 @media (max-width: 900px) { .how { grid-template-columns: 1fr; } }
-.lbl.chat { background: #f5a35c1f; color: var(--term-warn); }
 
 /* FAQ */
 .faq-wrap { display: grid; grid-template-columns: 1fr 1.6fr; gap: 48px; align-items: start; }
@@ -356,7 +355,7 @@ footer p { margin: 10px 0 0; max-width: 34rem; }
       <div class="hero-copy">
         <span class="eyebrow"><b>Open source</b> Commands, not clicks</span>
         <h1>Make your web app ready for <em>AI agents</em>.</h1>
-        <p class="lede">Describe what your app can do in a few lines of JavaScript. Browser agents, ChatGPT, Claude and WebMCP browsers can then use it reliably, in the user's own session. No screenshots, no new API.</p>
+        <p class="lede">Describe what your app can do in a few lines of JavaScript. Browser agents and WebMCP browsers can then use it reliably, in the user's own session. No screenshots, no new API.</p>
         <div class="ctas">
           <a class="btn primary" href="#start">Get started <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
           <button class="btn" type="button" data-open-console>Try the live demo</button>
@@ -456,7 +455,6 @@ invoice set.</pre>
             <div class="wrow"><span class="lbl">WebMCP</span><code>cart_add({ <span class="t-o">"sku"</span>: <span class="t-s">"V60-02"</span>, <span class="t-o">"qty"</span>: 2 })</code></div>
             <div class="wrow"><span class="lbl js">Script</span><code>Sutram.call(<span class="t-s">"cart_add"</span>, { sku: <span class="t-s">"V60-02"</span>, qty: 2 })</code></div>
             <div class="wrow"><span class="lbl con">Console</span><code><span class="t-p">›</span> <span class="t-c">cart add</span> <span class="t-o">--sku=</span><span class="t-s">V60-02</span> <span class="t-o">--qty=</span><span class="t-s">2</span></code></div>
-            <div class="wrow"><span class="lbl chat">Chat</span><code><span class="t-d">ChatGPT replies</span> cart add <span class="t-o">--sku=</span><span class="t-s">V60-02</span></code></div>
           </div>
         </div>
         <div class="gen">
@@ -507,19 +505,17 @@ invoice set.</pre>
         </div>
       </div>
       <div class="card assist" id="assist">
-        <h3>No browser access? Use ChatGPT or Claude. <small>no integration needed</small></h3>
+        <h3>Hand it to your agent <small>needs a browser it can drive</small></h3>
         <div class="assist-body">
           <div>
             <label for="task">What should the assistant do?</label>
             <textarea id="task" rows="2">Buy two V60 drippers and a pack of filters, check the total, then check out.</textarea>
             <div class="assist-actions">
               <button class="btn primary" type="button" id="copy-prompt">Copy the prompt</button>
-              <a class="btn" id="open-claude" target="_blank" rel="noopener">Open in Claude</a>
-              <a class="btn" id="open-chatgpt" target="_blank" rel="noopener">Open in ChatGPT</a>
             </div>
             <details><summary>See the prompt</summary><pre class="code" id="prompt"></pre></details>
           </div>
-          <p class="note">The assistant learns the page with <code>help</code> and <code>status</code>, then answers with command lines. Paste them into the console (press <kbd>`</kbd>), then copy what it prints back into the chat. <a href="./docs/guides/chat-assistants.html">How it works</a></p>
+          <p class="note">Paste it into Claude Code, Codex or another agent with a browser it can drive, such as Playwright MCP. The agent opens this page, types into the console, and learns the page with <code>help</code> and <code>status</code>. You watch every command run. <a href="./docs/guides/agent-prompt.html">How it works</a></p>
         </div>
       </div>
     </div>
@@ -532,7 +528,7 @@ invoice set.</pre>
       <p class="sub">You don't wait for browsers to catch up. However an agent reaches the page, it gets the same commands, the same checks and the same function behind them.</p>
       <div class="features">
         <div class="feature"><span class="ico"><svg class="i"><use href="#i-code"/></svg></span><h3>Browser agents and tests</h3><p>Playwright, Puppeteer and browser agents call <code>Sutram.call()</code> in the page and get data back, instead of clicking through it.</p><span class="meta">Sutram.call()</span></div>
-        <div class="feature"><span class="ico"><svg class="i"><use href="#i-chat"/></svg></span><h3>ChatGPT and Claude</h3><p>No browser access needed: one generic prompt, and the assistant answers with command lines a person pastes into the page.</p><span class="meta">agentPrompt()</span></div>
+        <div class="feature"><span class="ico"><svg class="i"><use href="#i-chat"/></svg></span><h3>Coding agents</h3><p>Hand Claude Code or Codex one generic prompt. With a browser it can drive, it opens the page, types into the console, and you watch every command run.</p><span class="meta">agentPrompt()</span></div>
         <div class="feature"><span class="ico"><svg class="i"><use href="#i-agent"/></svg></span><h3>WebMCP tools</h3><p>In browsers with WebMCP, every command is a native tool with its schema and hints, and the list follows the page.</p><span class="meta">WebMCP</span></div>
         <div class="feature"><span class="ico"><svg class="i"><use href="#i-term"/></svg></span><h3>A console for people</h3><p>A terminal in the page, with help, manual pages and Tab completion, all generated from your definitions.</p><span class="meta">help · man · --json</span></div>
         <div class="feature"><span class="ico"><svg class="i"><use href="#i-shield"/></svg></span><h3>Asks before it matters</h3><p>Mark an action consequential, and the person is asked before an agent runs it. The page decides, not the agent.</p><span class="meta">readOnly · consequential</span></div>
@@ -563,7 +559,7 @@ invoice set.</pre>
         </details>
         <details>
           <summary>Do browsers support WebMCP yet?</summary>
-          <p>Support is still arriving, which is why Sutram doesn't depend on it. Browser agents, tests and chat assistants use your commands today, and browsers with WebMCP get them as native tools. Nothing changes in your code when support arrives.</p>
+          <p>Support is still arriving, which is why Sutram doesn't depend on it. Browser agents and tests use your commands today, and browsers with WebMCP get them as native tools. Nothing changes in your code when support arrives.</p>
         </details>
         <details>
           <summary>What does it cost to add?</summary>

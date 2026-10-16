@@ -12,7 +12,7 @@ test("generated docs are up to date (npm run docs)", () => {
   execFileSync(process.execPath, ["scripts/docs.mjs", "--check"], { cwd: root, stdio: "pipe" });
 });
 
-test("the use-a-page skill carries every discovery rule of agentPrompt()", () => {
+test("the use-a-page skill carries every discovery rule", () => {
   const skill = readFileSync(new URL("skills/use-sutram-page/SKILL.md", root), "utf8");
   for (const rule of DISCOVERY_RULES) assert.ok(skill.includes(rule), rule.slice(0, 40));
 });

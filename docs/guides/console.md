@@ -6,7 +6,8 @@ description: Open, use, place, restyle and translate the console that people and
 # The console
 
 `mountConsole()` adds a terminal-like console to the page. People use it,
-and it is where a chat assistant's command lines are pasted.
+and agents that drive a browser type into it, so the person sees every
+command run.
 
 Open it with the key left of <kbd>1</kbd> (outside text fields), or with
 <kbd>Ctrl</kbd> and that key anywhere; close it with <kbd>Esc</kbd>. The key is
@@ -29,7 +30,7 @@ back to where it was when it closes.
 | <kbd>Enter</kbd> inside quotes or a [heredoc](../reference/command-line.md#heredocs) | Start a new line of the value, for multi-line text |
 | <kbd>Shift</kbd>+<kbd>Enter</kbd> | Start a new line; several lines run as one batch |
 | Paste several lines | Run them as one [batch](../concepts/batches.md). Pasted inside open quotes or a heredoc, they become part of the value instead. |
-| *Copy* (top bar) | Copy the output as text, for example to paste back to a chat assistant |
+| *Copy* (top bar) | Copy the output as text |
 
 ## Options
 

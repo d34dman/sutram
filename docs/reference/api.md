@@ -330,9 +330,9 @@ export declare function commandLine(
 ): string;
 
 /**
- * A prompt for a chat assistant without browser access. Generic: it lists no
- * commands; the assistant finds them with help, man and status, and answers
- * with command lines a person pastes into the console.
+ * A prompt that hands a task to an agent that drives a browser. Generic: it
+ * lists no commands. The agent opens the page, types into its console, and
+ * finds the commands with help, man and status.
  */
 export declare function agentPrompt(
   task?: string,

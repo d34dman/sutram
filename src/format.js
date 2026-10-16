@@ -284,6 +284,13 @@ export function annotationLabel(annotations = {}) {
   return null;
 }
 
+/** What `help` prints under the commands: how to learn more, and how to write a line. */
+const HELP_FOOTER = [
+  "help <provider> · man <command> · <command> -h · <command> --json[=fields] · <command> --wide · status · clear",
+  "Options: --name=value; quote values with spaces. Multi-line text: end the line with <<END, then the text as it is, then a line with only END.",
+  "[read-only] changes nothing · [consequential] asks first · [navigates] leaves the page. A pasted block is checked before any line runs.",
+].join("\n");
+
 /** `help` and `help <provider>`: one line per command. */
 export function formatHelp(registry, prefix = "") {
   const list = registry.list().filter((d) => !prefix || d.name === prefix || d.name.startsWith(prefix + " "));
@@ -295,7 +302,7 @@ export function formatHelp(registry, prefix = "") {
     return `${usages[i].padEnd(w)}  ${summary(d.description)}${label ? `  [${label}]` : ""}`;
   });
   const blocks = [{ kind: "text", text: lines.join("\n"), commands: list }];
-  if (!prefix) blocks.push({ kind: "dim", text: "help <provider> · man <command> · <command> -h · <command> --json[=fields] · <command> --wide · status · clear" });
+  if (!prefix) blocks.push({ kind: "dim", text: HELP_FOOTER });
   return blocks;
 }
 

@@ -14,9 +14,8 @@ Register them once, and agents reach them however they reach the page:
   browsers that have it;
 - from JavaScript, with `Sutram.tools()` and `Sutram.call()`, in a headless
   browser, a test, or an agent that drives a browser;
-- by typing into a terminal-like console, which people can use too;
-- through a chat assistant, which answers with command lines a person pastes
-  into the console.
+- by typing into a terminal-like console, which people can use too, and
+  where they watch an agent's commands run.
 
 You write no console, no help pages and no agent integration.
 
@@ -115,7 +114,7 @@ form save node-article-form
 - **In the user's session:** the person logs in, the agent takes over, and
   it can do exactly what the person could. No new API, no extra login.
 - **The same everywhere:** headless browser, WebMCP, JavaScript in the page,
-  or a chat assistant: the same commands, the same answers.
+  or the console: the same commands, the same answers.
 - **Errors to act on:** a failure names the field and the fix. The agent
   corrects one value, whether it sent one field or the whole form at once.
 - **Forms that change:** `fields` lists fields the page hides behind toggles,
@@ -149,8 +148,9 @@ Then, when you need them: [forms](docs/guides/forms.md), [batches](docs/concepts
   [use a Sutram page](skills/use-sutram-page/SKILL.md) (for agents that drive
   a browser) and [add Sutram to an app](skills/add-sutram/SKILL.md) (for
   coding agents).
-- `Sutram.agentPrompt(task)`: a generic prompt for a chat assistant without
-  browser access. It lists no commands; the assistant finds them with `help`.
+- `Sutram.agentPrompt(task)`: a generic prompt that hands a task to an agent
+  that drives a browser. It lists no commands; the agent opens the console
+  and finds them with `help`.
 
 ## Develop
 

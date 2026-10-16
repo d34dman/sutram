@@ -2,7 +2,7 @@
 
 > Let AI agents use your web app through commands, not clicks. Register commands once: agents call them through WebMCP, from JavaScript in a headless browser, or by typing into a console that people can use too.
 
-Sutram is an npm package (`@d34dman/sutram`, MIT OR GPL-2.0-or-later) and a Drupal module (`drupal/sutram`). An app registers commands: a name, a JSON Schema for the input, annotations, a function. Agents reach them as WebMCP tools, through `Sutram.tools()` and `Sutram.call()` in the page, as command lines in the page's console, or through a chat assistant with `Sutram.agentPrompt()`.
+Sutram is an npm package (`@d34dman/sutram`, MIT OR GPL-2.0-or-later) and a Drupal module (`drupal/sutram`). An app registers commands: a name, a JSON Schema for the input, annotations, a function. Agents reach them as WebMCP tools, through `Sutram.tools()` and `Sutram.call()` in the page, or as command lines typed into the page's console. `Sutram.agentPrompt()` hands a task to an agent that drives a browser.
 
 Agents using a page: start with `status` (or the `sutram_status` tool), then `help`; read `man <command>` before using a command; change one thing per command; ask the person when a call returns exit 130. Coding agents adding Sutram to an app: read the quick start, then Write a provider and Write descriptions agents can use.
 
@@ -26,7 +26,7 @@ Agents using a page: start with `status` (or the `sutram_status` tool), then `he
 
 - [WebMCP](https://d34dman.github.io/sutram/docs/guides/webmcp.md): What agents see when Sutram registers your commands as WebMCP tools, and how approval works.
 - [The console](https://d34dman.github.io/sutram/docs/guides/console.md): Open, use, place, restyle and translate the console that people and pasted command lines use.
-- [Chat assistants without browser access](https://d34dman.github.io/sutram/docs/guides/chat-assistants.md): Let ChatGPT or Claude drive a page through a person, with agentPrompt() and the console.
+- [Hand a task to a browser agent](https://d34dman.github.io/sutram/docs/guides/agent-prompt.md): One generic prompt, agentPrompt(), that sends an agent with a browser to the page's console.
 - [Discovery: help, man, status](https://d34dman.github.io/sutram/docs/concepts/discovery.md): How people and agents find out what a page can do and what state it is in.
 
 ## Going further

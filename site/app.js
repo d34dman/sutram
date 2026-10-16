@@ -233,23 +233,20 @@ document.getElementById("webmcp").textContent = findModelContext()
   ? "This browser supports WebMCP: an agent on this page can call these tools now. Try asking it to buy filters."
   : "In a browser with WebMCP, these are registered as tools for agents. Add something to the cart: checkout appears.";
 
-// --- A prompt for ChatGPT or Claude ------------------------------------------
-// For browsers without WebMCP. Sutram.agentPrompt() is generic: the assistant
-// finds the page's commands itself with help, man and status.
+// --- A prompt for an agent with a browser --------------------------------------
+// Sutram.agentPrompt() is generic: the agent opens this page, types into the
+// console and finds the commands itself with help, man and status.
 
 const taskEl = document.getElementById("task");
 function updatePrompt() {
   const prompt = Sutram.agentPrompt(taskEl.value);
   document.getElementById("prompt").textContent = prompt;
-  const q = encodeURIComponent(prompt);
-  document.getElementById("open-claude").href = `https://claude.ai/new?q=${q}`;
-  document.getElementById("open-chatgpt").href = `https://chatgpt.com/?q=${q}`;
   return prompt;
 }
 taskEl.addEventListener("input", updatePrompt);
 document.getElementById("copy-prompt").addEventListener("click", async (e) => {
   const b = e.currentTarget;
-  try { await navigator.clipboard.writeText(updatePrompt()); b.textContent = "Copied. Paste it into your assistant"; } catch { b.textContent = "Select the prompt below and copy it"; }
+  try { await navigator.clipboard.writeText(updatePrompt()); b.textContent = "Copied. Paste it into your agent"; } catch { b.textContent = "Select the prompt below and copy it"; }
   setTimeout(() => { b.textContent = "Copy the prompt"; }, 2500);
 });
 

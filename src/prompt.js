@@ -1,16 +1,17 @@
-// A prompt for a chat assistant with no browser access (ChatGPT, Claude). The
-// assistant answers with command lines, a person pastes them into the console
-// (which runs a pasted batch in order) and pastes the output back.
+// A prompt that hands a task to an agent that drives a browser (Playwright,
+// a browser extension, a WebMCP browser). Commands run only in a running
+// page, so the agent opens it and types into the console, where the person
+// watches every command run.
 //
-// The prompt is generic, like a skill: it lists no commands. The assistant
-// finds them with help, man and status, so the same text works on any page and
-// never goes stale as commands come and go. No DOM: the browser entry point
-// fills in the page's title and URL.
+// The prompt is short on purpose: it says the console exists and to ask it for
+// help. help, man and the console's errors teach the rest, so the same text
+// works on any page and never goes stale as the console changes. No DOM: the
+// browser entry point fills in the page's title and URL.
 
 /**
- * How to find and use a page's commands, for any agent. Shared by the chat
- * prompt below and by the "use a Sutram page" skill (scripts/docs.mjs), so
- * the two never disagree.
+ * How to find and use a page's commands, for an agent that drives a browser:
+ * the "use a Sutram page" skill (scripts/docs.mjs) is built from it.
+ * agentPrompt() leaves these to the console, whose help prints the syntax.
  */
 export const DISCOVERY_RULES = Object.freeze([
   "You do not know this page's commands yet. Find out, do not guess:\n  - help lists every command with its usage. help <provider> lists one group.\n  - man <command> explains one in full: arguments, output, examples. <command> -h shows short usage.\n  - status shows what every part of the page reports right now.",
@@ -20,18 +21,14 @@ export const DISCOVERY_RULES = Object.freeze([
   "Change one thing per command. When one fails, read its message, fix that one command, and carry on; do not start over.",
 ]);
 
-const bullet = (s) => `- ${s}`;
-
-/** The prompt for `task`. `page` names the page the assistant is working on. */
+/** The prompt for `task`. `page` names the page the agent is to open. */
 export function agentPrompt(task = "", { title, url } = {}) {
   const page = [title, url && `(${url})`].filter(Boolean).join(" ");
-  return `You are helping me use a web page through Sutram, a command line built into the page. You cannot see the page. I run the commands you give me in the page's console and paste back what it prints.
+  return `Use a web page for me through Sutram, a command line built into the page. You need a real browser you can drive (Playwright, a browser extension, a WebMCP browser): the commands only exist in a running page, so fetching the URL is not enough.
 
-How to reply:
-- Put the commands to run in one \`\`\`sh code block, one command per line, nothing else in the block. I paste the whole block: the lines run top to bottom and stop at the first error.
-${DISCOVERY_RULES.map(bullet).join("\n")}
-- Your first block is: help, then status.
-- After I paste the output, continue until the task is done. Then say "Done" and summarise what changed.
+Open ${url || "the page"} and type the commands into its console: it is the <sutram-console> element, usually opened with the key left of 1 (\`). That way I see every command as it runs. Use the page's WebMCP tools or Sutram.call() only if you cannot type into the console.
+
+Do not guess commands: the console explains itself. Start with help, then status, and ask the console (man <command>, <command> -h) whenever you are unsure. When a command fails, read the message and fix it. Commands that are hard to undo ask me first; never confirm one for me. When the task is done, say "Done" and summarise what changed.
 ${page ? `\nThe page: ${page}\n` : ""}
 My task: ${String(task).trim() || "Show me what this page can do."}`;
 }

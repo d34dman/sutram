@@ -55,5 +55,5 @@ deciding, the question is withdrawn and nothing runs.
 
 Browsers without WebMCP still have every tool: `Sutram.tools()` and
 `Sutram.call()` for agents that run JavaScript in the page (see
-[Test with Playwright](testing.md)), and [`agentPrompt()`](chat-assistants.md)
-for chat assistants.
+[Test with Playwright](testing.md)), and the console for agents that type.
+[`agentPrompt()`](agent-prompt.md) hands a task to any of them.

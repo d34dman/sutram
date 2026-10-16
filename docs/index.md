@@ -51,7 +51,7 @@ what agents get.
 
 - [WebMCP](guides/webmcp.md): tools in browsers that support it.
 - [The console](guides/console.md): for people, and for agents that type.
-- [Chat assistants without browser access](guides/chat-assistants.md).
+- [Hand a task to a browser agent](guides/agent-prompt.md): `agentPrompt()`.
 - [Discovery: help, man, status](concepts/discovery.md).
 - [Test with Playwright](guides/testing.md): call your commands the way a
   headless browser does.

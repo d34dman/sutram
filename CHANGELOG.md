@@ -3,6 +3,28 @@
 Sutram follows [semantic versioning](https://semver.org/). Before 1.0,
 breaking changes bump the minor version.
 
+## Unreleased
+
+### Changed, and may need your attention
+
+- **`agentPrompt()` is for agents that drive a browser.** Sutram's commands
+  run only in a running page, so the prompt now sends the agent to open the
+  page and type into its console, where the person watches every command
+  run; WebMCP tools and `Sutram.call()` are the fallback. The paste-back loop
+  for chat assistants without a browser is gone, along with the home page's
+  *Open in ChatGPT* and *Open in Claude* buttons. The guide moved from
+  `guides/chat-assistants` to [`guides/agent-prompt`](docs/guides/agent-prompt.md).
+- **The "use a Sutram page" skill puts the console first.** Typing into the
+  console is the way in; WebMCP tools and `Sutram.call()` are the fallbacks.
+  It starts with `help`, then `status`, and leaves the console's y/n
+  approval questions to the person.
+- **The prompt is short.** About 1,000 characters instead of 1,850: it says
+  the console exists and to ask it for help, and lists no syntax rules.
+- **`help` explains how to write a line.** Under the commands it now prints
+  options and quoting, multi-line text with `<<END`, what `[read-only]`,
+  `[consequential]` and `[navigates]` mean, and that a pasted block is
+  checked before any line runs.
+
 ## 0.4.0 (2026-10-16)
 
 ### Changed, and may need your attention
