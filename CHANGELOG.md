@@ -65,6 +65,9 @@ breaking changes bump the minor version.
 - **The page's registry has a new key** (`sutram.registry@2`). 0.4 does not
   share a registry with 0.3 or earlier, and warns when both are on a page.
   Before, a 0.2 registry crashed a 0.4 client.
+- `connectWebMCP()` registers every other tool when the browser refuses
+  one, and refreshes a tool whose definition changed in place (at its next
+  call, or when the same definition is registered again).
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

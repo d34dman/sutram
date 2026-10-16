@@ -268,3 +268,28 @@ test("sutram is reserved for Sutram's own tools, and sutram_status follows the p
   const ok = await callTool("sutram_status", {}, { registry: r, confirmed: true });
   assert.deepEqual(ok, { code: 0, data: { providers: [{ provider: "bank", code: 0, text: "€12" }] } });
 });
+
+test("connectWebMCP survives a tool the browser refuses, and refreshes a tool changed in place", async () => {
+  const r = createRegistry();
+  const mc = fakeModelContext();
+  const register = mc.registerTool.bind(mc);
+  mc.registerTool = (tool, opts) => { if (tool.name === "bad_go") throw new TypeError("bad schema"); return register(tool, opts); };
+  const def = (name) => ({ name, provider: name.split(" ")[0], description: "Go", annotations: {}, run: () => ({}) });
+  r.register(def("bad go"));
+  const good = def("good go");
+  r.register(good);
+  const warn = console.warn;
+  const warned = [];
+  console.warn = (m) => warned.push(m);
+  try { connectWebMCP(r, mc); } finally { console.warn = warn; }
+  assert.ok(mc.tools.has("good_go"));
+  assert.ok(!mc.tools.has("bad_go"));
+  assert.match(warned[0], /WebMCP refused bad_go: bad schema/);
+
+  good.annotations.readOnly = true;
+  assert.equal((await mc.tools.get("good_go").execute({}, {})).code, 0);
+  assert.deepEqual(mc.tools.get("good_go").annotations, { readOnlyHint: true });
+  good.annotations.consequential = true;
+  r.register(good); // registering the same definition again refreshes it too
+  assert.deepEqual(mc.tools.get("good_go").annotations, { readOnlyHint: true, consequentialHint: true });
+});

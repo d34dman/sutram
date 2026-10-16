@@ -198,27 +198,39 @@ export async function callTool(name, input = {}, { registry = getRegistry(), con
  */
 export function connectWebMCP(registry = getRegistry(), modelContext = findModelContext()) {
   if (!modelContext || typeof modelContext.registerTool !== "function") return () => {};
-  const live = new Map(); // command name → AbortController
+  const live = new Map(); // command name → { ctrl, json }: json is the tool as registered
 
   const add = (name, tool, execute) => {
     const ctrl = new AbortController();
-    live.set(name, ctrl);
-    Promise.resolve(modelContext.registerTool({ ...tool, execute }, { signal: ctrl.signal })).catch((err) => {
+    const entry = { ctrl, json: JSON.stringify(tool) };
+    live.set(name, entry);
+    const refused = (err) => {
       console.warn(`sutram: WebMCP refused ${tool.name}: ${err && err.message}`);
-      if (live.get(name) === ctrl) live.delete(name);
-    });
+      if (live.get(name) === entry) live.delete(name);
+    };
+    // One tool the browser refuses, by throwing or rejecting, must not stop the rest.
+    try { Promise.resolve(modelContext.registerTool({ ...tool, execute }, { signal: ctrl.signal })).catch(refused); } catch (err) { refused(err); }
   };
   const remove = (name) => {
-    const ctrl = live.get(name);
-    if (ctrl) { ctrl.abort(); live.delete(name); }
+    const entry = live.get(name);
+    if (entry) { entry.ctrl.abort(); live.delete(name); }
   };
 
-  // An agent's JSON arrives typed: "off" stays a string, which is not a boolean.
   const options = (signal) => ({ caller: "agent", signal, interactive: true, strict: true });
   add("\0status", STATUS_TOOL, (_, { signal } = {}) => status(registry, options(signal)));
   add("\0batch", BATCH_TOOL, (input, { signal } = {}) => runBatchTool(registry, input, options(signal)));
-  // The definition is looked up at call time: it may have been replaced since.
-  const addCommand = (def) => add(def.name, toTool(def, registry.formats), (input, { signal } = {}) => runForAgent(registry, registry.get(def.name) || def, input || {}, options(signal)));
+  const addCommand = (def) => add(def.name, toTool(def, registry.formats), (input, { signal } = {}) => {
+    // The definition is looked up at call time: it may have been replaced since.
+    const current = registry.get(def.name) || def;
+    // A definition changed in place (its annotations, say) announces nothing,
+    // so the tool is refreshed when a call finds it out of date.
+    const entry = live.get(def.name);
+    if (registry.get(def.name) && entry && entry.json !== JSON.stringify(toTool(current, registry.formats))) {
+      remove(def.name);
+      addCommand(current);
+    }
+    return runForAgent(registry, current, input || {}, options(signal));
+  });
 
   registry.list().forEach(addCommand);
   const off = registry.onChange(({ type, name, def }) => {

@@ -30,7 +30,11 @@ connectWebMCP(registry, findModelContext());
 - **`sutram_batch`**, which runs several tools as one change:
   `{ calls: [{ tool: "cart_add", input: { sku: "V60" } }, …] }`.
 
-When commands are added or removed, the tools follow.
+When commands are added or removed, the tools follow. If you change a
+definition in place, register it again (`registry.register(def)`) so the
+tool's hints follow too; otherwise the tool is refreshed at its next call.
+A tool the browser refuses is skipped with a warning; the others still
+register.
 
 An agent's input is checked strictly: its JSON arrives typed, so `"off"`
 for a boolean or `"2"` for an integer is a usage error, not converted as
