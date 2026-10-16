@@ -112,6 +112,10 @@ breaking changes bump the minor version.
   runs waits its turn, so each output follows its own line. Answers to an
   open question do not wait. `help`, `man` and `status` fail like commands
   instead of rejecting `submit()`.
+- Console keys: <kbd>ArrowDown</kbd> past the newest history line brings
+  back what you were typing; keys pressed while an input method composes
+  (IME) are left to it; the hotkey does not fire on key repeat or in a
+  `role="textbox"` editor, and only the first drop-down console answers it.
 - **`null` means "not given"**, like `undefined`: the default applies, or a
   required key is reported. Before, it became `"null"` or `0`.
 - **An empty string is a value** for a string property: `--title=""` reaches

@@ -112,7 +112,8 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--sutram-a
 // Importable outside a browser (for server rendering or tests) without failing.
 const Base = globalThis.HTMLElement || class {};
 
-const isEditable = (el) => el && (el.isContentEditable || /^(input|textarea|select)$/i.test(el.tagName));
+const isEditable = (el) => !!el && (el.isContentEditable || /^(input|textarea|select)$/i.test(el.tagName)
+  || (typeof el.closest === "function" && !!el.closest('[role="textbox"], [role="searchbox"], [role="combobox"]')));
 
 /** The longest start that all strings share. */
 const commonStart = (list) => list.reduce((a, b) => {
@@ -383,7 +384,10 @@ export class SutramConsole extends Base {
 
   /** The hotkey (the hotkey attribute, DEFAULT_HOTKEY when unset) toggles the console. Escape closes. */
   onGlobalKey(e) {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Escape" && this.hasAttribute("open")) { e.preventDefault(); this.close(); return; }
+    // One drop-down console answers the hotkey: the first one connected. A held key does not toggle it again and again.
+    if (e.repeat || [...connected].find((c) => !c.inline) !== this) return;
     const path = e.composedPath ? e.composedPath() : [];
     if (matchHotkey(e, this.hotkeys, { inField: isEditable(path[0] || document.activeElement) })) {
       e.preventDefault();
@@ -392,6 +396,8 @@ export class SutramConsole extends Base {
   }
 
   onInputKey(e) {
+    // While an input method composes (Japanese, Chinese, accents), its keys are its own.
+    if (e.isComposing || e.keyCode === 229) return;
     const value = this.input.value;
     const caret = this.input.selectionStart;
     if (!this.menu.hidden) {
@@ -402,7 +408,7 @@ export class SutramConsole extends Base {
     }
     // Tab completes; on an empty line it moves focus on, as usual.
     if (e.key === "Tab" && !e.shiftKey && value) { e.preventDefault(); this.completeInput(); return; }
-    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    if (e.key === "Enter" && !e.shiftKey) {
       // Inside an open quote, Enter starts a new line of the value.
       if (openQuote(value)) return;
       e.preventDefault();
@@ -410,12 +416,14 @@ export class SutramConsole extends Base {
       return;
     }
     if (e.key === "ArrowUp" && !value.slice(0, caret).includes("\n") && this.historyIndex > 0) {
+      // Leaving the line being typed: keep it for ArrowDown to bring back.
+      if (this.historyIndex === this.history.length) this.draft = value;
       this.historyIndex--;
       this.setInput(this.history[this.historyIndex]);
       e.preventDefault();
-    } else if (e.key === "ArrowDown" && !value.slice(caret).includes("\n")) {
-      this.historyIndex = Math.min(this.history.length, this.historyIndex + 1);
-      this.setInput(this.history[this.historyIndex] || "");
+    } else if (e.key === "ArrowDown" && !value.slice(caret).includes("\n") && this.historyIndex < this.history.length) {
+      this.historyIndex++;
+      this.setInput(this.historyIndex === this.history.length ? this.draft || "" : this.history[this.historyIndex]);
       e.preventDefault();
     } else if (!value && !this.inline && !e.ctrlKey && !e.altKey && !e.metaKey && matchHotkey(e, this.hotkeys)) {
       // The plain hotkey in an empty field closes the console again.
