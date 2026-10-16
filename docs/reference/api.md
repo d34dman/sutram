@@ -59,7 +59,8 @@ export declare const EXIT: Readonly<{
   NOT_FOUND: 127;
   CANCELLED: 130;
 }>;
-export type ExitCode = 0 | 1 | 2 | 127 | 130 | number;
+/** 0 done, 1 failed, 2 usage error, 127 not found, 130 cancelled, or a CommandError's own code. */
+export type ExitCode = 0 | 1 | 2 | 127 | 130 | (number & {});
 
 /** Thrown from run(), sets the result's code. 0 counts as 1: a thrown error is never success. */
 export declare class CommandError extends Error {
@@ -126,9 +127,13 @@ export interface CommandDefinition<I extends Record<string, any> = Record<string
   ) => CommandOutput<D> | string | void | Promise<CommandOutput<D> | string | void>;
 }
 
+/**
+ * A run's result. Each side names the other's fields as never, so `r.text`
+ * and `r.message` type-check on any Result, and `"message" in r` narrows.
+ */
 export type Result<D = unknown> =
-  | { code: 0; text?: string; data?: D }
-  | { code: Exclude<ExitCode, 0>; message: string };
+  | { code: 0; text?: string; data?: D; message?: never }
+  | { code: Exclude<ExitCode, 0>; message: string; text?: never; data?: never };
 
 export interface BatchHooks {
   begin?: () => unknown;

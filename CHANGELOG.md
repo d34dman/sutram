@@ -162,7 +162,10 @@ breaking changes bump the minor version.
 - Heredocs: `--value <<END`, then the text, then a line holding only `END`.
   The text is taken as written, so HTML needs no escaping. `commandLine()`
   writes multi-line values as heredocs, and the agent prompt mentions them.
-- TypeScript declarations in `types/`.
+- TypeScript declarations in `types/`. A `Result` names the other side's
+  fields as `never`, so `if (r.code === 0) r.text` type-checks and
+  `"message" in r` narrows; `ExitCode` keeps its named codes and allows a
+  `CommandError`'s own.
 - `run()` may return a string, used as its text. Returning any other
   non-object is now exit 1 with a message saying what to return.
 - `dist/sutram.min.js`: the bundle without comments and indentation (no
