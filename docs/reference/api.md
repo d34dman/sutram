@@ -108,7 +108,7 @@ export interface CommandDefinition<I extends Record<string, any> = Record<string
   /** Input keys that can be given without --, in order. The last takes the rest of the line. */
   positional?: string[];
   annotations: Annotations;
-  /** The question asked before the command runs, when the page's policy asks. */
+  /** The question asked before the command runs, when the page's policy asks. Gets the checked input, as run() does. */
   confirm?: (input: I) => string;
   /** Values for an argument, for completion. May be async. */
   suggest?: (

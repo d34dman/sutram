@@ -81,5 +81,18 @@ export function createPolicy({ person = "consequential", agent = "consequential"
   return policy;
 }
 
-/** The question a command asks in its own words, or null when it has none. */
-export const ownQuestion = (def, input) => (typeof def.confirm === "function" ? def.confirm(input) : null);
+/**
+ * The question a command asks in its own words, or null when it has none.
+ * `input` is the checked value. A confirm() that throws or returns no text
+ * gets the generic question.
+ */
+export function ownQuestion(def, input) {
+  if (typeof def.confirm !== "function") return null;
+  try {
+    const q = def.confirm(input);
+    return typeof q === "string" && q ? q : null;
+  } catch (err) {
+    console.warn(`sutram: ${def.name}: confirm() failed, so the generic question is asked: ${(err && err.message) || err}`);
+    return null;
+  }
+}

@@ -184,3 +184,41 @@ test("sutram_batch runs the definitions it approved, not ones a step swapped in"
   assert.equal(res.code, EXIT.CANCELLED);
   assert.deepEqual(ran, []);
 });
+
+test("the question shows the checked value, and a confirm() that throws gets the generic question", async () => {
+  const r = createRegistry();
+  const ran = [];
+  r.register({
+    name: "shop order", provider: "shop", description: "Order",
+    input: { type: "object", properties: { ids: { type: "array", items: { type: "integer" } }, all: { type: "boolean" }, qty: { type: "integer", default: 1 } } },
+    annotations: { consequential: true },
+    confirm: ({ ids, qty }) => `Order ${ids.length} × ${qty}?`,
+    run: (input) => { ran.push(input); return {}; },
+  });
+  r.register({
+    name: "shop wipe", provider: "shop", description: "Wipe", annotations: { consequential: true },
+    confirm: () => { throw new Error("oops"); }, run: () => ({}),
+  });
+  const single = await callTool("shop_order", { ids: "1,2,3" }, { registry: r });
+  assert.match(single.message, /"Order 3 × 1\?"/);
+
+  const batch = await callTool("sutram_batch", { calls: [{ tool: "shop_order", input: { ids: [1], all: "false" } }, { tool: "shop_wipe" }] }, { registry: r });
+  assert.match(batch.message, /shop order --ids=1 --no-all --qty=1\nshop wipe/);
+
+  const warn = console.warn;
+  const warned = [];
+  console.warn = (m) => warned.push(m);
+  try {
+    assert.match((await callTool("shop_wipe", {}, { registry: r })).message, /"Run shop wipe\?"/);
+  } finally { console.warn = warn; }
+  assert.match(warned[0], /shop wipe: confirm\(\) failed/);
+
+  // The asker sees the checked value, and that value runs.
+  const asked = [];
+  r.policy.setAsker((req) => { asked.push(req.steps[0].input); return true; });
+  const mc = fakeModelContext();
+  connectWebMCP(r, mc);
+  assert.equal((await mc.tools.get("shop_order").execute({ ids: [4, 5] }, {})).code, 0);
+  assert.deepEqual(asked, [{ ids: [4, 5], qty: 1 }]);
+  assert.deepEqual(ran, [{ ids: [4, 5], qty: 1 }]);
+});

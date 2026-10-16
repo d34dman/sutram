@@ -123,12 +123,14 @@ async function approve(registry, steps, { confirmed = false, interactive = false
 
 /** Runs one command for an agent: input errors first, then approval, then the command. */
 async function runForAgent(registry, def, input, options) {
-  if (!checkInput(def.input, input, registry.formats).errors.length) {
-    const refusal = await approve(registry, [{ def, input }], options);
-    if (refusal) return refusal;
-  }
+  const { errors, value } = checkInput(def.input, input, registry.formats);
+  // Bad input runs nothing, so it is reported without asking.
+  if (errors.length) return registry.run(def.name, input, { caller: options.caller, signal: options.signal });
+  // The user is asked about the checked value, and that value runs.
+  const refusal = await approve(registry, [{ def, input: value }], options);
+  if (refusal) return refusal;
   // expect: the definition the user was asked about, not whatever has the name by now.
-  return registry.run(def.name, input, { caller: options.caller, signal: options.signal, expect: def });
+  return registry.run(def.name, value, { caller: options.caller, signal: options.signal, expect: def });
 }
 
 /** Runs sutram_batch: every call is found and checked, then approved once, then run as one batch. */
@@ -140,9 +142,9 @@ async function runBatchTool(registry, input, options) {
     const def = call && findTool(registry, call.tool);
     if (!def) return { code: EXIT.NOT_FOUND, message: `${noSuchTool(registry, call && call.tool, `sutram_batch: call ${i + 1}: `)} Nothing ran.` };
     const args = (call.input && typeof call.input === "object") ? call.input : {};
-    const { errors } = checkInput(def.input, args, registry.formats);
+    const { errors, value } = checkInput(def.input, args, registry.formats);
     if (errors.length) return { code: EXIT.USAGE, message: `sutram_batch: call ${i + 1}: ${def.name}: ${errors.join("; ")}. Nothing ran.` };
-    steps.push({ def, input: args });
+    steps.push({ def, input: value });
   }
   const refusal = await approve(registry, steps, options);
   if (refusal) return refusal;

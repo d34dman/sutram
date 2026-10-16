@@ -36,6 +36,11 @@ breaking changes bump the minor version.
   (130), and the batch rolls back. WebMCP and the console pass the definition
   they asked the user about (`run(name, input, { expect })`, `def` on a batch
   step), so a command swapped in during the question does not run.
+- **Questions show the checked value.** `confirm()`, the policy's asker and
+  the command lines in a question get the input after checking (converted,
+  defaults filled), which is what runs. Before, `{ all: "false" }` was asked
+  as `--all` and ran with `all: false`. A `confirm()` that throws gets the
+  generic question.
 - **Batches take turns.** A second batch waits for the first to commit or
   roll back, and console and agent runs of a provider in a running batch
   wait too. Before, two batches at once could interleave their hooks and lose

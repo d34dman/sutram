@@ -706,8 +706,9 @@ export class SutramConsole extends Base {
       const fieldError = fields && checkFields(def, fields);
       if (fieldError) return this.fail(fieldError, EXIT.USAGE);
       const policy = this.registry.policy;
-      if (!confirmed && policy.needs(def, "person") && !checkInput(def.input, input, this.registry.formats).errors.length) {
-        const answer = await this.ask(ownQuestion(def, input) || this.messages.run(def.name), { always: this.canStopAsking("person", [def]) });
+      const checked = checkInput(def.input, input, this.registry.formats);
+      if (!confirmed && policy.needs(def, "person") && !checked.errors.length) {
+        const answer = await this.ask(ownQuestion(def, checked.value) || this.messages.run(def.name), { always: this.canStopAsking("person", [def]) });
         if (!answer) { this.print(this.messages.cancelled, "dim"); return EXIT.CANCELLED; }
         if (answer === "always") policy.relax("person");
       }
