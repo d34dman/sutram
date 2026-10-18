@@ -5,42 +5,36 @@ breaking changes bump the minor version.
 
 ## 0.5.0 (2026-10-18)
 
-### Changed, and may need your attention
+Prompts for agents that drive a browser, and a friendlier console.
 
-- **`agentPrompt()` is for agents that drive a browser.** Sutram's commands
-  run only in a running page, so the prompt now sends the agent to open the
-  page and type into its console, where the person watches every command
-  run; WebMCP tools and `Sutram.call()` are the fallback. The paste-back loop
-  for chat assistants without a browser is gone, along with the home page's
-  *Open in ChatGPT* and *Open in Claude* buttons. The guide moved from
-  `guides/chat-assistants` to [`guides/agent-prompt`](docs/guides/agent-prompt.md).
-- **The "use a Sutram page" skill puts the console first.** Typing into the
-  console is the way in; WebMCP tools and `Sutram.call()` are the fallbacks.
-  It starts with `help`, then `status`, and leaves the console's y/n
-  approval questions to the person.
-- **The prompt is short.** About 1,000 characters instead of 1,850: it says
-  the console exists and to ask it for help, and lists no syntax rules.
-- **`help` explains how to write a line.** Under the commands it now prints
-  options and quoting, multi-line text with `<<END`, what `[read-only]`,
-  `[consequential]` and `[navigates]` mean, and that a pasted block is
-  checked before any line runs.
+### Changed, check your setup
+
+- **`agentPrompt()` is for agents that drive a browser.** It tells the agent
+  to open the page and type into the console, where you watch it work.
+  - The copy-and-paste loop for chat assistants without a browser (ChatGPT,
+    Claude) is gone, and so are the *Open in ChatGPT* and *Open in Claude*
+    buttons on the home page.
+  - The prompt is shorter: about 1,000 characters instead of 1,850.
+  - Its guide moved to [`guides/agent-prompt`](docs/guides/agent-prompt.md).
+- **The "use a Sutram page" skill starts in the console**, with `help` and
+  then `status`, and leaves yes/no questions to the person.
+
+### Added
+
+- **`help` explains how to write a command:** options and quoting,
+  multi-line text, what *read-only*, *consequential* and *navigates* mean,
+  and that pasted lines are checked before any of them runs.
 
 ### Fixed
 
-- **<kbd>Esc</kbd> closes the console only while it has the focus.** An Escape
-  meant for the page, such as closing one of its menus, leaves the console
-  open, and so do keydown events that scripts fire: Drupal Canvas fires a
-  synthetic Escape on the document whenever a component is added, which closed
-  the console. The hotkey ignores keys that scripts fire too.
-- **The console opens with the cursor in the command field**, focused at once
-  and again a frame later in case the page moved the focus.
-- **A click in the console puts the cursor in the command field**, as in a
-  terminal. Dragging or double-clicking selects text instead, and typing after
-  that goes to the command field.
-- **The output has one scroll bar.** Wide tables, manuals and JSON no longer
-  get a horizontal scroll bar each; the whole output scrolls sideways.
-- **The page's `hyphens` no longer reach the console**, so words in the output
-  are not split with hyphens.
+- <kbd>Esc</kbd> closes the console only while you are in it. Escapes meant
+  for the page, or fired by its scripts, leave it open. (Drupal Canvas fires
+  one whenever a component is added.)
+- The console opens with the cursor in the command field.
+- Click anywhere in the console to type. Drag or double-click to select text
+  instead.
+- The output has one scroll bar, not one per wide table.
+- The page's hyphenation no longer splits words in the console.
 
 ## 0.4.0 (2026-10-16)
 

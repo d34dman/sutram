@@ -7,17 +7,13 @@
 **Let AI agents use your web app through commands, not clicks.**
 [Try it live →](https://d34dman.github.io/sutram/)
 
-Sutram is a standard way for a web app to expose what it can do as commands.
-Register them once, and agents reach them however they reach the page:
+Sutram turns what your web app can do into commands. Register a command
+once, and it is there for everyone:
 
-- as tools through [WebMCP](https://github.com/webmachinelearning/webmcp), in
-  browsers that have it;
-- from JavaScript, with `Sutram.tools()` and `Sutram.call()`, in a headless
-  browser, a test, or an agent that drives a browser;
-- by typing into a terminal-like console, which people can use too, and
-  where they watch an agent's commands run.
-
-You write no console, no help pages and no agent integration.
+- **Agents** get it as a [WebMCP](https://github.com/webmachinelearning/webmcp)
+  tool, or call it from JavaScript with `Sutram.call()`.
+- **People** type it into a terminal-like console. Agents can type there too,
+  so you watch every command they run.
 
 ```
 › help
@@ -26,27 +22,27 @@ cart status            Show what is in the cart          read-only
 checkout               Place the order                    consequential
 › cart add V60-02 --qty=2
 Added 2 × V60 dripper, size 02. The cart has 2 items, €48.00.
-› cart status
-SKU     NAME                  QTY   PRICE
-V60-02  V60 dripper, size 02    2  €24.00
 › checkout
 Place an order for 2 items, €48.00? Yes No
 ```
 
-- **Feels like a terminal.** `help`, `man`, `--json`, GNU-style options,
-  history with ↑, Tab completion, "did you mean", and syntax highlighting
-  as you type.
-- **Agents see what people see.** Every command is also a tool, with its JSON
-  Schema and hints such as "read-only" or "ask first", with or without WebMCP.
-- **No new way into your server.** Commands run in the browser with the
-  user's own session, so they can do exactly what the user could already do.
-- **Small and dependency-free.** Plain ES modules, or one file of about
-  148 kB (45 kB gzipped; minified 107 kB, 31 kB gzipped), no runtime
-  dependencies, TypeScript declarations included.
+## Why use it
+
+- **No clicking around.** An agent runs one short command instead of reading
+  screenshots and hunting for buttons.
+- **The user's own session.** Commands run in the browser, as the logged-in
+  user. No new API, no new login, no new way into your server.
+- **Asks before it matters.** Commands that are hard to undo ask the person
+  first.
+- **Feels like a terminal.** `help`, `man`, Tab completion, history and
+  "did you mean". You write no help pages.
+- **Small.** No dependencies, 31 kB minified and gzipped, TypeScript types
+  included.
 
 ## Quick start
 
-Save this as an HTML file, open it, and press <kbd>`</kbd> (backtick):
+Save this as an HTML file, open it in a browser and press <kbd>`</kbd>
+(the key left of <kbd>1</kbd>):
 
 ```html
 <!doctype html>
@@ -91,66 +87,59 @@ Then try:
 npm install @d34dman/sutram
 ```
 
-Or load one file, `dist/sutram.js`, as a module: it sets up the console and
-WebMCP and exposes everything as `globalThis.Sutram`. For Drupal, use the
-[`drupal/sutram`](https://www.drupal.org/project/sutram) module. TypeScript
-declarations are included. See [Install](docs/install.md).
+Other ways in:
+
+- **One file, no build:** load `dist/sutram.js` as a module from a CDN, as in
+  the quick start. It sets up the console and WebMCP for you.
+- **Drupal:** install the [`drupal/sutram`](https://www.drupal.org/project/sutram)
+  module.
+
+See [Install](docs/install.md) for the details.
 
 ## Why commands
 
 Without Sutram, an agent reads the page (screenshots, snapshots, HTML), works
-out which elements to click, and reads the page again to see whether it
-worked. Sutram gives every part of the app (forms, navigation, editors,
-modules) one standard way to hook in, and gives agents one short list of
-commands:
+out what to click, then reads the page again to see whether it worked. With
+Sutram, it reads a short list of commands and runs them:
 
 ```sh
 form fields node-article-form
 form set node-article-form title "Pour-over, step by step"
-form set node-article-form status false
 form save node-article-form
 ```
 
-- **In the user's session:** the person logs in, the agent takes over, and
-  it can do exactly what the person could. No new API, no extra login.
-- **The same everywhere:** headless browser, WebMCP, JavaScript in the page,
-  or the console: the same commands, the same answers.
-- **Errors to act on:** a failure names the field and the fix. The agent
-  corrects one value, whether it sent one field or the whole form at once.
-- **Forms that change:** `fields` lists fields the page hides behind toggles,
-  and results say which fields appeared.
+When something is wrong, the error names the field and the fix, so the agent
+corrects one value instead of starting over.
 
-Measured on Drupal's article form: reading the page costs a browser agent
-2.5 to 5 times more than reading Sutram's commands, and correcting one wrong
-value costs about 3,300 tokens without Sutram against 17 to 44 with it. Read
+On Drupal's article form, fixing one wrong value cost an agent about 3,300
+tokens by reading the page, and 17 to 44 with Sutram. See
 [Why commands](docs/why.md) and the [measurements](docs/measurements.md).
 
 ## Documentation
 
-**[d34dman.github.io/sutram/docs](https://d34dman.github.io/sutram/docs/index.html)**, also in [`docs/`](docs/index.md).
-Most apps need only the first four:
+Read it at **[d34dman.github.io/sutram/docs](https://d34dman.github.io/sutram/docs/index.html)**
+or in [`docs/`](docs/index.md). Most apps need only these four:
 
 1. [Quick start](docs/quick-start.md): one command in five minutes
 2. [Install](docs/install.md): a script tag, npm, or [Drupal](docs/drupal.md)
 3. [Write a provider](docs/guides/write-a-provider.md): a real set of commands, with a checklist
 4. [Descriptions](docs/guides/descriptions.md) and [errors](docs/guides/errors.md) agents can use
 
-Then, when you need them: [forms](docs/guides/forms.md), [batches](docs/concepts/batches.md),
-[formats](docs/concepts/formats.md), [events](docs/concepts/events.md), and the
-[API reference](docs/reference/api.md). The [docs index](docs/index.md) lists every page.
+Later, when you need them: [forms](docs/guides/forms.md),
+[batches](docs/concepts/batches.md), [formats](docs/concepts/formats.md),
+[events](docs/concepts/events.md) and the [API reference](docs/reference/api.md).
 
 ## For AI agents
 
-- [`llms.txt`](https://d34dman.github.io/sutram/llms.txt) and
-  [`llms-full.txt`](https://d34dman.github.io/sutram/llms-full.txt); every
+- **Docs as text:** [`llms.txt`](https://d34dman.github.io/sutram/llms.txt)
+  and [`llms-full.txt`](https://d34dman.github.io/sutram/llms-full.txt). Every
   docs page is also published as Markdown.
-- Skills, in the package's [`skills/`](skills/) folder:
-  [use a Sutram page](skills/use-sutram-page/SKILL.md) (for agents that drive
-  a browser) and [add Sutram to an app](skills/add-sutram/SKILL.md) (for
-  coding agents).
-- `Sutram.agentPrompt(task)`: a generic prompt that hands a task to an agent
-  that drives a browser. It lists no commands; the agent opens the console
-  and finds them with `help`.
+- **Skills**, in [`skills/`](skills/):
+  [use a Sutram page](skills/use-sutram-page/SKILL.md) for agents that drive
+  a browser, and [add Sutram to an app](skills/add-sutram/SKILL.md) for
+  coding agents.
+- **A prompt:** `Sutram.agentPrompt(task)` hands a task to an agent that
+  drives a browser. The agent opens the console and starts with `help`.
 
 ## Develop
 
@@ -164,8 +153,7 @@ npm run site          # the website and docs, at http://localhost:8080/site/
 npm run docs          # regenerate the generated docs (API, measurements, skill, llms.txt)
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). [docs/design.md](docs/design.md) is
-the first design note; parts of it have changed since.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Why "Sutram"
 
@@ -176,13 +164,12 @@ one short line in place of clicks and screenshots.
 
 ## Status
 
-Version 0.5: early. See the [changelog](CHANGELOG.md). The command contract may still change before 1.0; breaking
-changes bump the minor version until then.
+Version 0.5, early. Until 1.0, the command contract may still change, and
+breaking changes bump the minor version (0.5 → 0.6). See the
+[changelog](CHANGELOG.md).
 
 ## License
 
-Dual-licensed: use Sutram under the [MIT License](LICENSE-MIT) or the
-[GNU GPL, version 2 or later](LICENSE-GPL-2.0), whichever suits your project
+Your choice of [MIT](LICENSE-MIT) or [GPL 2.0 or later](LICENSE-GPL-2.0)
 (`MIT OR GPL-2.0-or-later`). MIT fits most JavaScript projects; GPL fits
-Drupal and other GPL software. Version 0.2.0 on npm was published under
-GPL-2.0-or-later only.
+Drupal and other GPL software. Version 0.2.0 on npm was GPL only.
