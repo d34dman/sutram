@@ -3,9 +3,10 @@
 Sutram follows [semantic versioning](https://semver.org/). Before 1.0,
 breaking changes bump the minor version.
 
-## Unreleased
+## 0.6.0 (2026-10-18)
 
-Sutram stores nothing in the browser, and says when a page is ready.
+Sutram stores nothing in the browser and says when a page is ready; the
+console can step aside (peek) and take skins.
 
 ### Added
 

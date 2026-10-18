@@ -53,7 +53,7 @@ Save this as an HTML file, open it in a browser and press <kbd>`</kbd>
 <p>Press <kbd>`</kbd> and type <code>help</code>.</p>
 
 <script type="module">
-  import Sutram from "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.5/dist/sutram.js";
+  import Sutram from "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.6/dist/sutram.js";
 
   Sutram.register({
     name: "hello world",
@@ -166,8 +166,8 @@ one short line in place of clicks and screenshots.
 
 ## Status
 
-Version 0.5, early. Until 1.0, the command contract may still change, and
-breaking changes bump the minor version (0.5 → 0.6). See the
+Version 0.6, early. Until 1.0, the command contract may still change, and
+breaking changes bump the minor version (0.6 → 0.7). See the
 [changelog](CHANGELOG.md).
 
 ## License
