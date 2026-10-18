@@ -15,15 +15,17 @@ once, and it is there for everyone:
 - **People** type it into a terminal-like console. Agents can type there too,
   so you watch every command they run.
 
-```
+```text
 › help
-cart add <sku> [qty]   Add a product to the cart
-cart status            Show what is in the cart          read-only
-checkout               Place the order                    consequential
+cart add <sku> [qty]  Add a product to the cart
+cart status           Show what is in the cart  [read-only]
+checkout              Place the order  [consequential]
+
 › cart add V60-02 --qty=2
 Added 2 × V60 dripper, size 02. The cart has 2 items, €48.00.
+
 › checkout
-Place an order for 2 items, €48.00? Yes No
+Place an order for 2 items, €48.00? [Yes] [No]
 ```
 
 ## Why use it
@@ -72,7 +74,7 @@ Save this as an HTML file, open it in a browser and press <kbd>`</kbd>
 
 Then try:
 
-```
+```text
 › help
 › hello world
 › hello world Ada
@@ -102,7 +104,7 @@ Without Sutram, an agent reads the page (screenshots, snapshots, HTML), works
 out what to click, then reads the page again to see whether it worked. With
 Sutram, it reads a short list of commands and runs them:
 
-```sh
+```text
 form fields node-article-form
 form set node-article-form title "Pour-over, step by step"
 form save node-article-form
