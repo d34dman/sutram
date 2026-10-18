@@ -57,7 +57,8 @@ const STYLE = `
 :host {
   --sutram-bg: #11131c; --sutram-fg: #e6e8f0; --sutram-dim: #8c93a8; --sutram-accent: #9aa2ff;
   --sutram-ok: #6fd69a; --sutram-warn: #f5a35c; --sutram-err: #ff7b7b; --sutram-line: #ffffff1a;
-  --sutram-option: #7dcfff; --sutram-string: #c3e88d;
+  --sutram-option: #7dcfff; --sutram-string: #c3e88d; --sutram-on-warn: #11131c;
+  --sutram-radius: 0; --sutram-shadow: 0 8px 32px #0007;
   --sutram-font: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
   position: fixed; inset: 0 0 auto 0; z-index: 2147483000; display: none;
   /* The page's text styles stop here, so the highlight layer stays under the caret. */
@@ -68,8 +69,11 @@ const STYLE = `
 :host([open]) { display: block; }
 :host([inline]) { position: relative; inset: auto; z-index: auto; display: block; height: 100%; min-height: 0; }
 .panel { background: var(--sutram-bg); color: var(--sutram-fg); font: var(--sutram-font-size, 13px)/1.55 var(--sutram-font);
-  height: var(--sutram-height, min(55vh, 520px)); display: flex; flex-direction: column; box-shadow: 0 8px 32px #0007;
-  border-bottom: 1px solid var(--sutram-line); }
+  height: var(--sutram-height, min(55vh, 520px)); display: flex; flex-direction: column; box-shadow: var(--sutram-shadow);
+  border-bottom: 1px solid var(--sutram-line); border-radius: var(--sutram-radius); overflow: hidden; transition: opacity .15s; }
+/* Peeking: the page shows through while the peek key is held. */
+:host([peeking]) .panel { opacity: var(--sutram-peek-opacity, 0.12); }
+@media (prefers-reduced-motion: reduce) { .panel { transition: none; } }
 :host([inline]) .panel { height: 100%; box-shadow: none; border-bottom: 0; }
 :host([inline]) .close { display: none; }
 header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 14px;
@@ -97,7 +101,7 @@ header button { font: inherit; background: none; border: 1px solid var(--sutram-
 .ln .tag.navigates, .ln .tag.reinitializes { color: var(--sutram-accent); }
 .ln.ask { color: var(--sutram-warn); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ln.ask button { font: inherit; font-size: 12px; border: 1px solid var(--sutram-warn); background: transparent; color: var(--sutram-warn); border-radius: 5px; padding: 0 10px; cursor: pointer; }
-.ln.ask button.yes { background: var(--sutram-warn); color: var(--sutram-bg); }
+.ln.ask button.yes { background: var(--sutram-warn); color: var(--sutram-on-warn); }
 .menu { list-style: none; margin: 0; padding: 4px 0; border-top: 1px solid var(--sutram-line); max-height: 40%; overflow: auto; flex: none; }
 .menu[hidden] { display: none; }
 .menu li { display: flex; gap: 16px; padding: 0 14px; cursor: pointer; white-space: pre; }
@@ -134,6 +138,10 @@ const commonStart = (list) => list.reduce((a, b) => {
 
 const MAX_ROWS = 10;
 const HISTORY_SIZE = 100;
+/** The keys that can be held to peek, by peek attribute value. */
+const PEEK_KEYS = Object.freeze({ alt: "Alt", ctrl: "Control", shift: "Shift", meta: "Meta" });
+/** How long the peek key is held alone before the console fades, so Alt+letter does not flicker. */
+const PEEK_DELAY = 200;
 let instances = 0;
 /** Consoles on the page, in the order they connected. */
 const connected = new Set();
@@ -205,7 +213,7 @@ export class SutramConsole extends Base {
     const root = this.attachShadow({ mode: "open" });
     root.innerHTML = `<style>${STYLE}</style>
       <div class="panel" part="panel" tabindex="-1">
-        <header part="header"><span><b class="title"></b> · <span class="count"></span></span><span class="tools"><button type="button" class="agent-prompt" part="agent-prompt"></button><button type="button" class="copy"></button><button type="button" class="close"></button></span></header>
+        <header part="header"><span><b class="title"></b> · <span class="count"></span></span><span class="tools"><button type="button" class="agent-prompt" part="agent-prompt"></button><button type="button" class="copy" part="copy"></button><button type="button" class="close" part="close"></button></span></header>
         <div class="out" part="output" aria-live="polite" tabindex="-1"></div>
         <ul class="menu" part="menu" role="listbox" id="${menuId}" hidden></ul>
         <form part="prompt"><span aria-hidden="true">›</span><div class="field"><div class="hl" aria-hidden="true"></div><textarea rows="1" wrap="off" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="${menuId}" aria-expanded="false"></textarea></div></form>
@@ -276,6 +284,8 @@ export class SutramConsole extends Base {
       next.focus();
     });
     this.onGlobalKey = this.onGlobalKey.bind(this);
+    this.onPeekEvent = this.onPeekEvent.bind(this);
+    this.peekTimer = null;
     this.renderChrome();
   }
 
@@ -320,8 +330,29 @@ export class SutramConsole extends Base {
 
   get inline() { return this.hasAttribute("inline"); }
 
+  /**
+   * The key held to peek ("Alt", "Control", "Shift" or "Meta"), or null when
+   * the console does not peek. From the peek attribute: absent means no peek,
+   * empty means alt. A name it does not know peeks with alt, with a warning.
+   */
+  get peekKey() {
+    if (!this.hasAttribute("peek")) return null;
+    const name = (this.getAttribute("peek") || "alt").trim().toLowerCase();
+    if (name === "none") return null;
+    if (PEEK_KEYS[name]) return PEEK_KEYS[name];
+    if (this._peekWarned !== name) {
+      this._peekWarned = name;
+      console.warn(`sutram: peek "${name}" is not one of ${Object.keys(PEEK_KEYS).join(", ")}. Using "alt".`);
+    }
+    return PEEK_KEYS.alt;
+  }
+
+  get peeking() { return this.hasAttribute("peeking"); }
+
   connectedCallback() {
     if (!this.inline) document.addEventListener("keydown", this.onGlobalKey);
+    // Capture, so keys the console or the page stop on their way still end a peek.
+    for (const type of ["keydown", "keyup", "pointerdown", "blur"]) window.addEventListener(type, this.onPeekEvent, true);
     this.panel.setAttribute("role", this.inline ? "region" : "dialog");
     if (this.inline) this.panel.removeAttribute("aria-modal");
     else this.panel.setAttribute("aria-modal", "true");
@@ -336,6 +367,8 @@ export class SutramConsole extends Base {
   disconnectedCallback() {
     connected.delete(this);
     document.removeEventListener("keydown", this.onGlobalKey);
+    for (const type of ["keydown", "keyup", "pointerdown", "blur"]) window.removeEventListener(type, this.onPeekEvent, true);
+    this.stopPeek();
     if (this.offChange) this.offChange();
     // Nobody can answer here any more: open and queued questions are answered no.
     for (const show of this.askQueue.splice(0)) show.cancel();
@@ -411,6 +444,8 @@ export class SutramConsole extends Base {
   }
 
   open() {
+    // Something to see, such as an agent's question: no longer faded.
+    this.stopPeek();
     if (!this.inline && !this.hasAttribute("open")) {
       // Focus goes back where it was when the console closes.
       const active = document.activeElement;
@@ -426,6 +461,7 @@ export class SutramConsole extends Base {
 
   close() {
     if (this.inline) return;
+    this.stopPeek();
     this.closeMenu();
     this.removeAttribute("open");
     const back = this.returnFocus;
@@ -435,6 +471,44 @@ export class SutramConsole extends Base {
   }
 
   toggle() { this.hasAttribute("open") ? this.close() : this.open(); }
+
+  /**
+   * Peek: holding the peek key alone fades the console, so the page behind it
+   * shows; letting go brings it back. Any other key, a click or leaving the
+   * window ends it, so shortcuts with the key and typing keep working.
+   */
+  onPeekEvent(e) {
+    const key = this.peekKey;
+    if (!key) return;
+    if (e.type === "blur" || e.type === "pointerdown") {
+      if (e.type === "pointerdown" || e.target === window) this.stopPeek();
+      return;
+    }
+    // Only keys a person presses; apps fire keyboard events of their own.
+    if (!e.isTrusted) return;
+    if (e.type === "keyup") {
+      if (e.key !== key) return;
+      // Firefox on Windows opens its menu bar when Alt is let go.
+      if (this.peeking) e.preventDefault();
+      this.stopPeek();
+      return;
+    }
+    if (e.key !== key) { this.stopPeek(); return; }
+    // A held key repeats; the first press started the wait.
+    if (e.repeat || this.peekTimer || this.peeking) return;
+    const held = ["altKey", "ctrlKey", "shiftKey", "metaKey"].filter((m) => e[m]).length;
+    if (held !== 1 || !(this.inline || this.hasAttribute("open"))) return;
+    this.peekTimer = setTimeout(() => {
+      this.peekTimer = null;
+      this.setAttribute("peeking", "");
+    }, PEEK_DELAY);
+  }
+
+  stopPeek() {
+    if (this.peekTimer) clearTimeout(this.peekTimer);
+    this.peekTimer = null;
+    if (this.peeking) this.removeAttribute("peeking");
+  }
 
   /** The hotkey (the hotkey attribute, DEFAULT_HOTKEY when unset) toggles the console. Escape is the panel's own (see the constructor). */
   onGlobalKey(e) {
@@ -940,7 +1014,7 @@ export function defineConsole(tag = "sutram-console") {
  * Adds a console and returns it. Without a container: the page's drop-down
  * console, created once. With a container: a new inline console inside it,
  * which fills the container and has no hotkey, for apps that place the
- * console themselves. `attributes` may hold greeting, locale, hotkey,
+ * console themselves. `attributes` may hold greeting, locale, hotkey, peek,
  * messages and historyStore.
  */
 export function mountConsole(attributes = {}, container = null) {

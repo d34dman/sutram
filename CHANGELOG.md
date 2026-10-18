@@ -26,6 +26,16 @@ Sutram stores nothing in the browser, and says when a page is ready.
 - The agent rules (the *use a Sutram page* skill) say to wait, look again,
   and remember what is needed from before.
 - `ANNOTATIONS`: the annotation keys `register()` accepts.
+- **Peek:** `mountConsole({ peek: true })` (or the `peek` attribute). Holding
+  Alt on its own fades the console so the page behind it shows; letting go
+  brings it back. `peek: "ctrl" | "shift" | "meta"` picks another key,
+  `--sutram-peek-opacity` sets how faded it is. Off by default.
+- **Skins:** `skins/light.css` and `skins/system.css` (dark or light, following
+  the system). Optional; the console stays dark by default.
+- New custom properties `--sutram-on-warn` (text on the Yes button),
+  `--sutram-radius` and `--sutram-shadow`; `--sutram-line` is now documented.
+  The custom properties are a stable contract.
+- Parts `copy` and `close` for the top bar's buttons.
 
 ### Changed
 
@@ -39,6 +49,11 @@ Sutram stores nothing in the browser, and says when a page is ready.
   `historyStore` (`{ load(), save(lines) }`) to `mountConsole()` or sets
   `console.historyStore`, and decides where the lines are kept.
 - **Breaking:** the `history="off"` attribute is gone; it is now the default.
+
+### Fixed
+
+- The Yes button's text no longer turns translucent with a translucent
+  `--sutram-bg`.
 
 ## 0.5.1 (2026-10-18)  The console hands the page to an agent with one click.
 

@@ -537,6 +537,10 @@ export declare class SutramConsole extends HTMLElement {
   readonly inline: boolean;
   /** The bindings of the hotkey attribute, or of DEFAULT_HOTKEY. */
   readonly hotkeys: HotkeyBinding[];
+  /** The key held to peek, from the peek attribute; null when the console does not peek. */
+  readonly peekKey: "Alt" | "Control" | "Shift" | "Meta" | null;
+  /** True while the console is faded by peek (the peeking attribute). */
+  readonly peeking: boolean;
   /** Lines run, newest last: this page's, after the history store's. */
   history: string[];
   /** Where history is kept between pages. Null (the default): only on this page. */
@@ -583,6 +587,8 @@ export interface MountAttributes {
   locale?: string;
   /** Space-separated bindings such as "mod+k ctrl+backquote", or "none". Default: DEFAULT_HOTKEY. */
   hotkey?: string;
+  /** Hold this key alone to fade the console and see the page: "alt", "ctrl", "shift" or "meta"; true means "alt". Off by default. */
+  peek?: boolean | "alt" | "ctrl" | "shift" | "meta";
   messages?: Partial<Messages>;
   /** Keeps history between pages. Without it, history lasts as long as the page. */
   historyStore?: HistoryStore;

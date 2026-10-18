@@ -42,7 +42,7 @@ command field.
 
 ## Options
 
-`mountConsole({ greeting, locale, hotkey, messages, historyStore })`:
+`mountConsole({ greeting, locale, hotkey, peek, messages, historyStore })`:
 
 - `greeting`: a first line.
 - `locale`: the locale values are shown in.
@@ -54,6 +54,7 @@ command field.
   A binding without `ctrl`, `alt` or `meta` never fires in a text field.
   `"none"` turns the hotkey off; open the console from your own button with
   the element `mountConsole()` returns: `const el = mountConsole({ hotkey: "none" }); el.open()`.
+- `peek`: hold a key alone to see the page behind the console; see below.
 - `historyStore`: where history is kept between pages; see below.
 
 ### Keeping history between pages
@@ -82,6 +83,23 @@ leave that key to it. Sutram's default avoids the keys browsers, Drupal's
 Coffee module (<kbd>Alt</kbd>+<kbd>D</kbd>) and Firefox's Web Console
 (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>) use.
 
+### Peeking at the page
+
+The console covers part of the page. With `peek`, holding a key on its own
+fades the console so you can see what happens behind it; let go and it is
+back. Off by default.
+
+```js
+mountConsole({ peek: true });     // hold Alt (Option on a Mac)
+mountConsole({ peek: "ctrl" });   // or "shift", "meta"
+```
+
+The console fades after the key has been held for a moment, so Alt+letter
+shortcuts and Option characters do not flicker. Any other key, a click, or
+switching to another window ends the peek. While it peeks, the element has
+the `peeking` attribute; set how faded it is with `--sutram-peek-opacity`
+(default `0.12`).
+
 ## In your own panel
 
 Give `mountConsole()` a container, and it adds an inline console there
@@ -95,7 +113,21 @@ const el = mountConsole({ greeting: "Type help." }, panel);
 
 ## Styling
 
-Restyle it with CSS custom properties on `sutram-console`:
+The console is dark by default. Sutram ships two optional skins; load one
+after Sutram:
+
+- `skins/light.css`: light.
+- `skins/system.css`: dark or light, following the system setting.
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.5/skins/system.css">
+```
+
+With a bundler: `import "@d34dman/sutram/skins/light.css";`.
+
+A skin is nothing but values for the console's CSS custom properties, set on
+`sutram-console`. Write your own the same way, for example to match your
+app's theme. These names are a stable contract: a rename is a breaking change.
 
 ```css
 sutram-console {
@@ -109,17 +141,36 @@ sutram-console {
   --sutram-ok: #6fd69a;
   --sutram-warn: #f5a35c;
   --sutram-err: #ff7b7b;
+  --sutram-on-warn: #11131c;  /* text on the warn-coloured Yes button */
+  --sutram-line: #ffffff1a;   /* borders, selected suggestion */
+
+  /* Shape */
+  --sutram-radius: 0;
+  --sutram-shadow: 0 8px 32px #0007;
 
   /* Type and size */
   --sutram-font: ui-monospace, monospace;
   --sutram-font-size: 13px;
   --sutram-height: 55vh;
+
+  /* How visible the console stays while peeking */
+  --sutram-peek-opacity: 0.12;
 }
 ```
 
+A translucent `--sutram-bg` lets the page show through all the time; add
+`sutram-console::part(panel) { backdrop-filter: blur(8px); }` to keep the
+text readable. Set `--sutram-on-warn` too, or the Yes button's text turns
+translucent with it.
+
+Where the drop-down sits is CSS on the element as well:
+`sutram-console { inset: auto 16px 16px auto; width: 560px; --sutram-radius: 8px; }`
+turns it into a box in the bottom right corner.
+
 Parts can be styled with `::part()`: `panel`, `header`, `output`, `menu`,
-`prompt` and `agent-prompt` (the button). `sutram-console::part(header) { display: none; }`
-hides the top bar; `sutram-console::part(agent-prompt) { display: none; }` only the button.
+`prompt`, and the top bar's buttons `agent-prompt`, `copy` and `close`.
+`sutram-console::part(header) { display: none; }` hides the top bar;
+`sutram-console::part(agent-prompt) { display: none; }` only one button.
 
 ## In other languages
 

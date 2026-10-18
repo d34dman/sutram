@@ -71,3 +71,71 @@ test("a store may load later: its lines go before the ones run meanwhile", async
   await new Promise((r) => setTimeout(r, 0));
   assert.deepEqual(c.history, ["help", "status"]);
 });
+
+// Peek on a stand-in for the element: attributes in a Map, no DOM.
+const peekOf = (attrs = {}) => {
+  const a = new Map(Object.entries(attrs));
+  return Object.assign(Object.create(SutramConsole.prototype), {
+    peekTimer: null,
+    hasAttribute: (n) => a.has(n),
+    getAttribute: (n) => (a.has(n) ? a.get(n) : null),
+    setAttribute: (n, v) => a.set(n, String(v)),
+    removeAttribute: (n) => a.delete(n),
+  });
+};
+const press = (c, type, keyValue, mods = {}) => {
+  const e = { type, key: keyValue, isTrusted: true, repeat: false, defaultPrevented: false,
+    ...key("", keyValue, mods), preventDefault() { this.defaultPrevented = true; }, ...mods };
+  c.onPeekEvent(e);
+  return e;
+};
+
+test("peek is off by default; holding the peek key alone fades the console", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  assert.equal(peekOf({ open: "" }).peekKey, null);
+  assert.equal(peekOf({ peek: "" }).peekKey, "Alt");
+  assert.equal(peekOf({ peek: "ctrl" }).peekKey, "Control");
+  assert.equal(peekOf({ peek: "none" }).peekKey, null);
+
+  const c = peekOf({ peek: "", open: "" });
+  press(c, "keydown", "Alt", { altKey: true });
+  assert.equal(c.peeking, false); // not at once: Alt+letter must not flicker
+  t.mock.timers.tick(250);
+  assert.equal(c.peeking, true);
+  press(c, "keydown", "Alt", { altKey: true, repeat: true });
+  assert.equal(c.peeking, true);
+  const up = press(c, "keyup", "Alt");
+  assert.equal(c.peeking, false);
+  assert.equal(up.defaultPrevented, true); // no Firefox menu bar
+});
+
+test("another key, a click or a closed console means no peek", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const c = peekOf({ peek: "", open: "" });
+  // Option+e on a Mac: the letter comes before the wait is over.
+  press(c, "keydown", "Alt", { altKey: true });
+  press(c, "keydown", "é", { altKey: true });
+  t.mock.timers.tick(250);
+  assert.equal(c.peeking, false);
+  // With another modifier held it is a shortcut, not a peek.
+  press(c, "keydown", "Alt", { altKey: true, shiftKey: true });
+  t.mock.timers.tick(250);
+  assert.equal(c.peeking, false);
+  // Peeking ends on any other key and on a click.
+  press(c, "keydown", "Alt", { altKey: true });
+  t.mock.timers.tick(250);
+  press(c, "keydown", "Tab", { altKey: true });
+  assert.equal(c.peeking, false);
+  press(c, "keydown", "Alt", { altKey: true });
+  t.mock.timers.tick(250);
+  c.onPeekEvent({ type: "pointerdown" });
+  assert.equal(c.peeking, false);
+  // Keys apps fire do not peek; a closed drop-down has nothing to fade.
+  c.onPeekEvent({ type: "keydown", key: "Alt", altKey: true, isTrusted: false });
+  t.mock.timers.tick(250);
+  assert.equal(c.peeking, false);
+  const closed = peekOf({ peek: "" });
+  press(closed, "keydown", "Alt", { altKey: true });
+  t.mock.timers.tick(250);
+  assert.equal(closed.peeking, false);
+});

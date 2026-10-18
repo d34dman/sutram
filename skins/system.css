@@ -1,0 +1,20 @@
+/*
+ * Sutram console skin: follows the system. Dark (Sutram's default) when the
+ * system is dark, the light skin (skins/light.css) when it is light.
+ */
+@media (prefers-color-scheme: light) {
+  sutram-console {
+    --sutram-bg: #fafafc;
+    --sutram-fg: #1d2130;
+    --sutram-dim: #5b6275;
+    --sutram-accent: #4f46e5;
+    --sutram-option: #0b6aa2;
+    --sutram-string: #3d7a12;
+    --sutram-ok: #16794a;
+    --sutram-warn: #a8520a;
+    --sutram-err: #c42b2b;
+    --sutram-on-warn: #ffffff;
+    --sutram-line: #0000001a;
+    --sutram-shadow: 0 8px 32px #0003;
+  }
+}

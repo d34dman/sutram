@@ -40,7 +40,8 @@
     "./dist/sutram.min.js": {
       "types": "./types/dist.d.ts",
       "default": "./dist/sutram.min.js"
-    }
+    },
+    "./skins/*": "./skins/*"
   },
   "files": [
     "CHANGELOG.md",
@@ -48,6 +49,7 @@
     "LICENSE-GPL-2.0",
     "LICENSE-MIT",
     "dist",
+    "skins",
     "docs",
     "!docs/design.md",
     "!docs/measurements",

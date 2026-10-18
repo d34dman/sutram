@@ -103,9 +103,9 @@
   if (new URLSearchParams(location.search).has("inline")) {
     const panel = document.getElementById("panel");
     panel.hidden = false;
-    mountConsole({ greeting: "An inline console. Type help." }, panel).open();
+    mountConsole({ greeting: "An inline console. Type help.", peek: true }, panel).open();
   } else {
-    mountConsole({ greeting: "Sutram console. Type help." }).open();
+    mountConsole({ greeting: "Sutram console. Type help. Hold Alt to see the page behind it.", peek: true }).open();
   }
 </script>
 </body>
