@@ -16,18 +16,22 @@ drush en sutram
 ```
 
 Give the *Use Sutram* permission to the roles that should have it. Then, on
-any page, press <kbd>`</kbd> and type `help`. The library is shipped in the
+any page, press <kbd>`</kbd> (the key left of <kbd>1</kbd>), or
+<kbd>Ctrl</kbd>+<kbd>`</kbd> inside a text field, and type `help`. The library is shipped in the
 module (`lib/sutram`); nothing is loaded from a CDN.
 
 ## Demo submodules
 
 They are demos, not a stable API: try them, or copy them as a starting point.
 
-| Module | Commands |
-|---|---|
-| `sutram_demo_nav` | `nav status`, `nav tree`, `nav find`, `nav go`: the menus you choose, access-checked for each user |
-| `sutram_demo_page` | `page status`: the current page's title, route and entity |
-| `sutram_demo_form` | `form list`, then `form status`, `fields`, `get`, `set`, `save`, `discard` with the form's id first on content entity forms |
+- **`sutram_demo_nav`**: `nav status`, `nav tree`, `nav find` and `nav go`
+  over the menus you choose. Each user sees only the links they may open.
+- **`sutram_demo_page`**: `page status`, the page's title, route and entity.
+- **`sutram_demo_form`**: fill in and save content forms. See below.
+- **`sutram_demo_canvas`**: build pages in the
+  [Drupal Canvas](https://www.drupal.org/project/canvas) editor. See below.
+
+### Forms
 
 The form commands follow the [forms guide](guides/forms.md). They are
 registered once and look the form up when they run, so a form that arrives by
@@ -38,13 +42,38 @@ inputs (and CKEditor), so the form on screen and the commands agree. `save`
 clicks the real Save button: Drupal validates, checks access and runs its
 hooks as usual, and errors come back in `form status <form>`, by field.
 
-```sh
+```text
 form fields node-article-form
 form set node-article-form title "Pour-over, step by step"
 form set node-article-form field_tags "coffee, v60"
 form set node-article-form status false
 form save node-article-form
 ```
+
+### Canvas
+
+In the Canvas editor, the `canvas` commands add, change, move and remove
+components, and set the page's title, URL alias and description. They go
+through Canvas itself, so every change shows in the preview, can be undone
+and saves as a draft.
+
+```text
+canvas components
+canvas page set title "Our coffee"
+canvas add heading --as=top
+canvas set top text "Fresh every week"
+canvas add card --after=top --as=intro
+canvas set intro title "Single origin"
+```
+
+Pasted together, these lines run as one [batch](concepts/batches.md): if one
+fails, Canvas's undo takes back the others. `--as` names a new component so
+later lines can refer to it. `canvas tree` shows the page, `canvas undo` takes
+back the last change.
+
+`canvas publish` is off by default. A site builder turns it on at
+*Configuration › Development › Sutram Demo Canvas*, and it is offered only to
+users who may publish in Canvas. It asks every time.
 
 ## Add commands from your module
 
@@ -80,4 +109,5 @@ routes your commands call, as you would for a button.
 ## Try it
 
 The [demo site](https://github.com/d34dman/drupal-sutram-demo) installs
-Drupal with the module and its submodules in DDEV.
+Drupal with the module, its submodules and Canvas in DDEV, with an empty
+Canvas page to build from the console.
