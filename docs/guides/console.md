@@ -38,6 +38,7 @@ command field.
 | <kbd>Shift</kbd>+<kbd>Enter</kbd> | Start a new line; several lines run as one batch |
 | Paste several lines | Run them as one [batch](../concepts/batches.md). Pasted inside open quotes or a heredoc, they become part of the value instead. |
 | *Copy* (top bar) | Copy the output as text |
+| *Agent prompt* (top bar) | Copy a [prompt](agent-prompt.md) that hands this page to an agent with a browser, with the page's title and URL filled in |
 
 ## Options
 
@@ -95,8 +96,9 @@ sutram-console {
 }
 ```
 
-Parts can be styled with `::part()`: `panel`, `header`, `output`, `menu` and
-`prompt`. `sutram-console::part(header) { display: none; }` hides the top bar.
+Parts can be styled with `::part()`: `panel`, `header`, `output`, `menu`,
+`prompt` and `agent-prompt` (the button). `sutram-console::part(header) { display: none; }`
+hides the top bar; `sutram-console::part(agent-prompt) { display: none; }` only the button.
 
 ## In other languages
 

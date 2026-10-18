@@ -11,6 +11,8 @@ export interface Messages {
   copyTitle: string;
   copied: string;
   copyFailed: string;
+  prompt: string;
+  promptTitle: string;
   close: string;
   closeLabel: string;
   yes: string;

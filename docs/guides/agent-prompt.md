@@ -31,6 +31,14 @@ In the browser, `Sutram.agentPrompt(task)` names the page with
 argument to name it yourself, or import `agentPrompt` from
 `@d34dman/sutram`, which has no DOM.
 
+## From the console
+
+The console's top bar has an *Agent prompt* button. It copies the same
+prompt for the page it is on, title and URL filled in, with the task "Show
+me what this page can do." The person pastes it into their agent and
+changes the task. No code is needed; hide the button with
+`sutram-console::part(agent-prompt) { display: none; }`.
+
 ## Why the prompt is short
 
 The prompt only says the console exists and to ask it for help. `help`

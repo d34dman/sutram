@@ -3,6 +3,15 @@
 Sutram follows [semantic versioning](https://semver.org/). Before 1.0,
 breaking changes bump the minor version.
 
+## 0.5.1 (2026-10-18)  The console hands the page to an agent with one click.
+
+### Added
+
+- The console's top bar has an *Agent prompt* button: it copies
+  `agentPrompt()` for the page, title and URL filled in. Translate it with
+  the `prompt` and `promptTitle` messages, hide it with
+  `::part(agent-prompt)`.
+
 ## 0.5.0 (2026-10-18)
 
 Prompts for agents that drive a browser, and a friendlier console.

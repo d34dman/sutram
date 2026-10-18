@@ -8,6 +8,7 @@ import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, runStatus 
 import { complete, highlight, openQuote, parse, splitLines, tokenize } from "./parse.js";
 import { formatHelp, formatMan, formatResult, formatUsage, annotationLabel, checkFields, commandLine } from "./format.js";
 import { ownQuestion } from "./policy.js";
+import { agentPrompt } from "./prompt.js";
 
 /**
  * Every text the console shows of its own. Set `console.messages = { … }`
@@ -23,6 +24,8 @@ export const MESSAGES = Object.freeze({
   copyTitle: "Copy the output as text",
   copied: "Copied",
   copyFailed: "Not allowed",
+  prompt: "Agent prompt",
+  promptTitle: "Copy a prompt that hands this page to an agent with a browser",
   close: "Esc",
   closeLabel: "Close",
   yes: "Yes",
@@ -200,7 +203,7 @@ export class SutramConsole extends Base {
     const root = this.attachShadow({ mode: "open" });
     root.innerHTML = `<style>${STYLE}</style>
       <div class="panel" part="panel" tabindex="-1">
-        <header part="header"><span><b class="title"></b> · <span class="count"></span></span><span class="tools"><button type="button" class="copy"></button><button type="button" class="close"></button></span></header>
+        <header part="header"><span><b class="title"></b> · <span class="count"></span></span><span class="tools"><button type="button" class="agent-prompt" part="agent-prompt"></button><button type="button" class="copy"></button><button type="button" class="close"></button></span></header>
         <div class="out" part="output" aria-live="polite" tabindex="-1"></div>
         <ul class="menu" part="menu" role="listbox" id="${menuId}" hidden></ul>
         <form part="prompt"><span aria-hidden="true">›</span><div class="field"><div class="hl" aria-hidden="true"></div><textarea rows="1" wrap="off" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="${menuId}" aria-expanded="false"></textarea></div></form>
@@ -212,11 +215,14 @@ export class SutramConsole extends Base {
     this.hl = root.querySelector(".hl");
     this.countEl = root.querySelector(".count");
     root.querySelector(".close").addEventListener("click", () => this.close());
-    root.querySelector(".copy").addEventListener("click", async (e) => {
+    const copyButton = (selector, text, label) => root.querySelector(selector).addEventListener("click", async (e) => {
       const b = e.currentTarget;
-      try { await navigator.clipboard.writeText(this.transcript()); b.textContent = this.messages.copied; } catch { b.textContent = this.messages.copyFailed; }
-      setTimeout(() => { b.textContent = this.messages.copy; }, 1500);
+      try { await navigator.clipboard.writeText(text()); b.textContent = this.messages.copied; } catch { b.textContent = this.messages.copyFailed; }
+      setTimeout(() => { b.textContent = this.messages[label]; }, 1500);
     });
+    copyButton(".copy", () => this.transcript(), "copy");
+    // With no task it asks "Show me what this page can do."; the person pastes it and changes that line.
+    copyButton(".agent-prompt", () => agentPrompt("", { title: document.title, url: location.href }), "prompt");
     this.input.addEventListener("paste", (e) => {
       const text = e.clipboardData && e.clipboardData.getData("text");
       if (!text || !/\n./.test(text.trim())) return;
@@ -351,6 +357,9 @@ export class SutramConsole extends Base {
     const copy = root.querySelector(".copy");
     copy.textContent = m.copy;
     copy.title = m.copyTitle;
+    const prompt = root.querySelector(".agent-prompt");
+    prompt.textContent = m.prompt;
+    prompt.title = m.promptTitle;
     const close = root.querySelector(".close");
     close.textContent = m.close;
     close.setAttribute("aria-label", m.closeLabel);
