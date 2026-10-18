@@ -41,8 +41,9 @@ Server validation and access checks run only at the save, so:
   back. Drupal's form commands do this.
 - **Conflicts**, plainly: Drupal refuses to save a node that changed since
   the form loaded. Say that, and what to do.
-- **Where it went**: if saving leaves the page (`navigates`), say so in the
-  result, so the agent knows to read `status` on the next page.
+- **Where it went**: if saving leaves the page (`navigates`), call
+  `reinitializes()` before it does, and say in the result where it went, so
+  the agent knows what to read with `status` once the next page is ready.
 
 ## Keeping the draft
 

@@ -281,6 +281,7 @@ export function annotationLabel(annotations = {}) {
   if (annotations.readOnly) return "read-only";
   if (annotations.consequential) return "consequential";
   if (annotations.navigates) return "navigates";
+  if (annotations.reinitializes) return "reinitializes";
   return null;
 }
 
@@ -288,7 +289,7 @@ export function annotationLabel(annotations = {}) {
 const HELP_FOOTER = [
   "help <provider> · man <command> · <command> -h · <command> --json[=fields] · <command> --wide · status · clear",
   "Options: --name=value; quote values with spaces. Multi-line text: end the line with <<END, then the text as it is, then a line with only END.",
-  "[read-only] changes nothing · [consequential] asks first · [navigates] leaves the page. A pasted block is checked before any line runs.",
+  "[read-only] changes nothing · [consequential] asks first · [navigates] leaves the page · [reinitializes] may start Sutram again. A pasted block is checked before any line runs.",
 ].join("\n");
 
 /** `help` and `help <provider>`: one line per command. */
@@ -386,6 +387,8 @@ export function formatMan(def, name = def && def.name, formats = getFormats()) {
   const notes = [];
   if (def.annotations.consequential) notes.push("The console asks before running it, and agent hosts ask you.");
   if (def.annotations.navigates) notes.push("Leaves the page; the commands on the next page may differ.");
+  else if (def.annotations.reinitializes) notes.push("May start Sutram again; the commands afterwards may differ.");
+  if (def.annotations.navigates || def.annotations.reinitializes) notes.push("Run it last in a pasted block.");
   L.push("", "ANNOTATIONS", `     ${label || "none: an ordinary write"}${notes.length ? ". " + notes.join(" ") : ""}`);
   L.push("", "EXIT STATUS", "     0 done, 1 failed, 2 usage error, 127 not found, 130 cancelled.");
   if (def.examples && def.examples.length) L.push("", "EXAMPLES", ...def.examples.map((x) => `     ${x}`));

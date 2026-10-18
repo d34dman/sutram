@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry, CommandError, EXIT } from "../src/index.js";
+import { createRegistry, CommandError, EXIT, ANNOTATIONS } from "../src/index.js";
 import { checkInput, checkOutput, runStatus } from "../src/client.js";
 
 const def = (over = {}) => ({
@@ -305,4 +305,36 @@ test("enum, const and uniqueItems compare by value; batch refuses steps that are
   const r = createRegistry();
   assert.deepEqual(await r.batch([null]), { code: EXIT.USAGE, message: "step 1: each step must be { name, input }. Nothing ran.", results: [], completed: 0, total: 1 });
   assert.equal((await r.batch("cart add")).code, EXIT.USAGE);
+});
+
+test("annotations are a contract: unknown keys are refused", () => {
+  const r = createRegistry();
+  const def = { name: "nav go", provider: "nav", description: "Go", run: () => {} };
+  assert.throws(() => r.register({ ...def, annotations: { reinitialises: true } }), /unknown annotation "reinitialises"; known: readOnly, consequential, navigates, reinitializes, untrustedContent/);
+  assert.throws(() => r.register({ ...def, annotations: null }), /annotations that are not an object/);
+  assert.deepEqual([...ANNOTATIONS], ["readOnly", "consequential", "navigates", "reinitializes", "untrustedContent"]);
+});
+
+test("only a command that declares it may start Sutram again", async () => {
+  const r = createRegistry();
+  r.register({ name: "page reload", provider: "page", description: "Reload", annotations: {}, run: (_, { reinitializes }) => { reinitializes(); } });
+  const res = await r.run("page reload");
+  assert.equal(res.code, EXIT.FAILED);
+  assert.match(res.message, /does not declare the reinitializes or navigates annotation/);
+  assert.equal(r.generation, 0);
+});
+
+test("ready resolves on initialized(), and is a new promise after reinitialize()", async () => {
+  const r = createRegistry();
+  const state = (p) => Promise.race([p.then(() => "ready"), new Promise((res) => setTimeout(() => res("pending"), 5))]);
+  assert.equal(await state(r.ready), "pending");
+  r.initialized();
+  assert.equal(await state(r.ready), "ready");
+  const heard = [];
+  r.onReinitialize((e) => heard.push(e.generation));
+  r.reinitialize();
+  assert.deepEqual(heard, [1]);
+  assert.equal(await state(r.ready), "pending", "on a page being left, ready never comes");
+  r.initialized();
+  assert.equal(await state(r.ready), "ready");
 });

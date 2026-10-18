@@ -33,6 +33,7 @@ export function toTool(def, formats = getFormats()) {
   if (a.untrustedContent) annotations.untrustedContentHint = true;
   let description = sentence(def.description);
   if (a.navigates) description += " Leaves this page; the tools on the next page may differ.";
+  else if (a.reinitializes) description += " May start Sutram again; the tools afterwards may differ.";
   if (def.output) description += ` Returns ${describeShape(def.output)}.`;
   // An agent cannot look up a page's own formats, so the description explains them.
   for (const f of formatsUsed(def, formats)) description += ` ${f.name}: ${sentence(f.description)}`;
@@ -122,6 +123,12 @@ async function approve(registry, steps, { confirmed = false, interactive = false
 }
 
 /** Runs one command for an agent: input errors first, then approval, then the command. */
+/**
+ * Added to the result of a run that started Sutram again (reinitializes()):
+ * the agent has to wait and look at the page afresh.
+ */
+export const REINITIALIZED_NOTE = "Sutram is starting again, as after a page change. Wait until it is ready (its tools appear again; with JavaScript, await Sutram.ready), then look again: the tools may differ, and nothing from before carries over.";
+
 async function runForAgent(registry, def, input, options) {
   const { errors, value } = checkInput(def.input, input, registry.formats, { strict: options.strict });
   // Bad input runs nothing, so it is reported without asking.
@@ -130,7 +137,11 @@ async function runForAgent(registry, def, input, options) {
   const refusal = await approve(registry, [{ def, input: value }], options);
   if (refusal) return refusal;
   // expect: the definition the user was asked about, not whatever has the name by now.
-  return registry.run(def.name, value, { caller: options.caller, signal: options.signal, expect: def });
+  const before = registry.generation;
+  const result = await registry.run(def.name, value, { caller: options.caller, signal: options.signal, expect: def });
+  if (registry.generation === before) return result;
+  const add = (t) => (t ? `${t} ${REINITIALIZED_NOTE}` : REINITIALIZED_NOTE);
+  return result.code === EXIT.OK ? { ...result, text: add(result.text) } : { ...result, message: add(result.message) };
 }
 
 /** Runs sutram_batch: every call is found and checked, then approved once, then run as one batch. */
@@ -153,7 +164,9 @@ async function runBatchTool(registry, input, options) {
   }
   const refusal = await approve(registry, steps, options);
   if (refusal) return refusal;
-  return registry.batch(steps.map((s) => ({ name: s.def.name, input: s.input, def: s.def })), { caller: options.caller, signal: options.signal });
+  const before = registry.generation;
+  const result = await registry.batch(steps.map((s) => ({ name: s.def.name, input: s.input, def: s.def })), { caller: options.caller, signal: options.signal });
+  return registry.generation === before ? result : { ...result, note: REINITIALIZED_NOTE };
 }
 
 /**

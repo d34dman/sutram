@@ -42,6 +42,31 @@ await page.evaluate(() =>
   checked strictly.
 - Results and exit codes are the same as everywhere else.
 
+## Across pages
+
+A command that leaves the page, or otherwise starts Sutram again, takes
+every command, event and answer of the page with it: Sutram keeps nothing
+from before. Its result says so. Wait for `Sutram.ready`, then look again.
+Remember yourself what you need from before, and compare. Until then, calls
+on the old page are refused (exit 130), never answered from it.
+
+With the user commands of the Drupal module's user demo:
+
+```js
+const before = await page.evaluate(() => Sutram.call("user_status"));
+await page.evaluate(() => Sutram.call("user_login"));
+await page.waitForURL("**/user/login**");
+// … the person logs in; the page comes back …
+await page.waitForFunction(() => window.Sutram);
+await page.evaluate(() => Sutram.ready);
+const after = await page.evaluate(() => Sutram.call("user_status"));
+// Compare before.data.name with after.data.name yourself.
+```
+
+`Sutram.ready` resolves once the page's scripts have run: providers that
+register when their script loads are there by then. See
+[starting again](../concepts/annotations-and-policy.md#starting-again).
+
 ## A test
 
 ```js

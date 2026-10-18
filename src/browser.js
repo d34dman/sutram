@@ -18,6 +18,16 @@ import { connectWebMCP, findModelContext, listTools, callTool } from "./webmcp.j
 import { defineConsole, mountConsole } from "./console.js";
 
 const registry = core.getRegistry();
+
+// Ready once the page's scripts have run. Module and deferred scripts run
+// before DOMContentLoaded, so providers that register when their script
+// loads have registered by then; the extra turn lets DOMContentLoaded
+// listeners run first. After a command calls reinitializes(), Sutram.ready
+// is a new promise: on a page that is being left it never resolves, and a
+// single-page app resolves it with Sutram.initialized().
+const initialized = () => setTimeout(() => registry.initialized(), 0);
+if (typeof document === "undefined" || document.readyState !== "loading") initialized();
+else document.addEventListener("DOMContentLoaded", initialized, { once: true });
 const events = getEvents(registry);
 defineConsole();
 
@@ -27,6 +37,8 @@ if (!globalThis.Sutram) {
     CommandError: core.CommandError,
     registry,
     events,
+    get ready() { return registry.ready; },
+    initialized: () => registry.initialized(),
     formats: registry.formats,
     defineFormat: (name, def) => registry.formats.define(name, def),
     register: (def) => registry.register(def),

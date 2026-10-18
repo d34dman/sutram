@@ -3,6 +3,43 @@
 Sutram follows [semantic versioning](https://semver.org/). Before 1.0,
 breaking changes bump the minor version.
 
+## Unreleased
+
+Sutram stores nothing in the browser, and says when a page is ready.
+
+### Added
+
+- `Sutram.ready`: a promise that resolves once the page's scripts have run
+  and their commands are registered. Code that drives the page waits for it
+  on every page before its first call.
+- The `reinitializes` annotation, and `reinitializes()` in the run context:
+  a command declares that it *may* start Sutram again, and calls
+  `reinitializes()` when it *does*, just before it leaves the page or swaps
+  the page's commands. From then on `Sutram.ready` is a new promise (never
+  resolved on a page being left; a single-page app resolves it with
+  `Sutram.initialized()`), runs are refused with exit 130, events are
+  cleared, and an agent's result ends with a note to wait and look again
+  (`REINITIALIZED_NOTE`). `navigates` implies `reinitializes`. App code
+  calls `registry.reinitialize()` and `registry.initialized()`.
+- A command that may start Sutram again must be the last line of a pasted
+  block and the last call of `sutram_batch`.
+- The agent rules (the *use a Sutram page* skill) say to wait, look again,
+  and remember what is needed from before.
+- `ANNOTATIONS`: the annotation keys `register()` accepts.
+
+### Changed
+
+- **Breaking:** `register()` refuses annotation keys it does not know.
+  Annotations are a contract with every client; a typo used to be ignored.
+- **Breaking:** events are no longer cleared after every successful
+  `navigates` command, but when Sutram starts again: a navigating command
+  calls `reinitializes()`.
+- **Breaking:** console history lasts as long as the page. It no longer goes
+  to `sessionStorage`. An app that wants history across pages passes a
+  `historyStore` (`{ load(), save(lines) }`) to `mountConsole()` or sets
+  `console.historyStore`, and decides where the lines are kept.
+- **Breaking:** the `history="off"` attribute is gone; it is now the default.
+
 ## 0.5.1 (2026-10-18)  The console hands the page to an agent with one click.
 
 ### Added

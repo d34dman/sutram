@@ -9,6 +9,10 @@ export type SutramGlobal = {
   CommandError: typeof core.CommandError;
   registry: core.Registry;
   events: Events;
+  /** Resolves once the page's scripts have run and their commands are registered. Wait for it before the first call on every page, and after a run that started Sutram again. */
+  readonly ready: Promise<void>;
+  /** For a single-page app: its new commands are registered after Sutram started again. */
+  initialized(): void;
   formats: core.Formats;
   defineFormat(name: string, def: core.FormatDefinition): () => void;
   register: core.Registry["register"];

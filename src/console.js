@@ -4,7 +4,7 @@
 // values, confirmation by the page's policy, --json[=fields] and --wide,
 // syntax highlighting of the line being typed, and pasted batches of lines.
 
-import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, runStatus } from "./core.js";
+import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, mayReinitialize, runStatus } from "./core.js";
 import { complete, highlight, openQuote, parse, splitLines, tokenize } from "./parse.js";
 import { formatHelp, formatMan, formatResult, formatUsage, annotationLabel, checkFields, commandLine } from "./format.js";
 import { ownQuestion } from "./policy.js";
@@ -44,6 +44,7 @@ export const MESSAGES = Object.freeze({
   batchChanges: (n) => `Run all ${n} lines? They change the page.`,
   batchCancelled: "Cancelled. Nothing ran.",
   batchMistake: (line, n) => `Line ${line} of ${n} has a mistake, so nothing ran.`,
+  batchNotLast: (name) => `${name} may start Sutram again, so it must be the last line. Run the rest after it.`,
   batchStopped: (line, n) => `Stopped after line ${line} of ${n}; the rest did not run.`,
   batchUndone: (line, n) => `Stopped at line ${line} of ${n}. The earlier lines were undone, so nothing changed.`,
   batchKept: (providers) => `What earlier lines changed in ${providers.join(", ")} stays.`,
@@ -93,7 +94,7 @@ header button { font: inherit; background: none; border: 1px solid var(--sutram-
 .ln .tag { font-size: 11px; padding: 0 6px; border-radius: 99px; margin-left: 6px; border: 1px solid var(--sutram-line); }
 .ln .tag.read-only { color: var(--sutram-ok); }
 .ln .tag.consequential { color: var(--sutram-warn); }
-.ln .tag.navigates { color: var(--sutram-accent); }
+.ln .tag.navigates, .ln .tag.reinitializes { color: var(--sutram-accent); }
 .ln.ask { color: var(--sutram-warn); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ln.ask button { font: inherit; font-size: 12px; border: 1px solid var(--sutram-warn); background: transparent; color: var(--sutram-warn); border-radius: 5px; padding: 0 10px; cursor: pointer; }
 .ln.ask button.yes { background: var(--sutram-warn); color: var(--sutram-bg); }
@@ -132,7 +133,6 @@ const commonStart = (list) => list.reduce((a, b) => {
 });
 
 const MAX_ROWS = 10;
-const HISTORY_KEY = "sutram.history";
 const HISTORY_SIZE = 100;
 let instances = 0;
 /** Consoles on the page, in the order they connected. */
@@ -199,6 +199,8 @@ export class SutramConsole extends Base {
     this.returnFocus = null;
     this.menuState = { items: [], index: -1, start: 0, request: 0 };
     this._messages = MESSAGES;
+    this._historyStore = null;
+    this.ranHere = []; // lines run on this page, which a store's lines go before
     const menuId = `sutram-menu-${++instances}`;
     const root = this.attachShadow({ mode: "open" });
     root.innerHTML = `<style>${STYLE}</style>
@@ -304,6 +306,18 @@ export class SutramConsole extends Base {
     this.renderChrome();
   }
 
+  /**
+   * Where history is kept between pages: { load(), save(lines) }, or null.
+   * Sutram stores nothing itself, so by default history lasts as long as the
+   * page. An app that wants more passes a store, and decides where and how
+   * long the lines are kept. load() may return a promise.
+   */
+  get historyStore() { return this._historyStore; }
+  set historyStore(store) {
+    this._historyStore = store || null;
+    this.loadHistory();
+  }
+
   get inline() { return this.hasAttribute("inline"); }
 
   connectedCallback() {
@@ -311,8 +325,6 @@ export class SutramConsole extends Base {
     this.panel.setAttribute("role", this.inline ? "region" : "dialog");
     if (this.inline) this.panel.removeAttribute("aria-modal");
     else this.panel.setAttribute("aria-modal", "true");
-    if (!this.history.length) this.history = this.loadHistory();
-    this.historyIndex = this.history.length;
     this.offChange = this.registry.onChange(() => { this.updateCount(); this.renderInput(); });
     connected.add(this);
     // The first console on the page asks the user when an agent needs approval.
@@ -644,6 +656,8 @@ export class SutramConsole extends Base {
   }
 
   remember(line) {
+    this.ranHere.push(line);
+    if (this.ranHere.length > HISTORY_SIZE) this.ranHere.shift();
     this.history.push(line);
     if (this.history.length > HISTORY_SIZE) this.history.splice(0, this.history.length - HISTORY_SIZE);
     this.historyIndex = this.history.length;
@@ -651,22 +665,32 @@ export class SutramConsole extends Base {
   }
 
   /**
-   * History lives in sessionStorage, so it survives navigation in this tab
-   * and is gone when the tab closes. history="off" keeps it in memory only.
+   * Puts the store's lines before the ones run on this page. A store that
+   * fails or returns something else leaves history as it is.
    */
-  get keepsHistory() { return this.getAttribute("history") !== "off"; }
-
   loadHistory() {
-    if (!this.keepsHistory) return [];
+    const store = this._historyStore;
+    if (!store) return;
+    const take = (list) => {
+      if (!Array.isArray(list)) return;
+      const lines = list.filter((l) => typeof l === "string");
+      this.history = [...lines, ...this.ranHere].slice(-HISTORY_SIZE);
+      this.historyIndex = this.history.length;
+    };
     try {
-      const list = JSON.parse(sessionStorage.getItem(HISTORY_KEY) || "[]");
-      return Array.isArray(list) ? list.filter((l) => typeof l === "string").slice(-HISTORY_SIZE) : [];
-    } catch { return []; }
+      const list = store.load();
+      if (list && typeof list.then === "function") list.then(take, () => {});
+      else take(list);
+    } catch { /* storage blocked, say: history stays on this page */ }
   }
 
   saveHistory() {
-    if (!this.keepsHistory) return;
-    try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(this.history)); } catch { /* storage blocked or full */ }
+    const store = this._historyStore;
+    if (!store) return;
+    try {
+      const done = store.save([...this.history]);
+      if (done && typeof done.catch === "function") done.catch(() => {});
+    } catch { /* storage blocked or full */ }
   }
 
   /**
@@ -846,6 +870,7 @@ export class SutramConsole extends Base {
         if (fieldError) throw new CommandError(fieldError, EXIT.USAGE);
         const { errors } = checkInput(parsed.def.input, parsed.input, this.registry.formats);
         if (errors.length) throw new CommandError(`${parsed.def.name}: ${errors.join("; ")}`, EXIT.USAGE);
+        if (mayReinitialize(parsed.def) && i < lines.length - 1) throw new CommandError(m.batchNotLast(parsed.def.name), EXIT.USAGE);
         steps.push({ line, ...parsed });
       } catch (err) {
         this.echo(line);
@@ -916,16 +941,17 @@ export function defineConsole(tag = "sutram-console") {
  * console, created once. With a container: a new inline console inside it,
  * which fills the container and has no hotkey, for apps that place the
  * console themselves. `attributes` may hold greeting, locale, hotkey,
- * history ("off") and messages.
+ * messages and historyStore.
  */
 export function mountConsole(attributes = {}, container = null) {
   defineConsole();
-  const { messages, ...attrs } = attributes || {};
+  const { messages, historyStore, ...attrs } = attributes || {};
   const make = () => {
     const el = document.createElement("sutram-console");
     for (const [k, v] of Object.entries(attrs)) if (v !== undefined && v !== null && v !== false) el.setAttribute(k, v === true ? "" : v);
     if (container) el.setAttribute("inline", "");
     if (messages) el.messages = messages;
+    if (historyStore) el.historyStore = historyStore;
     return el;
   };
   if (container) {

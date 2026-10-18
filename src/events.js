@@ -58,9 +58,8 @@ export function createEvents(registry, { bufferSize = 50 } = {}) {
 
     /**
      * Forgets buffered events up to an id, by default all of them. Ids keep
-     * counting, so an agent's --since stays valid. Runs by itself after a
-     * navigates command succeeds; a single-page app whose router changes the
-     * page another way calls it too.
+     * counting, so an agent's --since stays valid. Runs by itself when
+     * Sutram starts again (registry.reinitialize()).
      */
     clear(upTo = seq) {
       const keep = buffer.filter((e) => e.id > upTo);
@@ -68,19 +67,9 @@ export function createEvents(registry, { bufferSize = 50 } = {}) {
     },
   };
 
-  // Events from a page the user has left describe things that are gone.
-  // Events the navigation itself emitted, such as route.changed, are kept.
-  const marks = new Map(); // command name → newest event id when it started
-  registry.onRun(({ name }) => {
-    const def = registry.get(name);
-    if (def && def.annotations.navigates) marks.set(name, seq);
-  });
-  registry.onResult(({ name, result }) => {
-    if (!marks.has(name)) return;
-    const mark = marks.get(name);
-    marks.delete(name);
-    if (result.code === 0) api.clear(mark);
-  });
+  // When Sutram starts again, events from before describe things that are
+  // gone. Events emitted after, such as route.changed, are kept.
+  registry.onReinitialize(() => api.clear());
 
   registry.register({
     name: "events list",

@@ -42,14 +42,19 @@ export declare class CommandError extends Error {
   code: ExitCode;
 }
 
-/** Hints for clients. Unknown keys pass through. */
+/** A contract with every client. register() refuses keys not in ANNOTATIONS. */
 export interface Annotations {
   readOnly?: boolean;
   consequential?: boolean;
+  /** Leaves the page. Implies reinitializes. */
   navigates?: boolean;
+  /** May start Sutram again: run calls context.reinitializes() when it does. */
+  reinitializes?: boolean;
   untrustedContent?: boolean;
-  [key: string]: unknown;
 }
+
+/** The annotation keys register() accepts. */
+export declare const ANNOTATIONS: readonly ["readOnly", "consequential", "navigates", "reinitializes", "untrustedContent"];
 
 /** Who ran a command: "console", "agent", "code", "status", or a client's own name. */
 export type Caller = "console" | "agent" | "code" | "status" | (string & {});
@@ -57,6 +62,12 @@ export type Caller = "console" | "agent" | "code" | "status" | (string & {});
 export interface RunContext {
   caller: Caller;
   signal?: AbortSignal;
+  /**
+   * Says Sutram starts again now, as the command is about to leave the page or
+   * swap the page's commands. Throws unless the command declares reinitializes
+   * or navigates.
+   */
+  reinitializes(): void;
 }
 
 export interface CommandOutput<D = unknown> {
@@ -133,6 +144,8 @@ export interface BatchResult {
   total: number;
   rolledBack?: string[];
   kept?: string[];
+  /** For an agent: the batch started Sutram again (see REINITIALIZED_NOTE). */
+  note?: string;
 }
 
 export type ChangeEvent = { type: "register" | "unregister"; name: string; def: CommandDefinition };
@@ -149,6 +162,15 @@ export interface Registry {
   onChange(fn: (event: ChangeEvent) => void): () => void;
   onRun(fn: (event: RunEvent) => void): () => void;
   onResult(fn: (event: ResultEvent) => void): () => void;
+  /** Resolves once the page's commands are registered; a new promise after every reinitialize(). */
+  readonly ready: Promise<void>;
+  /** How many times Sutram started again on this page. */
+  readonly generation: number;
+  /** Sutram starts again: clears events, refuses runs, and makes ready wait for initialized(). */
+  reinitialize(): void;
+  /** The page's commands are registered: resolves ready and allows runs again. */
+  initialized(): void;
+  onReinitialize(fn: (event: { generation: number }) => void): () => void;
   /** A console or agent run of a provider a batch is changing waits until the batch is done. */
   run(name: string, input?: Record<string, unknown>, options?: RunOptions): Promise<Result>;
   defineBatch(provider: string, hooks: BatchHooks): () => void;

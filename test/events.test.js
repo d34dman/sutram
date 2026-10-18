@@ -19,7 +19,7 @@ test("declared events are checked, heard, and readable through commands", async 
   assert.equal((await r.run("events recent", { since: 1 })).text, "No events after #1.");
 });
 
-test("a successful navigates command clears the buffer, and ids keep counting", async () => {
+test("when Sutram starts again, the buffer is cleared, and ids keep counting", async () => {
   const r = createRegistry();
   const ev = createEvents(r);
   ev.define("cart.changed", { description: "The cart changed" });
@@ -27,15 +27,20 @@ test("a successful navigates command clears the buffer, and ids keep counting", 
   r.register({
     name: "nav go", provider: "nav", description: "Go", input: { type: "object", properties: {} },
     annotations: { navigates: true },
-    run: () => { if (fail) throw new Error("no such page"); ev.emit("cart.changed", {}, { source: "nav" }); },
+    run: (_, { reinitializes }) => {
+      if (fail) throw new Error("no such page");
+      reinitializes();
+      ev.emit("cart.changed", {}, { source: "nav" });
+    },
   });
   ev.emit("cart.changed");
   await r.run("nav go");
   assert.equal((await r.run("events recent")).data.events.length, 1, "a failed navigation keeps the events");
   fail = false;
   await r.run("nav go");
+  r.initialized(); // a single-page app's new commands are there
   const after = (await r.run("events recent")).data;
-  assert.deepEqual(after.events.map((e) => [e.id, e.source]), [[2, "nav"]], "only what the navigation emitted is kept");
+  assert.deepEqual(after.events.map((e) => [e.id, e.source]), [[2, "nav"]], "only what came after is kept");
   assert.equal(after.cursor, 2);
   ev.emit("cart.changed");
   assert.deepEqual((await r.run("events recent", { since: 2 })).data.events.map((e) => e.id), [3]);

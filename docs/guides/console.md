@@ -32,7 +32,7 @@ command field.
 | `status` | See every provider's status |
 | `clear` | Clear the screen |
 | <kbd>Tab</kbd> | Complete a command, an option or a value; with several choices, a list opens |
-| ↑ / ↓ | Walk through history. It survives navigation in the same tab (`sessionStorage`) and is gone when the tab closes |
+| ↑ / ↓ | Walk through history. It lasts as long as the page, unless the app passes a `historyStore` |
 | `y`, `n` (or `a`) while a question is open | Answer it. Anything else asks again; a second question waits its turn |
 | <kbd>Enter</kbd> inside quotes or a [heredoc](../reference/command-line.md#heredocs) | Start a new line of the value, for multi-line text |
 | <kbd>Shift</kbd>+<kbd>Enter</kbd> | Start a new line; several lines run as one batch |
@@ -42,7 +42,7 @@ command field.
 
 ## Options
 
-`mountConsole({ greeting, locale, hotkey, history })`:
+`mountConsole({ greeting, locale, hotkey, messages, historyStore })`:
 
 - `greeting`: a first line.
 - `locale`: the locale values are shown in.
@@ -54,7 +54,28 @@ command field.
   A binding without `ctrl`, `alt` or `meta` never fires in a text field.
   `"none"` turns the hotkey off; open the console from your own button with
   the element `mountConsole()` returns: `const el = mountConsole({ hotkey: "none" }); el.open()`.
-- `history: "off"`: keep history in memory only.
+- `historyStore`: where history is kept between pages; see below.
+
+### Keeping history between pages
+
+Sutram stores nothing in the browser: no cookies, no `localStorage`, no
+`sessionStorage`. Without a store, history lasts as long as the page. To keep
+it longer, pass a store with `load()` and `save(lines)`. Your app decides
+where the lines go, for how long, and under which key. Typed commands can
+hold content, such as text for a form, so choose the place with that in mind.
+
+```js
+const KEY = "myapp.console-history";
+mountConsole({
+  historyStore: {
+    load: () => JSON.parse(sessionStorage.getItem(KEY) || "[]"),
+    save: (lines) => sessionStorage.setItem(KEY, JSON.stringify(lines)),
+  },
+});
+```
+
+`load()` may return a promise, for history kept on your server. The console
+keeps the last 100 lines and ignores a store that throws.
 
 If your app has its own command palette on <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>K</kbd>,
 leave that key to it. Sutram's default avoids the keys browsers, Drupal's

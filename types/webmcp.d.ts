@@ -13,6 +13,8 @@ export interface ModelContextLike {
 
 export declare const STATUS_TOOL: Tool;
 export declare const BATCH_TOOL: Tool;
+/** Added to an agent's result when the run started Sutram again: wait for ready, then look again. */
+export declare const REINITIALIZED_NOTE: string;
 export declare function findModelContext(): ModelContextLike | null;
 export declare function toolName(def: CommandDefinition): string;
 export declare function toTool(def: CommandDefinition, formats?: Formats): Tool;

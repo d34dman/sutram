@@ -32,6 +32,7 @@ export interface Messages {
   batchChanges: (n: number) => string;
   batchCancelled: string;
   batchMistake: (line: number, n: number) => string;
+  batchNotLast: (name: string) => string;
   batchStopped: (line: number, n: number) => string;
   batchUndone: (line: number, n: number) => string;
   batchKept: (providers: string[]) => string;
@@ -68,8 +69,10 @@ export declare class SutramConsole extends HTMLElement {
   readonly inline: boolean;
   /** The bindings of the hotkey attribute, or of DEFAULT_HOTKEY. */
   readonly hotkeys: HotkeyBinding[];
-  /** Lines run, newest last; kept in sessionStorage unless history="off". */
+  /** Lines run, newest last: this page's, after the history store's. */
   history: string[];
+  /** Where history is kept between pages. Null (the default): only on this page. */
+  historyStore: HistoryStore | null;
   open(): void;
   close(): void;
   toggle(): void;
@@ -87,6 +90,17 @@ export declare class SutramConsole extends HTMLElement {
   transcript(): string;
 }
 
+/**
+ * Keeps console history between pages. Sutram stores nothing itself; the app
+ * decides where the lines go and for how long.
+ */
+export interface HistoryStore {
+  /** The lines kept so far, oldest first. */
+  load(): string[] | Promise<string[]>;
+  /** Called with all lines, oldest first, after every line run. */
+  save(lines: string[]): void | Promise<void>;
+}
+
 export declare function defineConsole(tag?: string): void;
 
 export interface MountAttributes {
@@ -94,9 +108,9 @@ export interface MountAttributes {
   locale?: string;
   /** Space-separated bindings such as "mod+k ctrl+backquote", or "none". Default: DEFAULT_HOTKEY. */
   hotkey?: string;
-  /** "off" keeps history in memory only, instead of sessionStorage. */
-  history?: "off";
   messages?: Partial<Messages>;
+  /** Keeps history between pages. Without it, history lasts as long as the page. */
+  historyStore?: HistoryStore;
   [attribute: string]: unknown;
 }
 

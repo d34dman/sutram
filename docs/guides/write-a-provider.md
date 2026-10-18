@@ -180,7 +180,8 @@ Then the agent's view: `Sutram.tools()` in the developer tools, and
 - [ ] Descriptions say what the command does, in one line
 - [ ] Every input property has a type, and a `description` where the name is
       not obvious
-- [ ] `annotations` set on purpose: read-only, consequential, navigates
+- [ ] `annotations` set on purpose: read-only, consequential, navigates or
+      reinitializes (and `reinitializes()` called where it happens)
 - [ ] Commands registered only while they make sense
 - [ ] Failures name the command and say what to do instead
 - [ ] `examples` for anything with more than one argument

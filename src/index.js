@@ -4,7 +4,7 @@
 // See @d34dman/sutram/client. The console, the WebMCP bridge and events are
 // separate entry points: /console, /webmcp, /events, /browser.
 
-export { EXIT, CommandError, createRegistry, getRegistry } from "./core.js";
+export { EXIT, CommandError, ANNOTATIONS, createRegistry, getRegistry } from "./core.js";
 export { createFormats, getFormats, STANDARD_FORMATS } from "./formats.js";
 export { createPolicy, LEVELS } from "./policy.js";
 export { commandLine } from "./format.js";

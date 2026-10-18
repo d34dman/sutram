@@ -21,6 +21,17 @@ export const RESERVED_WORDS = Object.freeze(["help", "man", "status", "clear"]);
 export const CLIENT_OPTIONS = Object.freeze(["help", "json", "wide"]);
 
 const REQUIRED_FIELDS = ["name", "provider", "description", "annotations"];
+
+/**
+ * The annotations a command may declare. They are a contract with every
+ * client, so a key Sutram does not know, such as a typo, is refused rather
+ * than ignored. Clients translate them for their side: the WebMCP bridge
+ * sends readOnlyHint, never Sutram's own names.
+ */
+export const ANNOTATIONS = Object.freeze(["readOnly", "consequential", "navigates", "reinitializes", "untrustedContent"]);
+
+/** Whether a command may call reinitializes(): navigates implies it. */
+export const mayReinitialize = (def) => !!(def && (def.annotations.reinitializes || def.annotations.navigates));
 const NAME = /^[a-z][a-z0-9-]*( [a-z][a-z0-9-]*)*$/;
 /** The most words a command name may have; the parser looks no further. */
 export const MAX_NAME_WORDS = 6;
@@ -242,6 +253,10 @@ function checkDefinition(def) {
     if (!def || def[field] === undefined) throw new TypeError(`register: "${(def && def.name) || "?"}" has no ${field}`);
   }
   if (typeof def.run !== "function") throw new TypeError(`register: "${def.name}" has no run function`);
+  if (!isPlainObject(def.annotations)) throw new TypeError(`register: "${def.name}" has annotations that are not an object`);
+  for (const key of Object.keys(def.annotations)) {
+    if (!ANNOTATIONS.includes(key)) throw new TypeError(`register: "${def.name}" has an unknown annotation "${key}"; known: ${ANNOTATIONS.join(", ")}`);
+  }
   if (def.suggest !== undefined && typeof def.suggest !== "function") throw new TypeError(`register: "${def.name}" has a suggest that is not a function`);
   if (!NAME.test(def.name)) throw new TypeError(`register: "${def.name}" is not a valid name; use lowercase words separated by single spaces`);
   if (def.name.split(" ").length > MAX_NAME_WORDS) throw new TypeError(`register: "${def.name}" has more than ${MAX_NAME_WORDS} words, so no command line could reach it`);
@@ -275,6 +290,18 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
   const changeFns = new Set();
   const runFns = new Set();
   const resultFns = new Set();
+  const reinitFns = new Set();
+
+  // Ready: the page's commands are registered. It starts pending; the
+  // browser entry point resolves it once the page's scripts have run, or
+  // the app calls initialized() itself. After reinitialize(), runs are
+  // refused and a new ready waits for initialized(); on a page that is
+  // being left, it never comes, so nobody acts on the old page.
+  let resolveReady;
+  let ready = new Promise((resolve) => { resolveReady = resolve; });
+  let isReady = false;
+  let leaving = false;
+  let generation = 0;
 
   const notify = (fns, event) => fns.forEach((fn) => {
     try { fn(event); } catch (err) { console.error(err); }
@@ -316,6 +343,7 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
     if (expect !== undefined && def !== expect) {
       return { code: EXIT.CANCELLED, message: `${name}: the command changed after it was checked, so it did not run` };
     }
+    if (leaving) return { code: EXIT.CANCELLED, message: `${name}: Sutram is starting again, so it did not run. Wait for Sutram.ready, then look again.` };
     if (!def) return { code: EXIT.NOT_FOUND, message: `${name}: command not found` };
     const { errors, value } = checkInput(def.input, input, formats);
     if (errors.length) return { code: EXIT.USAGE, message: `${name}: ${errors.join("; ")}` };
@@ -325,7 +353,11 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
     const result = await (async () => {
       try {
         // An abort settles the call even when the handler ignores the signal.
-        let res = await raceAbort(def.run(value, { caller, signal }), signal);
+        const reinitializes = () => {
+          if (!mayReinitialize(def)) throw new Error(`${name} called reinitializes() but does not declare the reinitializes or navigates annotation`);
+          registry.reinitialize();
+        };
+        let res = await raceAbort(def.run(value, { caller, signal, reinitializes }), signal);
         if (signal && signal.aborted) return cancelled(name);
         if (typeof res === "string") res = { text: res };
         else if (res === undefined || res === null) res = {};
@@ -378,6 +410,36 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
         notify(changeFns, { type: "unregister", name: def.name, def });
       };
     },
+
+    /** Resolves once the page's commands are registered. A new promise after every reinitialize(). */
+    get ready() { return ready; },
+    /** Counts reinitialize() calls, so a client can tell whether a run started Sutram again. */
+    get generation() { return generation; },
+
+    /**
+     * Sutram starts again: what was on the page is gone or going. Clears
+     * what listens (events), refuses runs, and makes ready wait for
+     * initialized(). A command calls it through reinitializes() in its run
+     * context; app code, such as a single-page app's router, calls it here.
+     */
+    reinitialize() {
+      generation++;
+      leaving = true;
+      if (isReady) {
+        isReady = false;
+        ready = new Promise((resolve) => { resolveReady = resolve; });
+      }
+      notify(reinitFns, { generation });
+    },
+
+    /** The page's commands are registered: resolves ready and allows runs again. */
+    initialized() {
+      leaving = false;
+      if (!isReady) { isReady = true; resolveReady(); }
+    },
+
+    /** Called on every reinitialize(). Returns a function that stops listening. */
+    onReinitialize(fn) { reinitFns.add(fn); return () => reinitFns.delete(fn); },
 
     get: (name) => commands.get(name),
     has: (name) => commands.has(name),
@@ -496,6 +558,7 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
         if (!def) return refuse(EXIT.NOT_FOUND, `step ${i + 1}: ${name}: command not found. Nothing ran.`);
         const { errors } = checkInput(def.input, input, formats);
         if (errors.length) return refuse(EXIT.USAGE, `step ${i + 1}: ${name}: ${errors.join("; ")}. Nothing ran.`);
+        if (mayReinitialize(def) && i < total - 1) return refuse(EXIT.USAGE, `step ${i + 1}: ${name} may start Sutram again, so it must be the last step. Nothing ran.`);
         defs.push(def);
       }
       const b = registry.startBatch({ caller, signal });
@@ -519,8 +582,8 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
 
 // The key changes when the registry's shape does, so copies of Sutram that
 // would break each other's registry keep their own instead.
-const REGISTRY_KEY = Symbol.for("sutram.registry@2");
-const OLDER_KEYS = [Symbol.for("sutram.registry@1")];
+const REGISTRY_KEY = Symbol.for("sutram.registry@3");
+const OLDER_KEYS = [Symbol.for("sutram.registry@1"), Symbol.for("sutram.registry@2")];
 
 /** The page's one registry, shared by every copy of Sutram loaded on it. */
 export function getRegistry() {

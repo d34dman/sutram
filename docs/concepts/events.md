@@ -35,6 +35,6 @@ Agents cannot be notified, so they poll. Declaring events adds two commands:
 - `events list`: the events this page declares.
 - `events recent --since=<id>`: the events after an id.
 
-The page keeps the last 50, and forgets older ones when a `navigates` command
-leaves the page. Single-page apps that change page without such a command
-call `getEvents().clear()` themselves.
+The page keeps the last 50, and forgets older ones when Sutram starts again
+(a command calls `reinitializes()`, or the app calls
+`registry.reinitialize()`; see [Annotations and the policy](annotations-and-policy.md#starting-again)).

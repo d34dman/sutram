@@ -16,15 +16,59 @@ decides whether that means asking.
 | *(none)* | An ordinary change | Runs it | Can call it, unless the policy asks first |
 | `readOnly: true` | Changes nothing | Runs it; marks it read-only | Get `readOnlyHint` |
 | `consequential: true` | Significant or hard to undo | Asks first (a pasted batch asks once) | Get `consequentialHint`; the page asks the user first |
-| `navigates: true` | Leaves the page | Runs it | Told in the description that the page reloads |
+| `navigates: true` | Leaves the page. Implies `reinitializes` | Runs it; only as the last line of a pasted block | Told in the description that the page reloads |
+| `reinitializes: true` | May start Sutram again, such as a single-page app swapping its commands | Runs it; only as the last line of a pasted block | Told in the description; see below |
 | `untrustedContent: true` | Its output contains text from outside, such as user content | | Get `untrustedContentHint` |
 
 `annotations` is required, even when it is `{}`, so nobody forgets to think
-about it. Word the question for a consequential command with `confirm`:
+about it. Annotations are a contract with every client, so `register()`
+refuses a key it does not know, such as a typo. They are Sutram's own words:
+the WebMCP bridge translates them (`readOnly` becomes `readOnlyHint`) and
+never sends a name WebMCP has not defined.
+
+Word the question for a consequential command with `confirm`:
 
 ```js
 confirm: ({ qty }) => `Place an order for ${qty} items, €48.00?`,
 ```
+
+## Starting again
+
+Leaving the page throws away every command, event and answer on it, and a
+single-page app that swaps its commands does much the same. The annotation
+says a command *may* do this; the command says when it *does*, by calling
+`reinitializes()` from its run context just before:
+
+```js
+register({
+  name: "nav go",
+  annotations: { navigates: true },
+  run({ item }, { reinitializes }) {
+    const url = find(item);
+    if (!url) throw new CommandError(`No menu link "${item}".`);
+    reinitializes();
+    setTimeout(() => location.assign(url), 0);
+    return { text: `Going to ${url}.` };
+  },
+  …
+});
+```
+
+A command that fails, or does not need to leave this time, does not call it,
+and nothing changes. A command that calls it without declaring `navigates` or
+`reinitializes` fails. From the call on:
+
+- `Sutram.ready` is a new promise. On a page being left it never resolves;
+  the next page has its own. A single-page app resolves it with
+  `Sutram.initialized()` once its new commands are registered.
+- Runs are refused, with exit 130 and "Sutram is starting again", so a call
+  that comes too early never gets an answer from the old page.
+- Events from before are cleared.
+- An agent's result ends with a note: wait until Sutram is ready, then look
+  again.
+
+App code outside a command, such as a single-page app's router, calls
+`registry.reinitialize()` itself.
 
 ## The policy
 

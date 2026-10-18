@@ -123,6 +123,7 @@ Sutram's own WebMCP tools (`sutram_status`, `sutram_batch`) use.
 | `readOnly: true` | `[read-only]` | `readOnlyHint` |
 | `consequential: true` | `[consequential]` | `consequentialHint` |
 | `navigates: true` | `[navigates]` | in the description |
+| `reinitializes: true` | `[reinitializes]` | in the description |
 | `untrustedContent: true` | | `untrustedContentHint` |
 
 ## Tool names

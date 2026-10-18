@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createRegistry, EXIT } from "../src/index.js";
-import { connectWebMCP, toTool, listTools, callTool } from "../src/webmcp.js";
+import { connectWebMCP, toTool, listTools, callTool, REINITIALIZED_NOTE } from "../src/webmcp.js";
 
 function fakeModelContext() {
   const tools = new Map();
@@ -308,4 +308,40 @@ test("an aborted WebMCP call withdraws its question", async () => {
   assert.equal((await pending).code, EXIT.CANCELLED);
   assert.ok(seen.aborted);
   assert.deepEqual(log, []);
+});
+
+test("a run that starts Sutram again tells the agent to wait, and later calls are refused until it is ready", async () => {
+  const r = createRegistry();
+  r.register({
+    ...goDef,
+    run: ({ item }, { reinitializes }) => {
+      if (item === "/gone") return { code: EXIT.FAILED, message: "no such page" };
+      reinitializes();
+      return { text: `Going to ${item}.`, data: { url: item } };
+    },
+  });
+  r.register({ name: "nav status", provider: "nav", description: "Where", annotations: { readOnly: true }, run: () => "Home" });
+  const failed = await callTool("nav_go", { item: "/gone" }, { registry: r });
+  assert.equal(failed.message, "no such page", "no note when Sutram did not start again");
+  const ok = await callTool("nav_go", { item: "/shop" }, { registry: r });
+  assert.equal(ok.text, `Going to /shop. ${REINITIALIZED_NOTE}`);
+  assert.match(REINITIALIZED_NOTE, /await Sutram\.ready/);
+  const early = await callTool("nav_status", {}, { registry: r });
+  assert.equal(early.code, EXIT.CANCELLED);
+  assert.match(early.message, /Sutram is starting again/);
+  r.initialized();
+  assert.equal((await callTool("nav_status", {}, { registry: r })).text, "Home");
+});
+
+test("sutram_batch takes a command that may start Sutram again only as its last call", async () => {
+  const r = createRegistry();
+  r.register({ ...goDef, run: ({ item }, { reinitializes }) => { reinitializes(); return { data: { url: item } }; } });
+  r.register({ name: "nav status", provider: "nav", description: "Where", annotations: { readOnly: true }, run: () => "Home" });
+  const go = { tool: "nav_go", input: { item: "/shop" } };
+  const first = await callTool("sutram_batch", { calls: [go, { tool: "nav_status" }] }, { registry: r });
+  assert.equal(first.code, EXIT.USAGE);
+  assert.match(first.message, /step 1: nav go may start Sutram again, so it must be the last step\. Nothing ran\./);
+  const last = await callTool("sutram_batch", { calls: [{ tool: "nav_status" }, go] }, { registry: r });
+  assert.equal(last.code, EXIT.OK);
+  assert.equal(last.note, REINITIALIZED_NOTE);
 });
