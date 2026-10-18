@@ -389,6 +389,9 @@ export class SutramConsole extends Base {
   /** The hotkey (the hotkey attribute, DEFAULT_HOTKEY when unset) toggles the console. Escape closes. */
   onGlobalKey(e) {
     if (e.isComposing || e.keyCode === 229) return;
+    // Only keys a person presses. Apps fire keydown events of their own:
+    // Drupal Canvas closes its menus with a synthetic Escape on the document.
+    if (!e.isTrusted) return;
     if (e.key === "Escape" && this.hasAttribute("open")) { e.preventDefault(); this.close(); return; }
     // One drop-down console answers the hotkey: the first one connected. A held key does not toggle it again and again.
     if (e.repeat || [...connected].find((c) => !c.inline) !== this) return;

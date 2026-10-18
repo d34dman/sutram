@@ -25,6 +25,13 @@ breaking changes bump the minor version.
   `[consequential]` and `[navigates]` mean, and that a pasted block is
   checked before any line runs.
 
+### Fixed
+
+- **The console ignores keydown events that scripts fire.** Only keys a person
+  presses open or close it. Drupal Canvas fires a synthetic Escape on the
+  document to close its menus, which closed the console whenever a component
+  was added.
+
 ## 0.4.0 (2026-10-16)
 
 ### Changed, and may need your attention
