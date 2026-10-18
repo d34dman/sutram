@@ -27,10 +27,20 @@ breaking changes bump the minor version.
 
 ### Fixed
 
-- **The console ignores keydown events that scripts fire.** Only keys a person
-  presses open or close it. Drupal Canvas fires a synthetic Escape on the
-  document to close its menus, which closed the console whenever a component
-  was added.
+- **<kbd>Esc</kbd> closes the console only while it has the focus.** An Escape
+  meant for the page, such as closing one of its menus, leaves the console
+  open, and so do keydown events that scripts fire: Drupal Canvas fires a
+  synthetic Escape on the document whenever a component is added, which closed
+  the console. The hotkey ignores keys that scripts fire too.
+- **The console opens with the cursor in the command field**, focused at once
+  and again a frame later in case the page moved the focus.
+- **A click in the console puts the cursor in the command field**, as in a
+  terminal. Dragging or double-clicking selects text instead, and typing after
+  that goes to the command field.
+- **The output has one scroll bar.** Wide tables, manuals and JSON no longer
+  get a horizontal scroll bar each; the whole output scrolls sideways.
+- **The page's `hyphens` no longer reach the console**, so words in the output
+  are not split with hyphens.
 
 ## 0.4.0 (2026-10-16)
 

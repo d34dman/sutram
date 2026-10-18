@@ -59,7 +59,7 @@ const STYLE = `
   /* The page's text styles stop here, so the highlight layer stays under the caret. */
   text-transform: none; letter-spacing: normal; word-spacing: normal; text-indent: 0; text-align: left;
   text-shadow: none; font-style: normal; font-weight: normal; font-variant: normal; font-stretch: normal;
-  line-height: normal; white-space: normal; direction: ltr; text-decoration: none;
+  line-height: normal; white-space: normal; direction: ltr; text-decoration: none; hyphens: manual;
 }
 :host([open]) { display: block; }
 :host([inline]) { position: relative; inset: auto; z-index: auto; display: block; height: 100%; min-height: 0; }
@@ -73,9 +73,11 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 header b { color: var(--sutram-fg); }
 header .tools { display: flex; gap: 6px; }
 header button { font: inherit; background: none; border: 1px solid var(--sutram-line); color: var(--sutram-dim); border-radius: 5px; padding: 0 8px; cursor: pointer; }
+.panel:focus, .out:focus { outline: 0; }
+/* One scroll area for all the output, as in a terminal: wide tables scroll it sideways, not a bar of their own. */
 .out { flex: 1; overflow: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
 .ln { white-space: pre-wrap; word-break: break-word; }
-.ln.table, .ln.man, .ln.json { white-space: pre; word-break: normal; overflow-x: auto; }
+.ln.table, .ln.man, .ln.json { white-space: pre; word-break: normal; }
 .ln.input { margin-top: 6px; }
 .ln.input::before { content: "› "; color: var(--sutram-accent); }
 .ln.agent { margin-top: 0; }
@@ -197,9 +199,9 @@ export class SutramConsole extends Base {
     const menuId = `sutram-menu-${++instances}`;
     const root = this.attachShadow({ mode: "open" });
     root.innerHTML = `<style>${STYLE}</style>
-      <div class="panel" part="panel">
+      <div class="panel" part="panel" tabindex="-1">
         <header part="header"><span><b class="title"></b> · <span class="count"></span></span><span class="tools"><button type="button" class="copy"></button><button type="button" class="close"></button></span></header>
-        <div class="out" part="output" aria-live="polite"></div>
+        <div class="out" part="output" aria-live="polite" tabindex="-1"></div>
         <ul class="menu" part="menu" role="listbox" id="${menuId}" hidden></ul>
         <form part="prompt"><span aria-hidden="true">›</span><div class="field"><div class="hl" aria-hidden="true"></div><textarea rows="1" wrap="off" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="${menuId}" aria-expanded="false"></textarea></div></form>
       </div>`;
@@ -238,9 +240,26 @@ export class SutramConsole extends Base {
       e.preventDefault();
       this.accept(Number(li.dataset.index));
     });
-    // A drop-down console is a modal dialog: Tab stays inside it.
+    // A click in the console goes to the prompt, as in a terminal. Not when it
+    // selects text (a drag or a double click): that stays selected to copy.
+    this.panel.addEventListener("mousedown", (e) => { this.pressedAt = [e.clientX, e.clientY]; });
+    this.panel.addEventListener("click", (e) => {
+      if (e.button !== 0 || e.detail > 1 || e.target.closest("button, textarea, .menu")) return;
+      const [x, y] = this.pressedAt || [e.clientX, e.clientY];
+      if (Math.abs(e.clientX - x) > 3 || Math.abs(e.clientY - y) > 3 || this.selectedText()) return;
+      this.input.focus({ preventScroll: true });
+    });
     this.panel.addEventListener("keydown", (e) => {
-      if (e.key !== "Tab" || e.defaultPrevented || this.inline) return;
+      if (e.defaultPrevented || e.isComposing) return;
+      // Escape closes the console only when it has the focus; the page's own Escape stays the page's.
+      if (e.key === "Escape" && !this.inline) { e.preventDefault(); this.close(); return; }
+      // Typing while the output has the focus (after selecting text) types at the prompt.
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && e.target !== this.input && !e.target.closest("button")) {
+        this.input.focus({ preventScroll: true });
+        return;
+      }
+      // A drop-down console is a modal dialog: Tab stays inside it.
+      if (e.key !== "Tab" || this.inline) return;
       const items = [...root.querySelectorAll("button, textarea")].filter((el) => el.offsetParent !== null || el === this.input);
       if (!items.length) return;
       const at = items.indexOf(root.activeElement);
@@ -250,6 +269,13 @@ export class SutramConsole extends Base {
     });
     this.onGlobalKey = this.onGlobalKey.bind(this);
     this.renderChrome();
+  }
+
+  /** The text selected in the console, if any. */
+  selectedText() {
+    // Chromium reports a selection inside a shadow root only on the root.
+    const sel = typeof this.shadowRoot.getSelection === "function" ? this.shadowRoot.getSelection() : document.getSelection();
+    return sel && !sel.isCollapsed ? String(sel) : "";
   }
 
   /** The hotkey bindings, from the hotkey attribute (see parseHotkey). A hotkey that cannot be read falls back to the default, with a warning. */
@@ -370,7 +396,10 @@ export class SutramConsole extends Base {
       this.returnFocus = active && active !== this && active !== document.body ? active : null;
     }
     if (!this.inline) this.setAttribute("open", "");
-    requestAnimationFrame(() => this.input.focus());
+    // Focus now, so the next key typed lands in the field, and again after
+    // the next frame in case the page moved the focus in between.
+    this.input.focus({ preventScroll: true });
+    requestAnimationFrame(() => { if (this.shadowRoot.activeElement !== this.input) this.input.focus({ preventScroll: true }); });
     this.dispatchEvent(new CustomEvent("sutram-open"));
   }
 
@@ -386,13 +415,11 @@ export class SutramConsole extends Base {
 
   toggle() { this.hasAttribute("open") ? this.close() : this.open(); }
 
-  /** The hotkey (the hotkey attribute, DEFAULT_HOTKEY when unset) toggles the console. Escape closes. */
+  /** The hotkey (the hotkey attribute, DEFAULT_HOTKEY when unset) toggles the console. Escape is the panel's own (see the constructor). */
   onGlobalKey(e) {
     if (e.isComposing || e.keyCode === 229) return;
-    // Only keys a person presses. Apps fire keydown events of their own:
-    // Drupal Canvas closes its menus with a synthetic Escape on the document.
+    // Only keys a person presses toggle the console; apps fire keydown events of their own.
     if (!e.isTrusted) return;
-    if (e.key === "Escape" && this.hasAttribute("open")) { e.preventDefault(); this.close(); return; }
     // One drop-down console answers the hotkey: the first one connected. A held key does not toggle it again and again.
     if (e.repeat || [...connected].find((c) => !c.inline) !== this) return;
     const path = e.composedPath ? e.composedPath() : [];
