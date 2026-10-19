@@ -124,12 +124,38 @@ The method and all numbers are in [Measurements](measurements.md). In short:
 A schema written by hand for this one form would read even less, but someone
 has to write it for every form, and it resends every value after one mistake.
 
+## Why not just WebMCP?
+
+WebMCP is how a page hands tools to an agent. It does not say which tools a
+page has, how they are named, or how many parts of an app share one page.
+Sutram is that layer, and WebMCP is one of the ways out of it.
+
+- **Many providers, one page.** On a Drupal page a dozen modules may each want
+  to expose something. With plain WebMCP each registers its own tools, with
+  its own names. With Sutram they share one registry and one command grammar.
+- **People see what agents see.** WebMCP tools are invisible to people. Every
+  Sutram command is also a line in the console, so a person can type exactly
+  what the agent would call and watch what it runs.
+- **Few tools, stable list.** `form set <form> …` is the tool `form_set` for
+  every form, not one tool per form. Commands look up their target when they
+  run, so the tool list stays put while content comes and goes.
+- **What WebMCP leaves out.** Discovery (`help`, `man`, status), errors that
+  name the fix, changes to poll ([events](concepts/events.md)) and app-defined
+  [formats](concepts/formats.md).
+- **Works before WebMCP does.** Browser agents and tests call the same
+  commands through `Sutram.call()` today.
+
+Sutram registers its tools through WebMCP's own `registerTool()` and never
+reads or changes the page's HTML. It does not replace Playwright or browser
+agents: they drive the browser, and Sutram gives them commands to call
+instead of buttons to click.
+
 ## When one tool is enough
 
-For one simple action with a fixed input, a plain tool with a schema is fine.
-That is exactly what each Sutram command is through WebMCP. Sutram adds the
-rest: one standard way for every part of the app to hook in, discovery, state
-to look at, forms that change, and mistakes that cost one line to fix.
+For one app with a few fixed actions, a plain WebMCP tool with a schema is
+fine. That is exactly what each Sutram command is through WebMCP. Sutram earns
+its place when several parts of an app share a page, or when people should
+use the same commands as the agent.
 
 ## Next
 

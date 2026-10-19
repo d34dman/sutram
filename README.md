@@ -4,11 +4,14 @@
 [![test](https://github.com/d34dman/sutram/actions/workflows/test.yml/badge.svg)](https://github.com/d34dman/sutram/actions/workflows/test.yml)
 [![license: MIT OR GPL-2.0-or-later](https://img.shields.io/badge/license-MIT%20OR%20GPL--2.0--or--later-blue)](LICENSE)
 
-**Let AI agents use your web app through commands, not clicks.**
+**One set of commands for your web app: people type them, AI agents call them.**
 [Try it live →](https://d34dman.github.io/sutram/)
 
-Sutram turns what your web app can do into commands. Register a command
-once, and it is there for everyone:
+Sutram turns what your web app can do into commands. WebMCP is how a page
+hands tools to an agent; Sutram decides what those tools are. Every part of
+the app (a form, the navigation, a module) registers its commands in one
+registry, the same way. Register a command once, and it is there for
+everyone:
 
 - **Agents** get it as a [WebMCP](https://github.com/webmachinelearning/webmcp)
   tool, or call it from JavaScript with `Sutram.call()`.
@@ -116,6 +119,39 @@ corrects one value instead of starting over.
 On Drupal's article form, fixing one wrong value cost an agent about 3,300
 tokens by reading the page, and 17 to 44 with Sutram. See
 [Why commands](docs/why.md) and the [measurements](docs/measurements.md).
+
+## Why not just WebMCP?
+
+WebMCP lets a page hand tools to an agent. It does not say which tools, how
+they are named, or how many parts of an app share one page. Sutram is that
+layer, and WebMCP is one of the ways out of it.
+
+- **Many providers, one page.** On a Drupal page a dozen modules may each want
+  to expose something. With plain WebMCP each registers its own tools, with
+  its own names. With Sutram they share one registry and one command grammar.
+- **People see what agents see.** WebMCP tools are invisible to people. Every
+  Sutram command is also a line in the console, so you can type exactly what
+  the agent would call, watch what it runs, and paste it into a bug report.
+- **Few tools, stable list.** One command takes the thing on the page as an
+  argument: `form set <form> …` is the tool `form_set` for every form, not one
+  tool per form. Commands look up their target when they run and answer "not
+  on this page" when it is gone, so the tool list stays put.
+- **What WebMCP leaves out.** Discovery (`help`, `man`, status), errors that
+  name the fix, changes to poll (`events recent`), and app-defined formats.
+  What WebMCP has no field for, like what a command returns or that it leaves
+  the page, goes into the tool description.
+- **Works before WebMCP does.** Browser agents, tests and Claude Code use the
+  commands today through `Sutram.call()` or the console. Browsers with WebMCP
+  get native tools, and your code does not change when support arrives.
+
+Sutram registers its tools through WebMCP's own `registerTool()`, and it never
+reads or changes the page's HTML: your app's JavaScript says what the commands
+are. It does not replace Playwright or browser agents either. They drive the
+browser; Sutram gives them commands to call instead of buttons to click.
+
+For one app with a few fixed actions, plain WebMCP is enough. Sutram earns its
+place when several parts of an app share a page, or when people should use the
+same commands as the agent.
 
 ## Documentation
 

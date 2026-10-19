@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sutram: make your web app ready for AI agents</title>
-<meta name="description" content="Make your web app usable by AI agents. Describe what it can do in a few lines of JavaScript: browser agents use it today, and WebMCP browsers get native tools. Open source, no dependencies.">
+<meta name="description" content="One set of commands for your web app: people type them in a console, AI agents call them as WebMCP tools or from JavaScript. Every part of the app registers its commands the same way. Open source, no dependencies.">
 <meta name="theme-color" content="#fafaf8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0d14" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Sutram: make your web app ready for AI agents">
-<meta property="og:description" content="Describe what your web app can do in a few lines of JavaScript. Browser agents and WebMCP browsers can then use it, in the user's own session.">
+<meta property="og:description" content="One set of commands for your web app, for people and AI agents. WebMCP hands tools to agents; Sutram decides what they are.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://d34dman.github.io/sutram/">
 <meta property="og:image" content="https://d34dman.github.io/sutram/social-preview.png">
@@ -361,7 +361,7 @@ footer p { margin: 10px 0 0; max-width: 34rem; }
       <div class="hero-copy">
         <span class="eyebrow"><b>Open source</b> Commands, not clicks</span>
         <h1>Make your web app ready for <em>AI agents</em>.</h1>
-        <p class="lede">Describe what your app can do in a few lines of JavaScript. Browser agents and WebMCP browsers can then use it reliably, in the user's own session. No screenshots, no new API.</p>
+        <p class="lede">Describe what your app can do as commands, in a few lines of JavaScript. People type them in a console; agents call them as WebMCP tools or from JavaScript, in the user's own session. Every part of the app hooks in the same way. No screenshots, no new API.</p>
         <div class="ctas">
           <a class="btn primary" href="#start">Get started <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
           <button class="btn" type="button" data-open-console>Try the live demo</button>
@@ -552,6 +552,14 @@ invoice set.</pre>
       </div>
       <div class="faq">
         <details>
+          <summary>Why not just use WebMCP directly?</summary>
+          <p>WebMCP is how a page hands tools to an agent. It doesn't say which tools a page has, how they are named, or how many parts of an app share one page. Sutram is that layer: every part of the app (a form, the navigation, a module) registers its commands in one registry, people can type the same commands the agent calls, one command such as <code>form set</code> covers every form instead of one tool per form, and agents get <code>help</code>, errors that name the fix and events to poll. For one app with a few fixed actions, plain WebMCP is enough.</p>
+        </details>
+        <details>
+          <summary>Does Sutram read or change my page's HTML?</summary>
+          <p>No. Your app's JavaScript registers the commands and renders its own markup; Sutram never reads, searches or changes the page. In WebMCP browsers it registers tools through WebMCP's own <code>registerTool()</code>.</p>
+        </details>
+        <details>
           <summary>Why not build an API or an MCP server instead?</summary>
           <p>For server-to-server work, do. Sutram is for the app the user already has open: commands run in the browser, in the user's logged-in session, and call your own code and endpoints. There is no new backend, no new login and no token to hand out.</p>
         </details>
@@ -573,7 +581,7 @@ invoice set.</pre>
         </details>
         <details>
           <summary>Is it ready for production?</summary>
-          <p>Sutram is at version 0.4: open source, tested, and published on npm and drupal.org. The command contract may still change before 1.0, and until then breaking changes bump the minor version. See the <a href="https://github.com/d34dman/sutram/blob/main/CHANGELOG.md">changelog</a>.</p>
+          <p>Sutram is at version 0.6: open source, tested, and published on npm and drupal.org. The command contract may still change before 1.0, and until then breaking changes bump the minor version. See the <a href="https://github.com/d34dman/sutram/blob/main/CHANGELOG.md">changelog</a>.</p>
         </details>
         <details>
           <summary>I build on Drupal. Is there a module?</summary>

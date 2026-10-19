@@ -9,6 +9,9 @@ Sutram lets a web app expose what it can do as commands. You register a
 command once: a name, a JSON Schema for its input, and a function. Agents
 can then call it as a WebMCP tool, from JavaScript in a headless browser, or
 by typing into the page's console, and people can use the same console.
+WebMCP is how a page hands tools to an agent; Sutram decides what those tools
+are, so every part of the app exposes its commands the same way. See
+[Why not just WebMCP?](why.md#why-not-just-webmcp).
 
 ```js
 Sutram.register({

@@ -6,7 +6,13 @@ description: What agents see when Sutram registers your commands as WebMCP tools
 # WebMCP
 
 [WebMCP](https://github.com/webmachinelearning/webmcp) lets a page offer
-tools to an agent in the browser. `connectWebMCP()`, or loading
+tools to an agent in the browser. Sutram sits on top of it: WebMCP is how the
+tools reach the agent, and Sutram decides what they are. Every part of the
+app registers its commands in one registry, and the same commands work in the
+console for people and through `Sutram.call()` where WebMCP is not there yet.
+See [Why not just WebMCP?](../why.md#why-not-just-webmcp).
+
+`connectWebMCP()`, or loading
 `dist/sutram.js`, registers every command as a tool in browsers that support
 it, and keeps the list in step with the registry.
 
