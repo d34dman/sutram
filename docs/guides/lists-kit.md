@@ -1,6 +1,6 @@
 ---
 title: Lists kit
-description: list status, list rows and list go, the same on every site. Read listings, page through them, sort and filter them.
+description: listing status, listing rows and listing go, the same on every site. Read listings, page through them, sort and filter them.
 ---
 
 # Lists kit
@@ -11,15 +11,15 @@ themselves; it shows another page, sort or filter.
 
 | Command | Does | Annotations |
 |---|---|---|
-| `list status` | The lists on this page: rows shown, page, sort, and the sorts and filters each offers | read-only, `untrustedContent` |
-| `list rows [list]` | The rows a list shows now, one value per column, with each row's link | read-only, `untrustedContent` |
-| `list go [list] --page --sort --order --filter` | Shows the list at another page, sort or filter, all in one go | `navigates` or `reinitializes` |
+| `listing status` | The lists on this page: rows shown, page, sort, and the sorts and filters each offers | read-only, `untrustedContent` |
+| `listing rows [list]` | The rows a list shows now, one value per column, with each row's link | read-only, `untrustedContent` |
+| `listing go [list] --page --sort --order --filter` | Shows the list at another page, sort or filter, all in one go | `navigates` or `reinitializes` |
 
 ```text
-> list status
-Content (content): 50 rows of 132, page 1 of 3, sorted by changed desc. See list rows.
-> list go content --filter=type=article,status=1 --sort=title
-Showing Content, page 1, sorted by title asc, filtered by type=article, status=1. Then run list rows.
+> listing status
+Content (content): 50 rows of 132, page 1 of 3, sorted by changed desc. See listing rows.
+> listing go content --filter=type=article,status=1 --sort=title
+Showing Content, page 1, sorted by title asc, filtered by type=article, status=1. Then run listing rows.
 ```
 
 A new sort or filter starts at page 1. `--filter` takes `key=value` pairs,
@@ -44,7 +44,7 @@ lists({
       filters: [{ key: "type", label: "Type", value: "", options: [{ value: "article", label: "Article" }] }],
     },
   }),
-  // Shows a list in a new state. Called after list go has answered.
+  // Shows a list in a new state. Called after listing go has answered.
   go: (list, { page, sort, order, filters }) => {
     const q = new URLSearchParams({ ...filters, page: page - 1, order: sort, sort: order });
     location.assign(`${location.pathname}?${q}`);

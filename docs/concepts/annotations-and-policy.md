@@ -75,25 +75,30 @@ Sometimes the page is not left after all: the person clicks "Stay on page",
 a router handles the URL in place, the URL only changes the `#hash`, the
 browser blocks a form submit, or the page comes back from the back/forward
 cache. When a command that declares `navigates` called `reinitializes()`,
-Sutram starts on the same page again. Runs work again and `Sutram.ready`
-resolves; nothing on the page is registered again. In this order:
+Sutram starts on the same page again when something says so. Runs work again
+and `Sutram.ready` resolves; nothing on the page is registered again. What
+says so:
 
 1. The adapter's answer, or `Sutram.initialized()`. A kit's adapter returns
    `false` from `go()`, `submit()`, `login()` or `logout()`, or rejects, when
    the page stayed, and Sutram resumes at once. App code calls
    `Sutram.initialized()` for the same.
-2. The browser entry point (`browser.js`, `dist/sutram.js`) resumes at once on
-   a `hashchange` or on a `pageshow` from the back/forward cache, and, where
-   the browser has the Navigation API, when a navigation ends in the document
-   (`navigatesuccess`) or is stopped (`navigateerror`).
-3. As a last resort, it resumes when the page is still there about 3 seconds
-   later and no navigation has started. Once the browser has started one
-   (the Navigation API's `navigate` event), such as a slow form POST, it
-   waits up to a minute instead, so an agent cannot act on the old page and
-   send the form twice. Without the Navigation API it cannot tell, and waits
-   3 seconds.
+2. The browser. The browser entry point (`browser.js`, `dist/sutram.js`)
+   resumes on a `hashchange` or on a `pageshow` from the back/forward cache,
+   and, where the browser has the Navigation API, when a navigation ends in
+   the document (`navigatesuccess`) or is stopped (`navigateerror`, as when
+   the person clicks "Stay on page" in Chromium).
 
-Steps 2 and 3 apply only to `navigates`. After a `reinitializes` command, a
+Time alone never resumes it: a page that is still on its way out, such as
+one sending a slow form POST, must not answer an agent, which could send the
+form twice. So a navigation that ends without any of these signals leaves
+runs refused until the page loads again or the app calls
+`Sutram.initialized()`. The common case is a link that downloads a file: an
+adapter whose `go()` starts a download returns `false`. Browsers without the
+Navigation API (Firefox and Safari, at the time of writing) send no signal
+after "Stay on page" either.
+
+Step 2 applies only to `navigates`. After a `reinitializes` command, a
 single-page app calls `Sutram.initialized()` itself once its new commands are
 registered, or its adapter answers `false` when nothing changed.
 
@@ -115,12 +120,13 @@ getRegistry().policy.set({ agent: "changes" });
 ```
 
 When an agent needs approval, the console shows the commands it wants to run
-and asks. With `"changes"`, the user can answer *Yes, and stop asking*,
-which lowers that caller to `"consequential"` for the rest of the page's
-life; it never covers a consequential command.
+and asks. A yes covers that call and nothing after it: with `"changes"`,
+every change asks, every time. The console cannot tell who clicks, so no
+answer may lower the level for the calls that follow.
 
 - To ask in your own dialog:
-  `policy.setAsker(async ({ who, steps }) => true | false | "always")`.
+  `policy.setAsker(async ({ who, steps }) => true | false)`. Only `true`
+  is yes.
 - Without a console or an asker, the browser's `confirm()` asks.
 - `Sutram.call()` from a headless browser cannot ask anyone: a call that
   needs approval returns exit 130 and runs only when called again with

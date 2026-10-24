@@ -34,11 +34,6 @@ export function createPolicy({ person = "consequential", agent = "consequential"
       for (const [who, level] of Object.entries(next)) { check(who, level); levels[who] = level; }
     },
 
-    /** Stops asking this kind of caller about ordinary changes: "changes" becomes "consequential". */
-    relax(who) {
-      if (levels[who] === "changes") levels[who] = "consequential";
-    },
-
     /** True when this kind of caller must agree before the command runs. */
     needs(def, who) {
       const level = levels[who];
@@ -52,10 +47,10 @@ export function createPolicy({ person = "consequential", agent = "consequential"
      * Sets the function that asks the user, for callers that cannot ask
      * themselves (an agent through WebMCP). It gets { who, caller, steps,
      * signal? }, where steps is [{ def, input }]; when the signal aborts, the
-     * call is withdrawn and the question can go. It resolves to true, false, or
-     * "always": yes, and stop asking this kind of caller about ordinary
-     * changes for the rest of the page's life. A console sets itself as the
-     * asker when it connects and none is set. Returns a function that removes it.
+     * call is withdrawn and the question can go. It resolves to true for yes;
+     * anything else is no. Every call that needs approval is asked about: a
+     * yes covers that call only. A console sets itself as the asker when it
+     * connects and none is set. Returns a function that removes it.
      */
     setAsker(fn) {
       if (typeof fn !== "function") throw new TypeError("policy: setAsker needs a function");
@@ -67,9 +62,7 @@ export function createPolicy({ person = "consequential", agent = "consequential"
 
     /**
      * Asks through the asker. Resolves to true when the user agreed, false
-     * otherwise, including when there is no asker. "always" lowers the
-     * level from "changes" to "consequential"; it never covers a
-     * consequential command.
+     * otherwise, including when there is no asker.
      */
     async ask(request) {
       if (!asker) return false;
@@ -82,8 +75,7 @@ export function createPolicy({ person = "consequential", agent = "consequential"
         answer = await (aborted ? Promise.race([asker(request), aborted]) : asker(request));
       } catch (err) { console.error(err); return false; }
       if (signal && signal.aborted) return false;
-      if (answer === "always" && !request.steps.some((s) => s.def.annotations.consequential)) policy.relax(request.who);
-      return answer === true || answer === "always";
+      return answer === true;
     },
   };
   return policy;

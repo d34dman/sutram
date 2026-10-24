@@ -3,18 +3,11 @@
 // "Stay on page", the URL only changes the #hash, a form submit is blocked,
 // or the browser brings the page back from its back/forward cache. Then
 // nothing would ever call initialized() and every run would be refused.
-// watchNavigation() starts Sutram on this page again in those cases.
+// watchNavigation() starts Sutram on this page again when the browser says
+// the page stayed. It never guesses from the time that passed: resuming on
+// a page that is still on its way out would let an agent act on it, such as
+// sending a slow form POST twice.
 // Internal: src/browser.js calls it with window.
-
-/** How long to wait for the page to go before starting Sutram on it again, in ms. */
-export const NAVIGATION_TIMEOUT = 3000;
-
-/**
- * How long a navigation the browser has started (the Navigation API's
- * navigate event) may take, in ms. A slow form POST is still on its way:
- * resuming on the old page then would let an agent send it again.
- */
-export const LOADING_TIMEOUT = 60000;
 
 /**
  * After a reinitialize() that leaves the page (navigates: true), unless
@@ -23,77 +16,47 @@ export const LOADING_TIMEOUT = 60000;
  * - the page is shown again from the back/forward cache (pageshow, persisted);
  * - the navigation stayed in the document (hashchange, or the Navigation
  *   API's navigatesuccess);
- * - the browser stopped the navigation (navigateerror);
- * - the page is still here `delay` ms later and no navigation has started,
- *   or `loading` ms later when one has. Without the Navigation API Sutram
- *   cannot tell, and waits `delay`.
+ * - the browser stopped the navigation (the Navigation API's navigateerror,
+ *   as after "Stay on page").
+ * Nothing else resumes it: a navigation that ends without an event, such as
+ * a link that downloads a file, leaves runs refused until the page loads
+ * again or the app calls initialized().
  * A reinitialize() without navigates is a single-page app's: it calls
  * initialized() itself, so nothing is done. Returns a function that stops.
  */
-export function watchNavigation(registry, win, { delay = NAVIGATION_TIMEOUT, loading = LOADING_TIMEOUT } = {}) {
+export function watchNavigation(registry, win) {
   const navigation = win.navigation && typeof win.navigation.addEventListener === "function" ? win.navigation : null;
-  let timer = null;
   let pending = null; // the generation of the leave being waited for
-  const cancel = () => {
-    if (timer !== null) clearTimeout(timer);
-    timer = null;
-  };
-  const recover = (generation) => {
-    cancel();
-    pending = null;
-    // A newer reinitialize() owns ready now.
-    if (generation === registry.generation) registry.initialized();
-  };
 
   const off = registry.onReinitialize(({ generation, navigates }) => {
-    cancel();
     pending = navigates ? generation : null;
-    if (!navigates) return;
-    timer = setTimeout(() => recover(generation), delay);
-    // initialized() first (the adapter said the page stayed, or the app
-    // said so): the timer is not needed.
-    registry.ready.then(() => {
-      if (pending !== generation) return;
-      cancel();
-      pending = null;
-    });
   });
-  const onHash = () => { if (pending !== null) recover(pending); };
-  // The browser is on its way to another page: wait for it, not for `delay`.
-  const onNavigate = () => {
+  // Sutram starts again on this page, unless a newer reinitialize() owns ready now.
+  const stayed = () => {
     if (pending === null) return;
     const generation = pending;
-    cancel();
-    timer = setTimeout(() => recover(generation), loading);
+    pending = null;
+    if (generation === registry.generation) registry.initialized();
   };
-  const onEnd = () => { if (pending !== null) recover(pending); };
-  // The page really is going (or going into the cache): let it.
-  const onHide = () => cancel();
   // A page from the back/forward cache is a whole page with its commands.
   const onShow = (event) => {
     if (!event || !event.persisted) return;
-    cancel();
     pending = null;
     registry.initialized();
   };
-  win.addEventListener("hashchange", onHash);
-  win.addEventListener("pagehide", onHide);
+  win.addEventListener("hashchange", stayed);
   win.addEventListener("pageshow", onShow);
   if (navigation) {
-    navigation.addEventListener("navigate", onNavigate);
-    navigation.addEventListener("navigatesuccess", onEnd);
-    navigation.addEventListener("navigateerror", onEnd);
+    navigation.addEventListener("navigatesuccess", stayed);
+    navigation.addEventListener("navigateerror", stayed);
   }
   return () => {
     off();
-    cancel();
-    win.removeEventListener("hashchange", onHash);
-    win.removeEventListener("pagehide", onHide);
+    win.removeEventListener("hashchange", stayed);
     win.removeEventListener("pageshow", onShow);
     if (navigation) {
-      navigation.removeEventListener("navigate", onNavigate);
-      navigation.removeEventListener("navigatesuccess", onEnd);
-      navigation.removeEventListener("navigateerror", onEnd);
+      navigation.removeEventListener("navigatesuccess", stayed);
+      navigation.removeEventListener("navigateerror", stayed);
     }
   };
 }

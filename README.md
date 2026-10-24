@@ -203,11 +203,21 @@ Sanskrit grammar in about 4,000 of them. In Malayalam, *sūtram* (സൂത്�
 everyday speech for a knack, a clever little device. Each command is a sūtram:
 one short line in place of clicks and screenshots.
 
-## Status
+## Status and versions
 
-Version 0.7, early. Until 1.0, the command contract may still change, and
-breaking changes bump the minor version (0.7 → 0.8). See the
-[changelog](CHANGELOG.md).
+Version 0.7, early. Sutram follows [semantic versioning](https://semver.org/)
+for its JavaScript API: `register()` and command definitions, the kits'
+adapters, annotations, the policy, exit codes, the result envelope
+(`{ code, text, data }` or `{ code, message }`), the entry points and their
+types. Until 1.0, a breaking change there bumps the minor version (0.7 → 0.8).
+
+The commands themselves are not part of that promise: the kits' command
+names, their parameters, what they print and return in `data`, and the
+WebMCP tool descriptions. Agents learn them on every page (`help`, `man`, the
+tool list), so they may change in any release when that makes them work
+better. We try not to, and the [changelog](CHANGELOG.md) lists every change
+under *Commands*. Code that hard-codes command lines, such as tests that use
+`Sutram.call()` or `Sutram.exec()`, should pin a version.
 
 ## License
 

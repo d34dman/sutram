@@ -1,12 +1,32 @@
 # Changelog
 
-Sutram follows [semantic versioning](https://semver.org/). Before 1.0,
-breaking changes bump the minor version.
+Sutram follows [semantic versioning](https://semver.org/) for its
+JavaScript API. Before 1.0, breaking changes bump the minor version. The
+commands (their names, parameters, output and tool descriptions) are not
+covered: agents discover them at run time, so they may change in any
+release, and each change is listed under *Commands*. See
+[Status and versions](README.md#status-and-versions).
 
 ## Unreleased
 
 Kits: commands that are the same on every site, each fed by a small adapter
 in the app: nav, page, user, messages, lists and forms.
+
+### Commands
+
+- `help -h`, `man -h`, `status -h` and `clear -h` show their usage; any
+  other option after them is a usage error (exit 2). Before, the console
+  answered `status -h` with "command not found".
+
+### Removed
+
+- *Yes, and stop asking*: a `"changes"` policy asks about every change,
+  every time. The console cannot tell who clicks, so one answer no longer
+  lowers the level for the calls that follow. `policy.relax()` is gone, an
+  asker's only yes is `true` (an older asker's `"always"` now means no),
+  `MESSAGES.always` is gone and `MESSAGES.answerHint` is a string.
+- `findModelContext()` no longer falls back to `navigator.modelContext`;
+  WebMCP is `document.modelContext`.
 
 ### Added
 
@@ -30,11 +50,11 @@ in the app: nav, page, user, messages, lists and forms.
   `navigates` or `reinitializes`, and `user logout` is consequential. See the
   [user kit guide](docs/guides/user-kit.md).
 - `@d34dman/sutram/messages`: the messages kit. `messages({ messages, watch? })`
-  registers the `messages` command and emits a `message.shown` event for each
-  message, at the start and after the adapter's `changed()`. See the
+  registers `messages status`, part of a bare `status`, and emits a
+  `message.shown` event for each message, at the start and after the adapter's `changed()`. See the
   [messages kit guide](docs/guides/messages-kit.md).
 - `@d34dman/sutram/lists`: the lists kit, read-only. `lists({ lists, go,
-  reloads })` registers `list status`, `list rows` and `list go`. `list go`
+  reloads })` registers `listing status`, `listing rows` and `listing go`. `listing go`
   changes page, sort and filters in one go and hands the adapter the complete
   state; the kit checks sorts and filters against what the list offers. See
   the [lists kit guide](docs/guides/lists-kit.md).
@@ -81,12 +101,13 @@ in the app: nav, page, user, messages, lists and forms.
 - The forms guide's send command is `form submit` (it said `form save` or
   `submit`): one name on every site.
 - The note after a run that started Sutram again, and the agent prompt's
-  rules, say to look at `messages` where the page has it.
+  rules, say to look again with `status`, which includes `messages status` where
+  the page has it.
 - Completion adds no space after a value that ends in `=`, such as the
   `type=` of a `key=value` pair, so the value can follow.
 - The kits' commands that return text from the site carry
-  `untrustedContent`: `nav menu`, `nav search`, `page status`, `messages`,
-  `list status`, `list rows`, and `form list`, `status`, `fields`, `get`,
+  `untrustedContent`: `nav menu`, `nav search`, `page status`, `messages status`,
+  `listing status`, `listing rows`, and `form list`, `status`, `fields`, `get`,
   `set`, `add` and `search`. WebMCP agents get `untrustedContentHint`.
   So do `sutram_status` and `events recent`, which pass on what the page's
   providers report and the messages it showed.
@@ -112,6 +133,9 @@ in the app: nav, page, user, messages, lists and forms.
 
 ### Fixed
 
+- `status` in a pasted batch or a `Sutram.exec()` batch, after a line that
+  changed a provider with batch hooks, no longer waits forever for the batch
+  it is part of. `runStatus()` takes `run`, and a batch passes its own.
 - `nav go` refuses a path that the browser would take to another site, such
   as `/\example.com` or a path with a tab, and hands the adapter the
   resolved path. Before, an agent could send the user's tab, with data in
@@ -125,12 +149,13 @@ in the app: nav, page, user, messages, lists and forms.
   happen no longer leaves Sutram refusing every call. The page resumes when
   the adapter's `go()`, `submit()`, `login()` or `logout()` resolves to
   `false` or fails, when the app calls `initialized()`, on `hashchange`, on
-  a page restored from the back/forward cache, or, last, when the page is
-  still there after 3 seconds and no navigation has started. A navigation
-  the browser has started, such as a slow form POST, is waited for (up to a
-  minute, ended early by `navigateerror` or `navigatesuccess`), so the old
-  page does not answer while the form is on its way and cannot be sent
-  twice. `registry.reinitialize({ navigates })` and the reinitialize
+  a page restored from the back/forward cache, or when the Navigation API
+  says the navigation stayed in the document or was stopped
+  (`navigatesuccess`, `navigateerror`, as after "Stay on page"). Time alone
+  never resumes it, so a page still sending a slow form POST does not answer
+  and the form cannot be sent twice; a navigation that ends with no signal,
+  such as a download, waits for the next page or `initialized()`.
+  `registry.reinitialize({ navigates })` and the reinitialize
   event's `navigates` say which kind it was.
 - `form set` takes an agent's JSON as it comes: `true`, a number, or a list
   for a choices field. Before, anything but a string was refused with

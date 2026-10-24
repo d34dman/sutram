@@ -622,13 +622,15 @@ export function unknownProviders(registry, providers) {
 
 /**
  * Runs every `<provider> status` command, the way a bare `status` does, or
- * only those of `providers`. Resolves to [{ provider, code, text?, data?, message? }].
+ * only those of `providers`. `run` runs each one, registry.run by default; a
+ * batch passes its own run, so a status inside it does not wait for the
+ * batch to end. Resolves to [{ provider, code, text?, data?, message? }].
  */
-export async function runStatus(registry, { caller = "status", signal, providers } = {}) {
+export async function runStatus(registry, { caller = "status", signal, providers, run = registry.run } = {}) {
   const results = [];
   for (const def of registry.list().filter(isStatusCommand)) {
     if (providers && !providers.includes(def.provider)) continue;
-    results.push({ provider: def.provider, ...(await registry.run(def.name, {}, { caller, signal })) });
+    results.push({ provider: def.provider, ...(await run(def.name, {}, { caller, signal })) });
   }
   return results;
 }

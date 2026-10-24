@@ -8,18 +8,16 @@
 // WebMCP decides which origins see the tools, not whether a call may change
 // the user's page, so calls go through the page's policy (policy.js) first.
 
-import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, isStatusCommand, mayReinitialize, runStatus, unknownProviders } from "./core.js";
-import { approvalLine, checkFields, describeShape, formatHelp, formatMan, formatResult, formatUsage, formatsUsed, sentence } from "./format.js";
+import { EXIT, checkInput, getRegistry, isStatusCommand, runStatus, unknownProviders } from "./core.js";
+import { approvalLine, describeShape, formatsUsed, sentence } from "./format.js";
 import { getFormats } from "./formats.js";
-import { parse, splitLines, suggest, tokenize } from "./parse.js";
+import { LINE_TEXT, commandSteps, readBatch, readLines, runSteps } from "./lines.js";
+import { suggest } from "./parse.js";
 import { genericQuestion, ownQuestion } from "./policy.js";
 
-/** The page's model context, or null when the browser has none. */
+/** The page's model context (document.modelContext), or null when the browser has none. */
 export function findModelContext() {
-  if (typeof document !== "undefined" && document.modelContext) return document.modelContext;
-  // Older builds put it on navigator; Chromium is deprecating that.
-  if (typeof navigator !== "undefined" && navigator.modelContext) return navigator.modelContext;
-  return null;
+  return (typeof document !== "undefined" && document.modelContext) || null;
 }
 
 export const toolName = (def) => def.name.replace(/\s+/g, "_");
@@ -144,7 +142,7 @@ async function approve(registry, steps, { confirmed = false, interactive = false
  * Added to the result of a run that started Sutram again (reinitializes()):
  * the agent has to wait and look at the page afresh.
  */
-export const REINITIALIZED_NOTE = "Sutram is starting again, as after a page change. Wait until it is ready (its tools appear again; with JavaScript, await Sutram.ready), then look again: the tools may differ, and nothing from before carries over. Where the page has a messages tool, it says what the page showed, such as Saved or an error.";
+export const REINITIALIZED_NOTE = "Sutram is starting again, as after a page change. Wait until it is ready (its tools appear again; with JavaScript, await Sutram.ready), then look again: the tools may differ, and nothing from before carries over. sutram_status includes what the page showed, such as Saved or an error, where the page has messages_status.";
 
 async function runForAgent(registry, def, input, options) {
   const { errors, value } = checkInput(def.input, input, registry.formats, { strict: options.strict });
@@ -237,34 +235,6 @@ export async function callTool(name, input = {}, { registry = getRegistry(), con
 /** Output blocks as plain text, with exit codes the way the console's transcript writes them. */
 const blocksText = (blocks) => blocks.map((b) => (b.kind === "error" ? `${b.text} (exit ${b.code})` : b.text)).filter(Boolean).join("\n");
 
-/** help, man and status, as the console answers them. Resolves to [code, text]. */
-async function clientWord(registry, words, options) {
-  const [first, ...rest] = words.map((w, i) => (i === 0 ? w.toLowerCase() : w));
-  if (first === "help") return [EXIT.OK, blocksText(formatHelp(registry, rest.join(" ").toLowerCase()))];
-  if (first === "man") {
-    const name = rest.join(" ").toLowerCase();
-    if (!name) return [EXIT.USAGE, "man: which command? For example: man help (exit 2)"];
-    const def = registry.get(name);
-    if (!def && !RESERVED_WORDS.includes(name)) return [EXIT.FAILED, `No manual entry for ${name}. See help. (exit 1)`];
-    return [EXIT.OK, blocksText(formatMan(def, name, registry.formats))];
-  }
-  if (first === "status") {
-    const json = rest.includes("--json");
-    const names = rest.filter((w) => w !== "--json");
-    if (names.some((w) => w.startsWith("-"))) return [EXIT.USAGE, "status: usage: status [provider …] [--json] (exit 2)"];
-    const unknown = unknownProviders(registry, names.length ? names : undefined);
-    if (unknown) return [EXIT.USAGE, `status: ${unknown} (exit 2)`];
-    const results = await runStatus(registry, { caller: options.caller, signal: options.signal, providers: names.length ? names : undefined });
-    if (json) return [EXIT.OK, JSON.stringify(results.map(({ provider, data }) => ({ provider, data })), null, 2)];
-    if (!results.length) return [EXIT.OK, "No provider on this page reports a status."];
-    const w = Math.max(...results.map((r) => r.provider.length));
-    return [EXIT.OK, results.map((r) => `${r.provider.padEnd(w)}  ${(r.code ? r.message : r.text || "").split("\n")[0]}`).join("\n")];
-  }
-  // clear has nothing to clear here.
-  if (first === "clear" && !rest.length) return [EXIT.OK, ""];
-  return [EXIT.USAGE, `${first}: usage: help [provider], man <command>, status [provider …] [--json] (exit 2)`];
-}
-
 /**
  * Runs command lines the way a person pastes them into the console, for code
  * that drives the page from outside: a headless browser, an agent that can
@@ -273,7 +243,8 @@ async function clientWord(registry, words, options) {
  * once, as for sutram_batch (without `confirmed`, nothing that needs the
  * user runs, and the text says what to ask); the batch stops at the first
  * line that fails, and providers with batch hooks undo the earlier lines.
- * help, man, status and -h work as in the console, and --json as well.
+ * The console reads and runs lines the same way (lines.js), so help, man,
+ * status, -h and --json work as there.
  *
  * Resolves to { code, text, completed, total }: text is what the console
  * would print, each line after "› ", which is usually shorter than the
@@ -281,67 +252,29 @@ async function clientWord(registry, words, options) {
  * console.
  */
 export async function execLines(text, { registry = getRegistry(), confirmed = false, caller = "agent", signal } = {}) {
-  const lines = splitLines(String(text))
-    .map((l) => l.trim().replace(/^(?:›|\$|>)\s*/, ""))
-    .filter((l) => l && !l.startsWith("#"));
+  const lines = readLines(text);
   const total = lines.length;
   if (!total) return { code: EXIT.USAGE, text: "exec: no command lines. Start with help.", completed: 0, total };
-  const out = [];
-  const end = (code, completed, ...notes) => ({ code, text: [...out, ...notes.filter(Boolean)].join("\n"), completed, total });
 
-  const steps = [];
-  for (const [i, line] of lines.entries()) {
-    try {
-      const words = tokenize(line).map((t) => t.value);
-      if (RESERVED_WORDS.includes(String(words[0]).toLowerCase())) { steps.push({ line, words }); continue; }
-      const parsed = parse(registry, line);
-      if (!parsed.help) {
-        const fieldError = parsed.fields && checkFields(parsed.def, parsed.fields);
-        if (fieldError) throw new CommandError(fieldError, EXIT.USAGE);
-        const { errors, value } = checkInput(parsed.def.input, parsed.input, registry.formats);
-        if (errors.length) throw new CommandError(`${parsed.def.name}: ${errors.join("; ")}. Try ${parsed.def.name} -h.`, EXIT.USAGE);
-        if (mayReinitialize(parsed.def) && i < total - 1) throw new CommandError(`${parsed.def.name} may start Sutram again, so it must be the last line. Run the rest after it.`, EXIT.USAGE);
-        parsed.checked = value;
-      }
-      steps.push({ line, ...parsed });
-    } catch (err) {
-      const code = err instanceof CommandError ? err.code : EXIT.FAILED;
-      out.push(`› ${line}`, `${(err && err.message) || err} (exit ${code})`);
-      return end(code, 0, total > 1 && `Line ${i + 1} of ${total} has a mistake, so nothing ran.`);
-    }
+  const { steps, failed } = readBatch(registry, lines);
+  if (failed) {
+    const notes = [`› ${lines[failed.index]}`, `${failed.message} (exit ${failed.code})`];
+    if (total > 1) notes.push(LINE_TEXT.batchMistake(failed.index + 1, total));
+    return { code: failed.code, text: notes.join("\n"), completed: 0, total };
   }
 
-  const running = steps.filter((s) => s.def && !s.help);
-  const refusal = await approve(registry, running.map((s) => ({ def: s.def, input: s.checked })), { confirmed, caller, signal, interactive: false }, "exec");
+  const running = commandSteps(steps);
+  const label = running.length === 1 && total === 1 ? toolName(running[0].def) : "exec";
+  const refusal = await approve(registry, running.map((s) => ({ def: s.def, input: s.value })), { confirmed, caller, signal, interactive: false }, label);
   if (refusal) return { code: refusal.code, text: refusal.message, completed: 0, total };
 
+  const out = [];
   const before = registry.generation;
-  const batch = registry.startBatch({ caller, signal });
-  for (const [i, step] of steps.entries()) {
-    out.push(`› ${step.line}`);
-    let code = EXIT.OK;
-    if (step.words) {
-      const [c, t] = await clientWord(registry, step.words, { caller, signal });
-      code = c;
-      out.push(t);
-    } else if (step.help) out.push(blocksText(formatUsage(step.def)));
-    else {
-      const result = await batch.run(step.def.name, step.input, { expect: step.def });
-      out.push(blocksText(formatResult(result, step.def, { json: step.json, wide: step.wide, fields: step.fields })));
-      code = result.code;
-    }
-    if (code !== EXIT.OK) {
-      const { rolledBack, kept } = await batch.rollback();
-      if (i > 0 && rolledBack.length && !kept.length) return end(code, i, `Stopped at line ${i + 1} of ${total}. The earlier lines were undone, so nothing changed.`);
-      return end(code, i,
-        i < total - 1 && `Stopped after line ${i + 1} of ${total}; the rest did not run.`,
-        kept.length && `What earlier lines changed in ${kept.join(", ")} stays.`);
-    }
-  }
-  try { await batch.commit(); } catch (err) {
-    return end(EXIT.FAILED, total, `The lines ran, but saving them failed: ${(err && err.message) || err} (exit 1)`);
-  }
-  return end(EXIT.OK, total, registry.generation !== before && REINITIALIZED_NOTE);
+  const done = await runSteps(registry, steps, { caller, signal, start: (step) => out.push(`› ${step.line}`), show: (step, blocks) => out.push(blocksText(blocks)) });
+  if (done.error) out.push(`The lines ran, but saving them failed: ${done.error} (exit 1)`);
+  out.push(...done.notes);
+  if (done.code === EXIT.OK && registry.generation !== before) out.push(REINITIALIZED_NOTE);
+  return { code: done.code, text: out.filter(Boolean).join("\n"), completed: done.completed, total };
 }
 
 /**

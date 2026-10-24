@@ -106,12 +106,14 @@ test("the policy decides which agent calls need the user, and WebMCP asks throug
   assert.equal((await mc.tools.get("doc_clear").execute({}, {})).code, EXIT.CANCELLED);
   assert.deepEqual(asked, [["doc clear"]]);
 
-  // "changes": every command that is not read-only asks; "always" relaxes it again.
+  // "changes": every command that is not read-only asks, every time.
   r.policy.set({ agent: "changes" });
   assert.equal((await mc.tools.get("doc_add").execute({ item: "b" }, {})).code, EXIT.CANCELLED);
-  answer = "always";
+  answer = true;
   assert.equal((await mc.tools.get("doc_add").execute({ item: "c" }, {})).code, 0);
-  assert.equal(r.policy.get().agent, "consequential");
+  answer = false;
+  assert.equal((await mc.tools.get("doc_add").execute({ item: "d" }, {})).code, EXIT.CANCELLED);
+  assert.equal(r.policy.get().agent, "changes");
   assert.deepEqual(log, ["a", "c"]);
 
   // Bad input is reported before anyone is asked.

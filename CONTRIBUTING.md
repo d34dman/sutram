@@ -37,7 +37,11 @@ npm run docs          # if you changed types/, docs/measurements, src/prompt.js 
   `npm run docs`. `npm test` fails when they are stale.
 - **The website**: `npm run site` builds the docs into `site/` and serves it
   at http://localhost:8080/site/. GitHub Pages deploys `main`.
-- **Changelog**: add a line under *Unreleased* in `CHANGELOG.md`.
+- **Changelog**: add a line under *Unreleased* in `CHANGELOG.md`. A change
+  to a command (its name, parameters, output or tool description) goes under
+  *Commands*: semantic versioning covers the JavaScript API, not the commands
+  (see [Status and versions](README.md#status-and-versions)), but every
+  command change is listed.
 
 ## Principles
 

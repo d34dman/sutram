@@ -1,7 +1,8 @@
 // The messages kit: what the page said, such as "Saved" after a save or an
-// error after a failed one. It gives the same data two ways: the messages
-// command lists the messages, for an agent that asks, and each message is
-// also emitted as a message.shown event, for one that reads events recent.
+// error after a failed one. It gives the same data two ways: messages status
+// lists the messages, for an agent that asks (a bare status includes it),
+// and each message is also emitted as a message.shown event, for one that
+// waits for it with events wait.
 // One adapter function feeds both.
 //
 //   import { messages } from "@d34dman/sutram/messages";
@@ -43,7 +44,7 @@ async function load(adapter) {
 const same = (a, b) => a.type === b.type && a.text === b.text;
 
 /**
- * Registers the messages command on a registry (the page's by default),
+ * Registers messages status on a registry (the page's by default),
  * declares the message.shown event, and emits it for each message the
  * page has shown. The adapter supplies:
  *
@@ -80,20 +81,22 @@ export function messages(adapter, { registry = getRegistry(), events = getEvents
   };
 
   const off = registerAll(registry, [{
-    name: "messages",
-    title: "Show messages",
+    name: "messages status",
+    title: "Show the page's messages",
     provider: "messages",
     description: "Show the messages this page has shown, such as Saved or an error, oldest first",
     input: { type: "object", properties: {} },
     output: { type: "object", required: ["messages"], properties: { messages: { type: "array", items: MESSAGE } } },
     view: { columns: ["type", "text"] },
     annotations: { readOnly: true, untrustedContent: true },
-    examples: ["messages", "messages --json"],
-    seeAlso: ["events recent"],
+    examples: ["messages status", "messages status --json"],
+    seeAlso: ["events wait", "events recent"],
     async run() {
       const list = await load(adapter);
       if (!list.length) return { text: "No messages on this page.", data: { messages: [] } };
-      return { data: { messages: list } };
+      // The first line is what a bare status shows: how many, and the latest.
+      const last = list[list.length - 1];
+      return { text: `${list.length === 1 ? "1 message" : `${list.length} messages`}; the latest (${last.type}): ${last.text.split("\n")[0]}`, data: { messages: list } };
     },
   }]);
   const unwatch = adapter.watch ? adapter.watch(() => { pull(); }) : undefined;

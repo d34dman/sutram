@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseHotkey, matchHotkey, DEFAULT_HOTKEY, SutramConsole } from "../src/console.js";
+import { parseHotkey, matchHotkey, DEFAULT_HOTKEY, MESSAGES, SutramConsole } from "../src/console.js";
+import { createRegistry } from "../src/index.js";
+import { execLines } from "../src/webmcp.js";
 
 const key = (code, keyValue, mods = {}) => ({ code, key: keyValue, ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...mods });
 
@@ -138,4 +140,33 @@ test("another key, a click or a closed console means no peek", (t) => {
   press(closed, "keydown", "Alt", { altKey: true });
   t.mock.timers.tick(250);
   assert.equal(closed.peeking, false);
+});
+
+// The line-running methods on a stand-in for the element: output is collected, not drawn.
+const consoleOf = (registry) => {
+  const out = [];
+  const c = Object.assign(Object.create(SutramConsole.prototype), {
+    registry, _messages: MESSAGES, history: [], historyIndex: 0, ranHere: [], _historyStore: null, pendingAsk: null,
+    print: (text, kind) => { out.push(`${kind}: ${text}`); return { append() {} }; },
+    echo: (line) => out.push(`› ${line}`),
+    printBlocks: (blocks) => { for (const b of blocks) out.push(`${b.kind}: ${b.text}`); },
+  });
+  return { c, out };
+};
+
+test("the console reads lines as Sutram.exec() does: -h on the built-in words, usage errors for their options", async () => {
+  const r = createRegistry();
+  r.register({ name: "todo status", provider: "todo", description: "Count", annotations: { readOnly: true }, run: () => "0 todos" });
+  r.initialized();
+  for (const line of ["status -h", "help -h", "man -h"]) {
+    const { c, out } = consoleOf(r);
+    assert.equal(await c.submit(line), 0, line);
+    assert.match(out.join("\n"), /text: usage: /, line);
+    assert.equal((await execLines(line, { registry: r })).code, 0, line);
+  }
+  const { c, out } = consoleOf(r);
+  assert.equal(await c.submit("status --wide"), 2);
+  assert.match(out.join("\n"), /status: usage: status \[provider …\] \[--json\]/);
+  assert.equal(await c.submit("status"), 0);
+  assert.match(out.join("\n"), /text: todo {2}0 todos/);
 });

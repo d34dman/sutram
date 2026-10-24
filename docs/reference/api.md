@@ -294,12 +294,12 @@ export interface AskRequest {
   steps: Array<{ def: CommandDefinition; input: Record<string, unknown> }>;
   signal?: AbortSignal;
 }
-export type Answer = boolean | "always";
+/** The user's answer: true for yes. A yes covers the one call it was asked about. */
+export type Answer = boolean;
 
 export interface Policy {
   get(): { person: Level; agent: Level };
   set(levels: Partial<{ person: Level; agent: Level }>): void;
-  relax(who: Who): void;
   needs(def: CommandDefinition, who: Who | null | undefined): boolean;
   setAsker(fn: (request: AskRequest) => Answer | Promise<Answer>): () => void;
   hasAsker(): boolean;
@@ -402,9 +402,14 @@ export declare function checkOutput(
 
 export declare function isStatusCommand(def: CommandDefinition): boolean;
 
+/** Runs every <provider> status command, or only those of `providers`. `run` runs each (registry.run by default); a batch passes its own run. */
 export declare function runStatus(
   registry: Registry,
-  options?: { caller?: Caller; signal?: AbortSignal; providers?: string[] },
+  options?: { caller?: Caller; signal?: AbortSignal; providers?: string[]; run?: (
+    name: string,
+    input: Record<string, unknown>,
+    options?: { caller?: Caller; signal?: AbortSignal },
+  ) => Promise<Result> },
 ): Promise<Array<{ provider: string } & Result>>;
 
 export declare function tokenize(line: string): Token[];
@@ -488,14 +493,13 @@ export interface Messages {
   closeLabel: string;
   yes: string;
   no: string;
-  always: string;
   answered: (answer: Answer) => string;
   /** The question before a command without its own; gets its title when it has one. */
   run: (name: string, title?: string) => string;
   cancelled: string;
   /** Shown after a question whose call was cancelled before anyone answered. */
   withdrawn: string;
-  answerHint: (always: boolean) => string;
+  answerHint: string;
   manWhich: string;
   manMissing: (name: string) => string;
   noStatus: string;
@@ -569,11 +573,7 @@ export declare class SutramConsole extends HTMLElement {
   /** Waits its turn when another question is open; `lead` prints what it is about when it shows. */
   ask(
     message: string,
-    options?: {
-      always?: boolean;
-      lead?: (() => void) | null;
-      signal?: AbortSignal;
-    },
+    options?: { lead?: (() => void) | null; signal?: AbortSignal },
   ): Promise<Answer>;
   askForAgent(request: AskRequest): Promise<Answer>;
   /** The output as plain text. */

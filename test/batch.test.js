@@ -80,7 +80,7 @@ test("a commit that throws fails the batch", async () => {
   assert.match(res.message, /disk full/);
 });
 
-test("the policy: levels, needs, relax and the asker", async () => {
+test("the policy: levels, needs and the asker; only true is yes, and it never lowers a level", async () => {
   const p = createPolicy();
   const plain = { annotations: {} };
   const reader = { annotations: { readOnly: true } };
@@ -98,12 +98,14 @@ test("the policy: levels, needs, relax and the asker", async () => {
   assert.throws(() => p.set({ robot: "none" }), /unknown caller kind/);
 
   assert.equal(await p.ask({ who: "agent", steps: [{ def: plain }] }), false); // no asker
-  const off = p.setAsker(() => "always");
-  // "always" never covers a consequential command.
-  assert.equal(await p.ask({ who: "agent", steps: [{ def: big }] }), true);
-  assert.equal(p.get().agent, "changes");
+  let answer = true;
+  const off = p.setAsker(() => answer);
   assert.equal(await p.ask({ who: "agent", steps: [{ def: plain }] }), true);
-  assert.equal(p.get().agent, "consequential");
+  assert.equal(p.get().agent, "changes", "a yes covers one call");
+  // An asker written for older versions answers "always": that is not a yes.
+  answer = "always";
+  assert.equal(await p.ask({ who: "agent", steps: [{ def: plain }] }), false);
+  assert.equal("relax" in p, false);
   off();
   assert.equal(p.hasAsker(), false);
 });

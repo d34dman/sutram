@@ -102,3 +102,33 @@ test("status takes provider names, as in the console", async () => {
   assert.match(unknown.text, /status: cart reports no status on this page; these do: todo\. \(exit 2\)$/);
   assert.equal((await execLines("status --wide", { registry: r })).code, EXIT.USAGE);
 });
+
+test("-h works on help, man, status and clear too, and their other options are usage errors", async () => {
+  const { r } = todos();
+  for (const word of ["help", "man", "status", "clear"]) {
+    const res = await execLines(`${word} -h`, { registry: r });
+    assert.equal(res.code, 0, word);
+    assert.ok(res.text.startsWith(`› ${word} -h\nusage: ${word}`), res.text);
+    assert.ok(res.text.endsWith(`See man ${word} for more.`), res.text);
+  }
+  const bad = await execLines("help --json", { registry: r });
+  assert.equal(bad.code, EXIT.USAGE);
+  assert.match(bad.text, /help: usage: help \[provider\] \(exit 2\)$/);
+});
+
+test("a single line that needs the user is refused in its own name", async () => {
+  const { r } = todos();
+  const res = await execLines("todo clear", { registry: r });
+  assert.equal(res.code, EXIT.CANCELLED);
+  assert.match(res.text, /^todo_clear is consequential, so it did not run\./);
+});
+
+test("status inside a batch runs in the batch, instead of waiting for it to end", async () => {
+  const { r } = todos();
+  const res = await Promise.race([
+    execLines("todo add a\nstatus todo", { registry: r }),
+    new Promise((resolve) => setTimeout(() => resolve("waited for itself"), 1000)),
+  ]);
+  assert.equal(res.code, 0);
+  assert.equal(res.text, "› todo add a\nAdded a.\n› status todo\ntodo  1 todos");
+});

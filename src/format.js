@@ -362,6 +362,15 @@ const BUILT_IN_MAN = {
   clear: ["clear", "Clear the console."],
 };
 
+/** `help -h` and the like: the short usage of a word built into every client. */
+export function formatBuiltInUsage(name) {
+  const [syn, desc] = BUILT_IN_MAN[name];
+  return [
+    { kind: "text", text: `usage: ${syn}` },
+    { kind: "dim", text: `${sentence(desc.split(". ")[0])} See man ${name} for more.` },
+  ];
+}
+
 /** ", money: { amount, currency } with an ISO 4217 code." for a property whose format is defined. */
 function formatNote(prop, formats) {
   const fmt = prop && prop.format ? formats.get(prop.format) : undefined;

@@ -665,7 +665,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
         });
       },
       examples: [`form submit ${EXAMPLE}`],
-      seeAlso: ["form status", "messages"],
+      seeAlso: ["form status", "messages status"],
       suggest,
       async run({ form: id }, { reinitializes, signal }) {
         const verb = "form submit";
@@ -685,7 +685,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
           // Submit after the result has been delivered to the caller.
           afterResult(registry, () => adapter.submit(f.form, { verb }));
           return {
-            text: `Submitting ${f.label}. The page reloads; then messages says how it went, or form status ${id} shows errors if the form comes back.`,
+            text: `Submitting ${f.label}. The page reloads; then messages status says how it went, or form status ${id} shows errors if the form comes back.`,
             data: { form: id, submitted: true },
           };
         }

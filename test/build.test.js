@@ -116,11 +116,11 @@ test("dist/page.js, user.js, messages.js, lists.js and forms.js register on the 
       const okFields = [{ field: "ok", type: "boolean", value: false }];
       Sutram.kits.forms({ forms: () => [{ id: "contact", fields: okFields }], read: (f, x) => x.now ?? false, write(f, x, v) { x.now = v; }, submit() {}, reloads: false });
       Sutram.initialized();
-      const rows = await Sutram.registry.run("list rows");
+      const rows = await Sutram.registry.run("listing rows");
       const set = await Sutram.registry.run("form set", { form: "contact", field: "ok", value: "yes" });
       const page = await Sutram.registry.run("page status");
       const user = await Sutram.registry.run("user status");
-      const messages = await Sutram.registry.run("messages");
+      const messages = await Sutram.registry.run("messages status");
       const events = await Sutram.registry.run("events recent");
       const exec = await Sutram.exec("page status\\nform get contact ok --json=value");
       console.log(JSON.stringify({ exec: exec.text, page: page.text, user: user.text, messages: messages.data.messages, rows: rows.data.rows, set: set.data.to, events: events.data.events.map((e) => e.name) }));

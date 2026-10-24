@@ -4,9 +4,10 @@
 // values, confirmation by the page's policy, --json[=fields] and --wide,
 // syntax highlighting of the line being typed, and pasted batches of lines.
 
-import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, mayReinitialize, runStatus, unknownProviders } from "./core.js";
-import { complete, highlight, openQuote, parse, splitLines, tokenize } from "./parse.js";
-import { formatHelp, formatMan, formatResult, formatUsage, annotationLabel, checkFields, approvalLine } from "./format.js";
+import { CommandError, EXIT, getRegistry } from "./core.js";
+import { complete, highlight, openQuote, splitLines } from "./parse.js";
+import { formatResult, formatUsage, annotationLabel, approvalLine } from "./format.js";
+import { LINE_TEXT, clientWord, readBatch, readLine, readLines, runSteps } from "./lines.js";
 import { genericQuestion, ownQuestion } from "./policy.js";
 import { agentPrompt } from "./prompt.js";
 
@@ -30,24 +31,23 @@ export const MESSAGES = Object.freeze({
   closeLabel: "Close",
   yes: "Yes",
   no: "No",
-  always: "Yes, and stop asking",
-  answered: (answer) => (answer === "always" ? "yes, and stop asking" : answer ? "yes" : "no"),
+  answered: (answer) => (answer ? "yes" : "no"),
   run: (name, title) => genericQuestion({ name, title }),
   cancelled: "Cancelled. Nothing changed.",
   withdrawn: "withdrawn",
-  answerHint: (always) => (always ? "Answer y (yes), a (yes, and stop asking) or n (no)." : "Answer y (yes) or n (no)."),
-  manWhich: "What manual page do you want?\nFor example, try: man help",
-  manMissing: (name) => `No manual entry for ${name}. See help.`,
-  noStatus: "No provider on this page reports a status.",
+  answerHint: "Answer y (yes) or n (no).",
+  manWhich: LINE_TEXT.manWhich,
+  manMissing: LINE_TEXT.manMissing,
+  noStatus: LINE_TEXT.noStatus,
   pasted: (n) => `Pasted ${n} lines.`,
   batchConsequential: (n, names) => `Run all ${n} lines? ${names.join(", ")} cannot easily be undone.`,
   batchChanges: (n) => `Run all ${n} lines? They change the page.`,
   batchCancelled: "Cancelled. Nothing ran.",
-  batchMistake: (line, n) => `Line ${line} of ${n} has a mistake, so nothing ran.`,
-  batchNotLast: (name) => `${name} may start Sutram again, so it must be the last line. Run the rest after it.`,
-  batchStopped: (line, n) => `Stopped after line ${line} of ${n}; the rest did not run.`,
-  batchUndone: (line, n) => `Stopped at line ${line} of ${n}. The earlier lines were undone, so nothing changed.`,
-  batchKept: (providers) => `What earlier lines changed in ${providers.join(", ")} stays.`,
+  batchMistake: LINE_TEXT.batchMistake,
+  batchNotLast: LINE_TEXT.batchNotLast,
+  batchStopped: LINE_TEXT.batchStopped,
+  batchUndone: LINE_TEXT.batchUndone,
+  batchKept: LINE_TEXT.batchKept,
   agentAsks: "An agent wants to run:",
   agentAsksBatch: (n) => `An agent wants to run ${n} commands as one change:`,
   agentBatch: (n) => `Run these ${n} commands?`,
@@ -769,17 +769,16 @@ export class SutramConsole extends Base {
   }
 
   /**
-   * Asks a yes/no question in the output. With `always`, a third answer
-   * stops the questions about ordinary changes. Resolves to true, false or
-   * "always". Typing y, n or a answers too; anything else asks again. A
-   * question asked while another is open waits its turn; `lead` prints what
-   * it is about when its turn comes.
+   * Asks a yes/no question in the output. Resolves to true or false. Typing
+   * y or n answers too; anything else asks again. A question asked while
+   * another is open waits its turn; `lead` prints what it is about when its
+   * turn comes.
    */
-  ask(message, { always = false, lead = null, signal } = {}) {
+  ask(message, { lead = null, signal } = {}) {
     return new Promise((resolve) => {
       if (signal && signal.aborted) { resolve(false); return; }
       let done = null; // set once the question is shown
-      const show = () => { done = this.showAsk(message, always, lead, resolve); };
+      const show = () => { done = this.showAsk(message, lead, resolve); };
       show.cancel = () => resolve(false);
       // A withdrawn question goes: from the queue, or answered "withdrawn" on screen.
       if (signal) {
@@ -794,7 +793,7 @@ export class SutramConsole extends Base {
   }
 
   /** Shows a question from ask() and waits for its answer; then the next queued question, if any. */
-  showAsk(message, always, lead, resolve) {
+  showAsk(message, lead, resolve) {
     const m = this.messages;
     if (lead) lead();
     const el = this.print(message + " ", "ask");
@@ -802,7 +801,6 @@ export class SutramConsole extends Base {
     const done = (answer, label) => {
       if (answered) return;
       answered = true;
-      if (answer === "always" && !always) answer = true;
       if (this.pendingAsk === done) { this.pendingAsk = null; this.askEl = null; }
       el.querySelectorAll("button").forEach((b) => b.remove());
       el.append(label || m.answered(answer));
@@ -811,8 +809,7 @@ export class SutramConsole extends Base {
       const next = this.askQueue.shift();
       if (next) next();
     };
-    done.always = always;
-    const choices = [[m.yes, true], ...(always ? [[m.always, "always"]] : []), [m.no, false]];
+    const choices = [[m.yes, true], [m.no, false]];
     for (const [label, answer] of choices) {
       const b = document.createElement("button");
       b.type = "button";
@@ -826,13 +823,8 @@ export class SutramConsole extends Base {
     return done;
   }
 
-  /** Whether "stop asking" can be offered: only about ordinary changes, never consequential ones. */
-  canStopAsking(who, defs) {
-    return this.registry.policy.get()[who] === "changes" && !defs.some((d) => d.annotations.consequential);
-  }
-
   /** The policy's asker: shows what an agent wants to run, and asks. */
-  async askForAgent({ who, steps, signal }) {
+  async askForAgent({ steps, signal }) {
     const m = this.messages;
     this.open();
     const lead = () => {
@@ -844,159 +836,100 @@ export class SutramConsole extends Base {
     const consequential = [...new Set(steps.filter((s) => s.def.annotations.consequential).map((s) => s.def.name))];
     const question = steps.length === 1 ? (ownQuestion(steps[0].def, steps[0].input) || m.run(steps[0].def.name, steps[0].def.title))
       : consequential.length ? m.agentBatchConsequential(steps.length, consequential) : m.agentBatch(steps.length);
-    return this.ask(question, { always: this.canStopAsking(who, steps.map((s) => s.def)), lead, signal });
+    return this.ask(question, { lead, signal });
   }
 
   // ---- running -----------------------------------------------------------
 
-  /** The words clients own: help, man, status and clear. Resolves to an exit code, or null for any other line. */
+  /** help, man, status and clear (see lines.js): prints their output. Resolves to the exit code. */
   async runClientWord(words) {
-    const [first, ...rest] = words.map((w, i) => (i === 0 ? w.toLowerCase() : w));
-    if (first === "help") { this.printBlocks(formatHelp(this.registry, rest.join(" ").toLowerCase())); return EXIT.OK; }
-    if (first === "man") {
-      const name = rest.join(" ").toLowerCase();
-      if (!name) { this.print(this.messages.manWhich, "text"); return EXIT.USAGE; }
-      const def = this.registry.get(name);
-      if (!def && !RESERVED_WORDS.includes(name)) return this.fail(this.messages.manMissing(name), EXIT.FAILED);
-      this.printBlocks(formatMan(def, name, this.registry.formats));
-      return EXIT.OK;
-    }
-    if (first === "clear" && !rest.length) {
-      // An open question stays: it is still waiting for its answer.
-      this.out.replaceChildren(...(this.pendingAsk && this.askEl ? [this.askEl] : []));
-      return EXIT.OK;
-    }
-    if (first === "status" && !rest.some((w) => w.startsWith("-") && w !== "--json")) {
-      // status [provider …] [--json]: only some providers' status.
-      const names = rest.filter((w) => w !== "--json");
-      const unknown = unknownProviders(this.registry, names.length ? names : undefined);
-      if (unknown) return this.fail(`status: ${unknown}`, EXIT.USAGE);
-      const results = await runStatus(this.registry, { caller: "console", providers: names.length ? names : undefined });
-      if (rest.includes("--json")) { this.print(JSON.stringify(results.map(({ provider, data }) => ({ provider, data })), null, 2), "json"); return EXIT.OK; }
-      if (!results.length) { this.print(this.messages.noStatus, "dim"); return EXIT.OK; }
-      const w = Math.max(...results.map((r) => r.provider.length));
-      this.print(results.map((r) => `${r.provider.padEnd(w)}  ${(r.code ? r.message : r.text || "").split("\n")[0]}`).join("\n"), "text");
-      return EXIT.OK;
-    }
-    return null;
+    const done = await clientWord(this.registry, words, { caller: "console", text: this.messages });
+    // An open question stays: it is still waiting for its answer.
+    if (done.clear) this.out.replaceChildren(...(this.pendingAsk && this.askEl ? [this.askEl] : []));
+    this.printBlocks(done.blocks);
+    return done.code;
   }
 
   /**
    * Runs one line, as if it was typed. Resolves to its exit code.
-   * `confirmed` skips the question, for a batch that has already asked once.
    */
-  async submit(line, { confirmed = false } = {}) {
+  async submit(line) {
     line = String(line).trim();
     if (!line) return EXIT.OK;
-    // A typed line answers an open question. A batch's own lines (confirmed) never do.
-    if (this.pendingAsk && !confirmed) {
+    // A typed line answers an open question.
+    if (this.pendingAsk) {
       this.print(line, "input");
-      const always = this.pendingAsk.always;
-      const answer = /^y(es)?$/i.test(line) ? true : /^n(o)?$/i.test(line) ? false : always && /^a(lways)?$/i.test(line) ? "always" : null;
+      const answer = /^y(es)?$/i.test(line) ? true : /^n(o)?$/i.test(line) ? false : null;
       // Anything else, such as a command typed too early, asks again instead of meaning no.
-      if (answer === null) { this.print(this.messages.answerHint(always), "dim"); return EXIT.USAGE; }
+      if (answer === null) { this.print(this.messages.answerHint, "dim"); return EXIT.USAGE; }
       this.pendingAsk(answer);
       return EXIT.OK;
     }
     this.remember(line);
     this.echo(line);
 
-    try {
-      // help, man, status and clear first; they fail like any command, never by rejecting.
-      const client = await this.runClientWord(tokenize(line).map((t) => t.value));
-      if (client !== null) return client;
-      const parsed = parse(this.registry, line);
-      const { def, input, help, fields } = parsed;
-      if (help) { this.printBlocks(formatUsage(def)); return EXIT.OK; }
-      const fieldError = fields && checkFields(def, fields);
-      if (fieldError) return this.fail(fieldError, EXIT.USAGE);
-      const policy = this.registry.policy;
-      const checked = checkInput(def.input, input, this.registry.formats);
-      if (!confirmed && policy.needs(def, "person") && !checked.errors.length) {
-        const answer = await this.ask(ownQuestion(def, checked.value) || this.messages.run(def.name, def.title), { always: this.canStopAsking("person", [def]) });
-        if (!answer) { this.print(this.messages.cancelled, "dim"); return EXIT.CANCELLED; }
-        if (answer === "always") policy.relax("person");
-      }
-      const result = await this.registry.run(def.name, input, { caller: "console", expect: def });
-      this.printResult(result, parsed);
-      return result.code;
-    } catch (err) {
+    let step;
+    try { step = readLine(this.registry, line); } catch (err) {
       return this.fail(err.message, err instanceof CommandError ? err.code : EXIT.FAILED);
     }
+    if (step.words) return this.runClientWord(step.words);
+    const { def } = step;
+    if (step.help) { this.printBlocks(formatUsage(def)); return EXIT.OK; }
+    const policy = this.registry.policy;
+    if (policy.needs(def, "person")) {
+      const answer = await this.ask(ownQuestion(def, step.value) || this.messages.run(def.name, def.title));
+      if (!answer) { this.print(this.messages.cancelled, "dim"); return EXIT.CANCELLED; }
+    }
+    const result = await this.registry.run(def.name, step.input, { caller: "console", expect: def });
+    this.printResult(result, step);
+    return result.code;
   }
 
   /**
-   * Runs pasted lines as one batch. Every line is read first, so a batch
-   * with a mistake runs nothing. Pasted text is the least carefully read
-   * input, so the batch asks once, naming its consequential lines. It stops
-   * at the first line that fails, and providers with batch hooks undo what
-   * the earlier lines did. Prompt marks copied along with the lines (› or $)
-   * and # comments are ignored.
+   * Runs pasted lines as one batch (see lines.js). Every line is read first,
+   * so a batch with a mistake runs nothing. Pasted text is the least
+   * carefully read input, so the batch asks once, naming its consequential
+   * lines. It stops at the first line that fails, and providers with batch
+   * hooks undo what the earlier lines did. Prompt marks copied along with the
+   * lines (› or $) and # comments are ignored.
    */
   async runBatch(text) {
     const m = this.messages;
-    const lines = splitLines(text)
-      .map((l) => l.trim().replace(/^(?:›|\$|>)\s*/, ""))
-      .filter((l) => l && !l.startsWith("#"));
+    const lines = readLines(text);
     if (!lines.length) return EXIT.OK;
     if (lines.length === 1) return this.submit(lines[0]);
     this.print(m.pasted(lines.length), "dim");
 
-    const steps = [];
-    for (const [i, line] of lines.entries()) {
-      try {
-        const words = tokenize(line).map((t) => t.value.toLowerCase());
-        if (RESERVED_WORDS.includes(words[0])) { steps.push({ line }); continue; }
-        const parsed = parse(this.registry, line);
-        if (parsed.help) { steps.push({ line }); continue; }
-        const fieldError = parsed.fields && checkFields(parsed.def, parsed.fields);
-        if (fieldError) throw new CommandError(fieldError, EXIT.USAGE);
-        const { errors } = checkInput(parsed.def.input, parsed.input, this.registry.formats);
-        if (errors.length) throw new CommandError(`${parsed.def.name}: ${errors.join("; ")}`, EXIT.USAGE);
-        if (mayReinitialize(parsed.def) && i < lines.length - 1) throw new CommandError(m.batchNotLast(parsed.def.name), EXIT.USAGE);
-        steps.push({ line, ...parsed });
-      } catch (err) {
-        this.echo(line);
-        const code = err instanceof CommandError ? err.code : EXIT.FAILED;
-        this.fail(err.message, code);
-        this.print(m.batchMistake(i + 1, lines.length), "dim");
-        return code;
-      }
+    const { steps, failed } = readBatch(this.registry, lines, m);
+    if (failed) {
+      this.echo(lines[failed.index]);
+      this.fail(failed.message, failed.code);
+      this.print(m.batchMistake(failed.index + 1, lines.length), "dim");
+      return failed.code;
     }
 
     const policy = this.registry.policy;
-    const asking = steps.filter((s) => s.def && policy.needs(s.def, "person")).map((s) => s.def);
+    const asking = steps.filter((s) => s.def && !s.help && policy.needs(s.def, "person")).map((s) => s.def);
     if (asking.length) {
       const consequential = [...new Set(asking.filter((d) => d.annotations.consequential).map((d) => d.name))];
       const question = consequential.length ? m.batchConsequential(lines.length, consequential) : m.batchChanges(lines.length);
-      const answer = await this.ask(question, { always: this.canStopAsking("person", asking) });
-      if (!answer) { this.print(m.batchCancelled, "dim"); return EXIT.CANCELLED; }
-      if (answer === "always") policy.relax("person");
+      if (!(await this.ask(question))) { this.print(m.batchCancelled, "dim"); return EXIT.CANCELLED; }
     }
 
-    const batch = this.registry.startBatch({ caller: "console" });
-    for (const [i, step] of steps.entries()) {
-      let code;
-      if (!step.def) code = await this.submit(step.line, { confirmed: true });
-      else {
-        this.remember(step.line);
-        this.echo(step.line);
-        const result = await batch.run(step.def.name, step.input, { expect: step.def });
-        this.printResult(result, step);
-        code = result.code;
-      }
-      if (code !== EXIT.OK) {
-        const { rolledBack, kept } = await batch.rollback();
-        if (i > 0 && rolledBack.length && !kept.length) this.print(m.batchUndone(i + 1, steps.length), "dim");
-        else {
-          if (i < steps.length - 1) this.print(m.batchStopped(i + 1, steps.length), "dim");
-          if (kept.length) this.print(m.batchKept(kept), "dim");
-        }
-        return code;
-      }
-    }
-    try { await batch.commit(); } catch (err) { return this.fail((err && err.message) || String(err), EXIT.FAILED); }
-    return EXIT.OK;
+    const show = (step, blocks, { result, clear }) => {
+      if (clear) this.out.replaceChildren(...(this.pendingAsk && this.askEl ? [this.askEl] : []));
+      this.printBlocks(blocks, step.def && !step.def.annotations.readOnly && result ? "ok" : "text");
+    };
+    const done = await runSteps(this.registry, steps, {
+      caller: "console",
+      formatOptions: this.formatOptions,
+      text: m,
+      start: (step) => { this.remember(step.line); this.echo(step.line); },
+      show,
+    });
+    if (done.error) this.fail(done.error, EXIT.FAILED);
+    for (const note of done.notes) this.print(note, "dim");
+    return done.code;
   }
 
   /**

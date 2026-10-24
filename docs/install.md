@@ -76,8 +76,8 @@ special cases.
 | `@d34dman/sutram/dist/nav.js` | The nav kit as a file of its own, for pages that load `dist/sutram.js`; adds `Sutram.kits.nav` | yes |
 | `@d34dman/sutram/page` | The [page kit](guides/page-kit.md): `page status` from your adapter | no |
 | `@d34dman/sutram/user` | The [user kit](guides/user-kit.md): `user status`, `login` and `logout` | no |
-| `@d34dman/sutram/messages` | The [messages kit](guides/messages-kit.md): the `messages` command and `message.shown` events | no |
-| `@d34dman/sutram/lists` | The [lists kit](guides/lists-kit.md): `list status`, `rows` and `go` over listings your adapter describes | no |
+| `@d34dman/sutram/messages` | The [messages kit](guides/messages-kit.md): `messages status` and `message.shown` events | no |
+| `@d34dman/sutram/lists` | The [lists kit](guides/lists-kit.md): `listing status`, `rows` and `go` over listings your adapter describes | no |
 | `@d34dman/sutram/forms` | The [forms kit](guides/forms-kit.md): `form list`, `status`, `fields`, `get`, `set`, `submit` and `discard`, and `add`, `remove`, `search` and `upload` where your adapter has them | no |
 | `@d34dman/sutram/dist/page.js` · `user.js` · `messages.js` · `lists.js` · `forms.js` | Those kits as files of their own, like `dist/nav.js`; add `Sutram.kits.page`, `.user`, `.messages`, `.lists` and `.forms` | yes |
 | `@d34dman/sutram/internals` | Helpers Sutram uses itself. No semver promise | no |

@@ -21,8 +21,8 @@ Agents using a page: start with `status` (or the `sutram_status` tool), then `he
 - [Nav kit](https://d34dman.github.io/sutram/docs/guides/nav-kit.md): Ready-made nav commands for any app. You write a small adapter that supplies the menus and goes to a URL.
 - [Page kit](https://d34dman.github.io/sutram/docs/guides/page-kit.md): page status, the same on every site. Your adapter says what the page is; the kit answers.
 - [User kit](https://d34dman.github.io/sutram/docs/guides/user-kit.md): user status, user login and user logout, the same on every site. Your adapter says who is logged in and opens your own login.
-- [Messages kit](https://d34dman.github.io/sutram/docs/guides/messages-kit.md): What the page said, such as Saved or an error, as a messages command and as message.shown events.
-- [Lists kit](https://d34dman.github.io/sutram/docs/guides/lists-kit.md): list status, list rows and list go, the same on every site. Read listings, page through them, sort and filter them.
+- [Messages kit](https://d34dman.github.io/sutram/docs/guides/messages-kit.md): What the page said, such as Saved or an error, as messages status and as message.shown events.
+- [Lists kit](https://d34dman.github.io/sutram/docs/guides/lists-kit.md): listing status, listing rows and listing go, the same on every site. Read listings, page through them, sort and filter them.
 - [Forms kit](https://d34dman.github.io/sutram/docs/guides/forms-kit.md): form list, status, fields, get, set, submit and discard, the same on every site, with add, remove, search and upload where the app has them.
 - [Commands and providers](https://d34dman.github.io/sutram/docs/concepts/commands.md): What a command definition holds, who owns it, and when to register and remove it.
 - [Write descriptions agents can use](https://d34dman.github.io/sutram/docs/guides/descriptions.md): The documentation agents read is your command definitions. How to write them.

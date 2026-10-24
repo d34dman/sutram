@@ -209,12 +209,12 @@ export type Level = "none" | "consequential" | "changes";
 export type Who = "person" | "agent";
 /** `signal` aborts when the call is withdrawn: the question can go, and its answer no longer counts. */
 export interface AskRequest { who: Who; caller: Caller; steps: Array<{ def: CommandDefinition; input: Record<string, unknown> }>; signal?: AbortSignal }
-export type Answer = boolean | "always";
+/** The user's answer: true for yes. A yes covers the one call it was asked about. */
+export type Answer = boolean;
 
 export interface Policy {
   get(): { person: Level; agent: Level };
   set(levels: Partial<{ person: Level; agent: Level }>): void;
-  relax(who: Who): void;
   needs(def: CommandDefinition, who: Who | null | undefined): boolean;
   setAsker(fn: (request: AskRequest) => Answer | Promise<Answer>): () => void;
   hasAsker(): boolean;

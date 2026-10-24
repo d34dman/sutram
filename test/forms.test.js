@@ -180,7 +180,7 @@ test("form submit on a page that reloads starts Sutram again and submits after a
   await line(r, "form set contact email ada@example.com");
   assert.equal(r.get("form submit").confirm({ form: "contact" }), 'Submit Contact with 1 change (email: "ada@example.com")? It will be published.');
   const res = await line(r, "form submit contact");
-  assert.match(res.text, /^Submitting Contact\. The page reloads; then messages says how it went/);
+  assert.match(res.text, /^Submitting Contact\. The page reloads; then messages status says how it went/);
   assert.deepEqual(sent, [], "not before the answer");
   await tick();
   assert.deepEqual(sent, ["contact"]);

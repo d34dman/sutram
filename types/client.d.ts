@@ -16,7 +16,8 @@ export declare function checkOutput(schema: Schema, data: unknown, root?: Schema
 
 export declare function isStatusCommand(def: CommandDefinition): boolean;
 
-export declare function runStatus(registry: Registry, options?: { caller?: Caller; signal?: AbortSignal; providers?: string[] }): Promise<Array<{ provider: string } & Result>>;
+/** Runs every <provider> status command, or only those of `providers`. `run` runs each (registry.run by default); a batch passes its own run. */
+export declare function runStatus(registry: Registry, options?: { caller?: Caller; signal?: AbortSignal; providers?: string[]; run?: (name: string, input: Record<string, unknown>, options?: { caller?: Caller; signal?: AbortSignal }) => Promise<Result> }): Promise<Array<{ provider: string } & Result>>;
 
 export declare function tokenize(line: string): Token[];
 

@@ -18,12 +18,12 @@ function setup(initial = []) {
 
 test("messages lists what the adapter says the page showed", async () => {
   const { r, set } = setup([{ type: "status", text: "Saved." }, { type: "error", text: "Title is required." }]);
-  const res = await r.run("messages");
+  const res = await r.run("messages status");
   assert.deepEqual(res.data.messages, [{ type: "status", text: "Saved." }, { type: "error", text: "Title is required." }]);
-  assert.equal(r.get("messages").title, "Show messages");
-  assert.deepEqual(r.get("messages").annotations, { readOnly: true, untrustedContent: true });
+  assert.equal(r.get("messages status").title, "Show the page's messages");
+  assert.deepEqual(r.get("messages status").annotations, { readOnly: true, untrustedContent: true });
   set([]);
-  const none = await r.run("messages");
+  const none = await r.run("messages status");
   assert.equal(none.text, "No messages on this page.");
   assert.deepEqual(none.data, { messages: [] });
 });
@@ -51,9 +51,9 @@ test("each message is emitted once as message.shown: at the start, then the new 
 test("a bad list fails the command, not the page", async () => {
   const { r, set } = setup();
   set(null);
-  assert.equal((await r.run("messages")).message, "messages: the app's adapter returned no list of messages");
+  assert.equal((await r.run("messages status")).message, "messages: the app's adapter returned no list of messages");
   set([{ type: "info", text: "x" }]);
-  const bad = await r.run("messages");
+  const bad = await r.run("messages status");
   assert.equal(bad.code, EXIT.FAILED);
   assert.match(bad.message, /not \{ type: status \| warning \| error, text \}/);
 });
@@ -62,10 +62,10 @@ test("removing the kit stops watching; the event stays declared for a second set
   const { r, off, watching, events } = setup();
   assert.ok(watching());
   off();
-  assert.equal(r.get("messages"), undefined);
+  assert.equal(r.get("messages status"), undefined);
   assert.ok(!watching());
   messages({ messages: () => [] }, { registry: r, events });
-  assert.ok(r.get("messages"));
+  assert.ok(r.get("messages status"));
 });
 
 test("messages refuses an adapter without messages()", () => {
@@ -73,5 +73,5 @@ test("messages refuses an adapter without messages()", () => {
   const events = createEvents(r);
   assert.throws(() => messages({}, { registry: r, events }), /needs a messages\(\) function/);
   assert.throws(() => messages({ messages: () => [], watch: 1 }, { registry: r, events }), /watch must be a function/);
-  assert.equal(r.get("messages"), undefined);
+  assert.equal(r.get("messages status"), undefined);
 });

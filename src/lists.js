@@ -1,4 +1,4 @@
-// The lists kit: list status, list rows and list go, the same on every site.
+// The lists kit: listing status, listing rows and listing go, the same on every site.
 // It reads listings, such as an admin's content overview: the rows shown,
 // the page, the sort and the filters, and shows another page, sort or
 // filter. It changes nothing on the rows themselves. The app's adapter
@@ -23,7 +23,7 @@ const ORDERS = ["asc", "desc"];
 
 /** One list from the adapter, checked, with defaults filled in. */
 function check(name, l) {
-  const bad = (what) => new CommandError(`list: the app's adapter describes list "${name}" ${what}`, EXIT.FAILED);
+  const bad = (what) => new CommandError(`listing: the app's adapter describes list "${name}" ${what}`, EXIT.FAILED);
   if (!l || typeof l !== "object") throw bad("as nothing");
   if (!Array.isArray(l.columns) || l.columns.some((c) => !c || typeof c.key !== "string")) throw bad("without columns: [{ key, label }]");
   if (!Array.isArray(l.rows)) throw bad("without rows");
@@ -55,7 +55,7 @@ function check(name, l) {
 async function load(adapter) {
   const all = await adapter.lists();
   if (all === null || typeof all !== "object" || Array.isArray(all)) {
-    throw new CommandError("list: the app's adapter returned no lists object", EXIT.FAILED);
+    throw new CommandError("listing: the app's adapter returned no lists object", EXIT.FAILED);
   }
   return Object.entries(all).map(([name, l]) => check(name, l));
 }
@@ -84,7 +84,7 @@ function where(l) {
 const LIST = { type: "string", description: "Which list. Leave it out when the page has only one" };
 
 /**
- * Registers list status, list rows and list go on a registry (the page's by
+ * Registers listing status, listing rows and listing go on a registry (the page's by
  * default). The adapter supplies:
  *
  *   lists()            the lists on this page, keyed by name: { label,
@@ -96,26 +96,26 @@ const LIST = { type: "string", description: "Which list. Leave it out when the p
  *   go(list, state)    shows the list in a new state: { page, sort, order,
  *                      filters: { [key]: value } }, complete, so the
  *                      adapter only builds its URL or query. Called after
- *                      list go has delivered its result.
- *   reloads            true if that loads a new page (list go is marked
+ *                      listing go has delivered its result.
+ *   reloads            true if that loads a new page (listing go is marked
  *                      navigates); false if the app shows it in place
  *                      (reinitializes, and the app calls initialized()).
  *
  * Returns a function that removes the commands again.
  */
 export function lists(adapter, { registry = getRegistry() } = {}) {
-  checkAdapter("list", adapter, { "lists()": "function", "go(list, state)": "function", reloads: "boolean" });
+  checkAdapter("listing", adapter, { "lists()": "function", "go(list, state)": "function", reloads: "boolean" });
 
   const quietly = async (fn) => { try { return fn(await load(adapter)); } catch { return []; } };
   const startsWith = (partial) => (s) => s.toLowerCase().startsWith(partial.toLowerCase());
-  // Completion for list go: the list is the first word typed after the command.
+  // Completion for listing go: the list is the first word typed after the command.
   const listOf = (all, input) => (input && input.list ? all.find((l) => l.name === input.list) : all.length === 1 ? all[0] : undefined);
 
   return registerAll(registry, [
     {
-      name: "list status",
+      name: "listing status",
       title: "Show the lists on this page",
-      provider: "list",
+      provider: "listing",
       description: "Show the lists on this page: rows shown, page, sort, and the sorts and filters each offers",
       input: { type: "object", properties: {} },
       output: {
@@ -128,7 +128,7 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
               type: "object",
               required: ["list", "label", "rows", "page"],
               properties: {
-                list: { type: "string", description: "Pass it to list rows and list go" },
+                list: { type: "string", description: "Pass it to listing rows and listing go" },
                 label: { type: "string" },
                 rows: { type: "integer", description: "Rows shown" },
                 total: { type: "integer" },
@@ -136,10 +136,10 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
                 pages: { type: "integer" },
                 sort: { type: "string" },
                 order: { type: "string", enum: ORDERS },
-                sorts: { type: "array", items: { type: "string" }, description: "Columns list go --sort takes" },
+                sorts: { type: "array", items: { type: "string" }, description: "Columns listing go --sort takes" },
                 filters: {
                   type: "array",
-                  description: "Filters list go --filter takes, with their value now",
+                  description: "Filters listing go --filter takes, with their value now",
                   items: {
                     type: "object",
                     properties: {
@@ -157,7 +157,7 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
       },
       view: { columns: ["list", "label", "rows", "total", "page", "pages", "sort", "order"] },
       annotations: { readOnly: true, untrustedContent: true },
-      seeAlso: ["list rows", "list go"],
+      seeAlso: ["listing rows", "listing go"],
       async run() {
         const all = await load(adapter);
         const data = all.map((l) => ({
@@ -178,13 +178,13 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
           const filtered = set.length ? `, filtered by ${set.join(", ")}` : "";
           return `${l.label} (${l.name}): ${where(l)}${sort}${filtered}.`;
         });
-        return { text: `${lines.join(" ")} See list rows.`, data: { lists: data } };
+        return { text: `${lines.join(" ")} See listing rows.`, data: { lists: data } };
       },
     },
     {
-      name: "list rows",
+      name: "listing rows",
       title: "Show a list's rows",
-      provider: "list",
+      provider: "listing",
       description: "Show the rows a list shows now, with their links",
       input: { type: "object", properties: { list: LIST } },
       positional: ["list"],
@@ -201,11 +201,11 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
         },
       },
       annotations: { readOnly: true, untrustedContent: true },
-      examples: ["list rows", "list rows content", "list rows content --json"],
-      seeAlso: ["list go", "list status"],
+      examples: ["listing rows", "listing rows content", "listing rows content --json"],
+      seeAlso: ["listing go", "listing status"],
       suggest: (key, partial) => (key === "list" ? quietly((all) => all.map((l) => l.name).filter(startsWith(partial))) : []),
       async run({ list }) {
-        const l = pick(await load(adapter), list, "list rows");
+        const l = pick(await load(adapter), list, "listing rows");
         const keys = l.columns.map((c) => c.key);
         const rows = l.rows.map((r) => {
           const row = {};
@@ -213,7 +213,7 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
           if (r.url) row.url = String(r.url);
           return row;
         });
-        const next = l.pages !== undefined && l.page < l.pages ? ` Next: list go ${l.name} --page=${l.page + 1}.` : "";
+        const next = l.pages !== undefined && l.page < l.pages ? ` Next: listing go ${l.name} --page=${l.page + 1}.` : "";
         return {
           text: rows.length ? `${l.label}: ${where(l)}.${next}` : `${l.label} shows no rows.`,
           data: {
@@ -228,16 +228,16 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
       },
     },
     {
-      name: "list go",
+      name: "listing go",
       title: "Show another page of a list",
-      provider: "list",
+      provider: "listing",
       description: "Show a list at another page, sorted another way, or filtered: all in one go. A new sort or filter starts at page 1",
       input: {
         type: "object",
         properties: {
           list: LIST,
           page: { type: "integer", minimum: 1, description: "The page, from 1" },
-          sort: { type: "string", description: "A column the list can be sorted by; see list status" },
+          sort: { type: "string", description: "A column the list can be sorted by; see listing status" },
           order: { type: "string", enum: ORDERS, description: "asc or desc" },
           filter: {
             type: "array",
@@ -259,8 +259,8 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
         },
       },
       annotations: adapter.reloads ? { navigates: true } : { reinitializes: true },
-      examples: ["list go content --page=2", "list go content --sort=title --order=asc", "list go content --filter=type=article,status=1"],
-      seeAlso: ["list rows", "list status"],
+      examples: ["listing go content --page=2", "listing go content --sort=title --order=asc", "listing go content --filter=type=article,status=1"],
+      seeAlso: ["listing rows", "listing status"],
       suggest: (key, partial, { input } = {}) => {
         if (key === "list") return quietly((all) => all.map((l) => l.name).filter(startsWith(partial)));
         if (key === "sort") return quietly((all) => (listOf(all, input) || { sorts: [] }).sorts.filter((s) => startsWith(partial)(s.key)).map((s) => ({ value: s.key, description: s.label })));
@@ -280,9 +280,9 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
         return [];
       },
       async run({ list, page, sort, order, filter }, { reinitializes }) {
-        const l = pick(await load(adapter), list, "list go");
+        const l = pick(await load(adapter), list, "listing go");
         if (page === undefined && sort === undefined && order === undefined && filter === undefined) {
-          throw new CommandError("list go: say what to change: --page, --sort, --order or --filter.", EXIT.USAGE);
+          throw new CommandError("listing go: say what to change: --page, --sort, --order or --filter.", EXIT.USAGE);
         }
         const filters = Object.fromEntries(l.filters.map((f) => [f.key, f.value]));
         for (const pair of filter || []) {
@@ -290,22 +290,22 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
           const key = eq < 0 ? pair : pair.slice(0, eq);
           const f = l.filters.find((x) => x.key === key);
           if (eq < 0 || !f) {
-            throw new CommandError(`list go: ${eq < 0 ? `write the filter as key=value: "${pair}"` : `${l.name} has no filter "${key}"`}. Filters: ${l.filters.map((x) => x.key).join(", ") || "none"}.`, EXIT.USAGE);
+            throw new CommandError(`listing go: ${eq < 0 ? `write the filter as key=value: "${pair}"` : `${l.name} has no filter "${key}"`}. Filters: ${l.filters.map((x) => x.key).join(", ") || "none"}.`, EXIT.USAGE);
           }
           const value = pair.slice(eq + 1);
           if (value && f.options && !f.options.some((o) => o.value === value)) {
-            throw new CommandError(`list go: filter ${key} takes ${f.options.map((o) => o.value).join(", ")}, not "${value}".`, EXIT.USAGE);
+            throw new CommandError(`listing go: filter ${key} takes ${f.options.map((o) => o.value).join(", ")}, not "${value}".`, EXIT.USAGE);
           }
           filters[key] = value;
         }
         if (sort !== undefined && !l.sorts.some((s) => s.key === sort)) {
-          throw new CommandError(`list go: ${l.name} cannot be sorted by "${sort}". ${l.sorts.length ? `Sorts: ${l.sorts.map((s) => s.key).join(", ")}.` : "It has no sorts."}`, EXIT.USAGE);
+          throw new CommandError(`listing go: ${l.name} cannot be sorted by "${sort}". ${l.sorts.length ? `Sorts: ${l.sorts.map((s) => s.key).join(", ")}.` : "It has no sorts."}`, EXIT.USAGE);
         }
         if (order !== undefined && sort === undefined && !l.sort) {
-          throw new CommandError(`list go: ${l.name} is not sorted; give --sort too.`, EXIT.USAGE);
+          throw new CommandError(`listing go: ${l.name} is not sorted; give --sort too.`, EXIT.USAGE);
         }
         if (page !== undefined && l.pages !== undefined && page > l.pages) {
-          throw new CommandError(`list go: ${l.name} has ${l.pages} page${l.pages === 1 ? "" : "s"}.`, EXIT.USAGE);
+          throw new CommandError(`listing go: ${l.name} has ${l.pages} page${l.pages === 1 ? "" : "s"}.`, EXIT.USAGE);
         }
         const changed = sort !== undefined || order !== undefined || filter !== undefined;
         const state = {
@@ -318,7 +318,7 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
         const how = [`page ${state.page}`, state.sort ? `sorted by ${state.sort} ${state.order}` : ""];
         const set = Object.entries(filters).filter(([, v]) => v !== "").map(([k, v]) => `${k}=${v}`);
         if (set.length) how.push(`filtered by ${set.join(", ")}`);
-        return { text: `Showing ${l.label}, ${how.filter(Boolean).join(", ")}. Then run list rows.`, data: { list: l.name, ...state } };
+        return { text: `Showing ${l.label}, ${how.filter(Boolean).join(", ")}. Then run listing rows.`, data: { list: l.name, ...state } };
       },
     },
   ]);

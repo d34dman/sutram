@@ -17,14 +17,13 @@ export interface Messages {
   closeLabel: string;
   yes: string;
   no: string;
-  always: string;
   answered: (answer: Answer) => string;
   /** The question before a command without its own; gets its title when it has one. */
   run: (name: string, title?: string) => string;
   cancelled: string;
   /** Shown after a question whose call was cancelled before anyone answered. */
   withdrawn: string;
-  answerHint: (always: boolean) => string;
+  answerHint: string;
   manWhich: string;
   manMissing: (name: string) => string;
   noStatus: string;
@@ -89,7 +88,7 @@ export declare class SutramConsole extends HTMLElement {
   runBatch(text: string): Promise<ExitCode>;
   print(text: string, kind?: string): HTMLElement;
   /** Waits its turn when another question is open; `lead` prints what it is about when it shows. */
-  ask(message: string, options?: { always?: boolean; lead?: (() => void) | null; signal?: AbortSignal }): Promise<Answer>;
+  ask(message: string, options?: { lead?: (() => void) | null; signal?: AbortSignal }): Promise<Answer>;
   askForAgent(request: AskRequest): Promise<Answer>;
   /** The output as plain text. */
   transcript(): string;

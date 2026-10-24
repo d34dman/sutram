@@ -1,6 +1,6 @@
 ---
 title: Messages kit
-description: What the page said, such as Saved or an error, as a messages command and as message.shown events.
+description: What the page said, such as Saved or an error, as messages status and as message.shown events.
 ---
 
 # Messages kit
@@ -9,16 +9,17 @@ After a save or a page change, apps show messages: "Saved", or what went
 wrong. People read them on screen; the messages kit hands them to agents in
 two ways, fed by one adapter function:
 
-- The `messages` command lists them, for an agent that asks.
+- `messages status` lists them, for an agent that asks. A bare `status` (and
+  `sutram_status`) includes it, with how many there are and the latest.
 - Each message is emitted as a `message.shown` event, for an agent that reads
   `events recent` or waits for one with `events wait message.shown`.
 
 | Command | Does | Annotations |
 |---|---|---|
-| `messages` | The messages this page has shown, oldest first | read-only, `untrustedContent` |
+| `messages status` | The messages this page has shown, oldest first | read-only, `untrustedContent` |
 
-When a command starts Sutram again, the note agents get says to look at
-`messages` once the page is ready.
+When a command starts Sutram again, the note agents get says to look again
+with `status` once the page is ready, which includes the messages.
 
 ## The adapter
 
@@ -46,8 +47,9 @@ the ones after the list it saw last, or all of them when the list starts
 afresh (after a route change, say).
 
 ```text
-> messages
-type    text
+> messages status
+1 message; the latest (status): Article Hello has been updated.
+TYPE    TEXT
 status  Article Hello has been updated.
 ```
 

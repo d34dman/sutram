@@ -35,10 +35,10 @@ They are demos, not a stable API: try them, or copy them as a starting point.
   Drupal's login page; the person types the password. The submodule also
   emits `user.changed` when the page comes back as someone else.
 - **`sutram_demo_messages`**: Drupal's status messages, after a page load or
-  an AJAX request, as the `messages` command and `message.shown` events, from
+  an AJAX request, as `messages status` and `message.shown` events, from
   the [messages kit](guides/messages-kit.md) (`sutram/messages`).
 - **`sutram_demo_lists`**: Views listings on the page, such as the content
-  overview, as `list status`, `list rows` and `list go`, from the
+  overview, as `listing status`, `listing rows` and `listing go`, from the
   [lists kit](guides/lists-kit.md) (`sutram/lists`): rows, pages, table
   sorts and exposed filters.
 - **`sutram_demo_form`**: fill in and submit content forms, an adapter for
