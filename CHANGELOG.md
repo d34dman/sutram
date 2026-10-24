@@ -3,7 +3,7 @@
 Sutram follows [semantic versioning](https://semver.org/). Before 1.0,
 breaking changes bump the minor version.
 
-## 0.7.0 (unreleased)
+## 0.7.0 (2026-10-24)
 
 Tools get titles people can read, and commands one naming style.
 
