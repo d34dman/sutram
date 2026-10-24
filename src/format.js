@@ -62,7 +62,11 @@ export function formatTable(rows, itemSchema, root, { columns, maxWidth = 40, ..
     const fmt = formatOf(p, options);
     return (fmt && fmt.display) || (p.type !== "object" && p.type !== "array");
   };
-  const cols = columns || (Object.keys(props).length ? Object.keys(props).filter(scalar) : Object.keys(rows[0]));
+  const all = Object.keys(props).length ? Object.keys(props).filter(scalar) : Object.keys(rows[0]);
+  // view.columns may name columns of another of the command's tables: only those this one has count.
+  const has = (k) => own(props, k) || rows.some((r) => own(r, k));
+  const picked = columns && columns.filter(has);
+  const cols = picked && picked.length ? picked : all;
 
   const flat = [];
   (function walk(list, depth) {

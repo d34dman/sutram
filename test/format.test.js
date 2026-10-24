@@ -147,3 +147,14 @@ test("wording: plurals, sentences, empty lists, object defaults, nullable types"
   const items = (await complete(r, "med")).items;
   assert.notEqual(items[0].description, "1 commands");
 });
+
+test("view.columns counts only the columns a table has", () => {
+  const def = { output: { type: "object", properties: {
+    menus: { type: "array", items: { type: "object", properties: { menu: { type: "string" }, links: { type: "integer" } } } },
+    items: { type: "array", items: { type: "object", properties: { id: { type: "string" }, title: { type: "string" }, url: { type: "string" } } } },
+  } }, view: { columns: ["title", "url"] } };
+  const menus = blocksToText(formatResult({ code: 0, data: { menus: [{ menu: "main", links: 3 }] } }, def));
+  assert.match(menus, /^MENU\s+LINKS\nmain\s+3$/m);
+  const items = blocksToText(formatResult({ code: 0, data: { items: [{ id: "a", title: "Home", url: "/" }] } }, def));
+  assert.match(items, /^TITLE\s+URL\nHome\s+\/$/m);
+});

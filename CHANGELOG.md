@@ -17,6 +17,9 @@ Tools get titles people can read, and commands one naming style.
 - `register()` warns about parameter names that are not one lowercase word
   or words joined by `_` (`per_page`), the style of the tool names.
 - The console's `run` message gets the command's title as a second argument.
+- `view.columns` applies to each table only with the columns it has; a table
+  with none of them shows all its columns. A command that returns different
+  lists (a list of menus, or one menu's links) can name the columns of each.
 
 ### Changed
 

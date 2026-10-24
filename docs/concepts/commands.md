@@ -104,7 +104,7 @@ const remove = getRegistry().register({
 | `seeAlso` | no | Related command names. |
 | `confirm` | no | `(input) => "Place an order for 2 items?"`: the question when the policy asks. It gets the checked input (converted, defaults filled), the same value `run()` gets. If it throws, the generic question is asked. |
 | `suggest` | no | `(key, partial, { input, signal })` returns values for completion. May be async. |
-| `view` | no | `{ columns: [...] }`: the columns a table shows. `--wide` shows all. |
+| `view` | no | `{ columns: [...] }`: the columns a table shows. `--wide` shows all. A table shows the listed columns it has; a table with none of them shows all its columns, so a command that returns different lists can name the columns of each. |
 | `run` | yes | `(input, { caller, signal })`. Return `{ text?, data? }`, or a string for text only; throw to fail. |
 
 Use one verb for one meaning across your commands: `search` for finding,
