@@ -109,7 +109,9 @@ command that ran and failed, `130` for one that was not allowed to run. See
 ## What it costs in tokens
 
 We measured on a real form, Drupal's "Create Article", with one wrong value.
-The method and all numbers are in [Measurements](measurements.md). In short:
+The method and all numbers are in [Measurements](measurements.md). The
+figures are estimates (bytes ÷ 4), captured with Sutram 0.3 and 0.4, before
+the kits; they have not been measured again yet. In short:
 
 - **Reading the page:** a browser agent reads about 3,300 tokens of
   accessibility snapshot (about 81,000 as HTML, about 1,600 per screenshot).

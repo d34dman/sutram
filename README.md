@@ -42,7 +42,7 @@ Place an order for 2 items, €48.00? [Yes] [No]
   [the console](docs/guides/console.md).)
 - **Feels like a terminal.** `help`, `man`, Tab completion, history and
   "did you mean". You write no help pages.
-- **Small.** No dependencies, 31 kB minified and gzipped, TypeScript types
+- **Small.** No dependencies, about 34 kB minified and gzipped, TypeScript types
   included.
 
 ## Quick start
@@ -118,7 +118,9 @@ When something is wrong, the error names the field and the fix, so the agent
 corrects one value instead of starting over.
 
 On Drupal's article form, fixing one wrong value cost an agent about 3,300
-tokens by reading the page, and 17 to 44 with Sutram. See
+tokens by reading the page, and 17 to 44 with Sutram. These are estimates
+(bytes ÷ 4) from the commands of Sutram 0.3 and 0.4, not yet measured again
+with the kits. See
 [Why commands](docs/why.md) and the [measurements](docs/measurements.md).
 
 ## Why not just WebMCP?
