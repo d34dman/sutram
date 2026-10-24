@@ -1,6 +1,6 @@
 ---
 title: Test with Playwright
-description: Drive a page's commands from a headless browser, in tests or in an agent, with Sutram.tools() and Sutram.call().
+description: Drive a page's commands from a headless browser, in tests or in an agent, with Sutram.tools(), Sutram.call() and Sutram.exec().
 ---
 
 # Test with Playwright
@@ -90,6 +90,38 @@ test("an agent can fill the cart and check out", async ({ page }) => {
 
 This tests the commands an agent will use, not the pixels. The same calls
 make good smoke tests for the app itself.
+
+## Several commands in one call
+
+`Sutram.exec()` takes command lines, the way a person pastes them into the
+console, and answers with what the console would print. One
+`page.evaluate()` does a whole task, and the answer is usually shorter than
+the results as JSON:
+
+```js
+const { code, text } = await page.evaluate(() => Sutram.exec(`
+form set contact name "Ada Lovelace"
+form set contact topic billing
+form status contact
+`));
+// text:
+// › form set contact name "Ada Lovelace"
+// name: (empty) → "Ada Lovelace". Not sent yet.
+// › form set contact topic billing
+// …
+```
+
+- Several lines run as one [batch](../concepts/batches.md): every line is
+  checked first, so a typo runs nothing; the batch stops at the first line
+  that fails, and providers that support it undo the lines before.
+- `help`, `man`, `status`, `-h` and `--json` work as in the console. Add
+  `--json` or `--json=a,b` to a line when you need its data.
+- It follows the page's policy like `call()`: when a line needs the user,
+  nothing runs and the text says what to ask. Ask, then run the same lines
+  with `{ confirmed: true }`.
+- A line that leaves the page or starts Sutram again must be the last one.
+- The result is `{ code, text, completed, total }`. `exec` is also exported
+  as `execLines(text, { registry })` from `@d34dman/sutram/webmcp`.
 
 ## Command lines in tests
 

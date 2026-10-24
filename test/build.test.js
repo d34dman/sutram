@@ -122,8 +122,10 @@ test("dist/page.js, user.js, messages.js, lists.js and forms.js register on the 
       const user = await Sutram.registry.run("user status");
       const messages = await Sutram.registry.run("messages");
       const events = await Sutram.registry.run("events recent");
-      console.log(JSON.stringify({ page: page.text, user: user.text, messages: messages.data.messages, rows: rows.data.rows, set: set.data.to, events: events.data.events.map((e) => e.name) }));
+      const exec = await Sutram.exec("page status\\nform get contact ok --json=value");
+      console.log(JSON.stringify({ exec: exec.text, page: page.text, user: user.text, messages: messages.data.messages, rows: rows.data.rows, set: set.data.to, events: events.data.events.map((e) => e.name) }));
     `));
+    assert.equal(out.exec, '› page status\n"Docs".\n› form get contact ok --json=value\n{\n  "value": true\n}', min);
     assert.equal(out.page, '"Docs".', min);
     assert.equal(out.user, "Logged in as ada.", min);
     assert.deepEqual(out.messages, [{ type: "status", text: "Saved." }], min);

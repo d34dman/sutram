@@ -59,6 +59,12 @@ in the app: nav, page, user, messages, lists and forms.
   and again. It gives up after 10 seconds by default (60 at most) with exit
   1 and the `--since` that keeps waiting without missing one. In JavaScript:
   `events.next(name, { since, timeout, signal })`.
+- `Sutram.exec(lines)` (`execLines()` from `@d34dman/sutram/webmcp`): command
+  lines as pasted into the console, for code that drives the page from
+  outside, such as Playwright. Several lines run as one batch, checked first
+  and approved once under the page's policy (`{ confirmed: true }`, as for
+  `Sutram.call()`); `help`, `man`, `status`, `-h` and `--json` work. It
+  answers with the console's text, `{ code, text, completed, total }`.
 - The example page has adapters for every kit: static menus with a hash
   router, the route's title, a pretend login, the todo commands' messages and
   a list of the docs that pages, sorts and filters in place.

@@ -48,6 +48,7 @@ async function main() {
   const el = mountConsole({ hotkey: "none" });
   el.setInput("cart add ");
   void Sutram.tools();
+  void (await Sutram.exec("help\nstatus")).text;
 }
 void main;
 off();

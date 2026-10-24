@@ -2,7 +2,7 @@ import type * as core from "./index.js";
 import type * as client from "./client.js";
 import type { Events } from "./events.js";
 import type { mountConsole } from "./console.js";
-import type { Tool, callTool } from "./webmcp.js";
+import type { Tool, callTool, execLines } from "./webmcp.js";
 import type { nav } from "./nav.js";
 import type { page } from "./page.js";
 import type { user } from "./user.js";
@@ -24,6 +24,8 @@ export type SutramGlobal = {
   register: core.Registry["register"];
   tools(): Tool[];
   call(name: string, input?: Record<string, unknown>, options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal }): ReturnType<typeof callTool>;
+  /** Command lines as pasted into the console: several as one batch. Answers with the console's text. */
+  exec(text: string, options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal }): ReturnType<typeof execLines>;
   /** core.agentPrompt for this page: page defaults to document.title and location.href. */
   agentPrompt(task?: string, page?: { title?: string; url?: string }): string;
   mountConsole: typeof mountConsole;

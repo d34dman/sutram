@@ -242,7 +242,7 @@ function llmsTxt(pages) {
     "",
     `> ${pkg.description}`,
     "",
-    "Sutram is an npm package (`@d34dman/sutram`, MIT OR GPL-2.0-or-later) and a Drupal module (`drupal/sutram`). An app registers commands: a name, a JSON Schema for the input, annotations, a function. Agents reach them as WebMCP tools, through `Sutram.tools()` and `Sutram.call()` in the page, or as command lines typed into the page's console. `Sutram.agentPrompt()` hands a task to an agent that drives a browser.",
+    "Sutram is an npm package (`@d34dman/sutram`, MIT OR GPL-2.0-or-later) and a Drupal module (`drupal/sutram`). An app registers commands: a name, a JSON Schema for the input, annotations, a function. Agents reach them as WebMCP tools, through `Sutram.tools()`, `Sutram.call()` and `Sutram.exec()` in the page, or as command lines typed into the page's console. `Sutram.agentPrompt()` hands a task to an agent that drives a browser.",
     "",
     "Sutram sits on top of WebMCP: WebMCP is how a page hands tools to an agent, and Sutram decides what those tools are. It is one registry that every part of an app (a form, the navigation, a module) registers its commands with, so they are named and found the same way, and people can use the same commands in the console. Sutram registers tools through WebMCP's own `registerTool()` and never reads or changes the page's HTML. It does not replace Playwright or browser agents: they call its commands instead of clicking. Without WebMCP in the browser, the same commands work through `Sutram.call()`.",
     "",

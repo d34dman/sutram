@@ -27,4 +27,13 @@ export declare function callTool(
   input?: Record<string, unknown>,
   options?: { registry?: Registry; confirmed?: boolean; caller?: Caller; signal?: AbortSignal },
 ): Promise<Result | BatchResult | { code: 0; data: { providers: Array<{ provider: string } & Result> } }>;
+/**
+ * Runs command lines as pasted into the console: several lines as one batch,
+ * checked first and approved once. Follows the page's policy. Resolves to the
+ * console's text, each line after "› ".
+ */
+export declare function execLines(
+  text: string,
+  options?: { registry?: Registry; confirmed?: boolean; caller?: Caller; signal?: AbortSignal },
+): Promise<{ code: number; text: string; completed: number; total: number }>;
 export declare function connectWebMCP(registry?: Registry, modelContext?: ModelContextLike | null): () => void;

@@ -1,7 +1,7 @@
 // One script for pages without a bundler: loads everything, defines
 // <sutram-console>, connects WebMCP when the browser has it, and exposes
 // the shared API as globalThis.Sutram. Headless browsers and tests use
-// Sutram.tools() and Sutram.call() from there, and Sutram.agentPrompt()
+// Sutram.tools(), Sutram.call() and Sutram.exec() from there, and Sutram.agentPrompt()
 // hands a task to an agent that drives a browser. Sutram.client is @d34dman/sutram/client, for pages
 // that build a client of their own. Kits loaded as their own files, such as
 // dist/nav.js, add themselves to Sutram.kits.
@@ -15,7 +15,7 @@
 import * as core from "./index.js";
 import * as client from "./client.js";
 import { getEvents } from "./events.js";
-import { connectWebMCP, findModelContext, listTools, callTool } from "./webmcp.js";
+import { connectWebMCP, findModelContext, listTools, callTool, execLines } from "./webmcp.js";
 import { defineConsole, mountConsole } from "./console.js";
 import { watchNavigation } from "./leave.js";
 
@@ -52,6 +52,8 @@ if (!globalThis.Sutram) {
     // uses registry.run().
     tools: () => listTools(registry),
     call: (name, input, options) => callTool(name, input, { ...options, registry }),
+    // Command lines, as pasted into the console: one call for several commands.
+    exec: (text, options) => execLines(text, { ...options, registry }),
     // The prompt that hands a task on this page to an agent that drives a browser.
     agentPrompt: (task, page = { title: document.title, url: location.href }) => core.agentPrompt(task, page),
     mountConsole,

@@ -663,6 +663,20 @@ export declare function callTool(
   code: 0;
   data: { providers: Array<{ provider: string } & Result> };
 }>;
+/**
+ * Runs command lines as pasted into the console: several lines as one batch,
+ * checked first and approved once. Follows the page's policy. Resolves to the
+ * console's text, each line after "› ".
+ */
+export declare function execLines(
+  text: string,
+  options?: {
+    registry?: Registry;
+    confirmed?: boolean;
+    caller?: Caller;
+    signal?: AbortSignal;
+  },
+): Promise<{ code: number; text: string; completed: number; total: number }>;
 export declare function connectWebMCP(
   registry?: Registry,
   modelContext?: ModelContextLike | null,
@@ -738,6 +752,11 @@ export type SutramGlobal = {
     input?: Record<string, unknown>,
     options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal },
   ): ReturnType<typeof callTool>;
+  /** Command lines as pasted into the console: several as one batch. Answers with the console's text. */
+  exec(
+    text: string,
+    options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal },
+  ): ReturnType<typeof execLines>;
   /** core.agentPrompt for this page: page defaults to document.title and location.href. */
   agentPrompt(task?: string, page?: { title?: string; url?: string }): string;
   mountConsole: typeof mountConsole;

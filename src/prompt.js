@@ -27,7 +27,7 @@ export function agentPrompt(task = "", { title, url } = {}) {
   const page = [title, url && `(${url})`].filter(Boolean).join(" ");
   return `Use a web page for me through Sutram, a command line built into the page. You need a real browser you can drive (Playwright, a browser extension, a WebMCP browser): the commands only exist in a running page, so fetching the URL is not enough.
 
-Open ${url || "the page"} and type the commands into its console: it is the <sutram-console> element, usually opened with the key left of 1 (\`). That way I see every command as it runs. Use the page's WebMCP tools or Sutram.call() only if you cannot type into the console.
+Open ${url || "the page"} and type the commands into its console: it is the <sutram-console> element, usually opened with the key left of 1 (\`). That way I see every command as it runs. Use the page's WebMCP tools, Sutram.exec() or Sutram.call() only if you cannot type into the console.
 
 Do not guess commands: the console explains itself. Start with help, then status, and ask the console (man <command>, <command> -h) whenever you are unsure. When a command fails, read the message and fix it. Commands that are hard to undo ask me first; never confirm one for me. When the task is done, say "Done" and summarise what changed.
 ${page ? `\nThe page: ${page}\n` : ""}

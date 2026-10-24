@@ -2,7 +2,7 @@
 
 > One set of commands for your web app: people type them in a console, AI agents call them as WebMCP tools or from JavaScript. Every part of the app registers its commands the same way, and they run in the user's own session.
 
-Sutram is an npm package (`@d34dman/sutram`, MIT OR GPL-2.0-or-later) and a Drupal module (`drupal/sutram`). An app registers commands: a name, a JSON Schema for the input, annotations, a function. Agents reach them as WebMCP tools, through `Sutram.tools()` and `Sutram.call()` in the page, or as command lines typed into the page's console. `Sutram.agentPrompt()` hands a task to an agent that drives a browser.
+Sutram is an npm package (`@d34dman/sutram`, MIT OR GPL-2.0-or-later) and a Drupal module (`drupal/sutram`). An app registers commands: a name, a JSON Schema for the input, annotations, a function. Agents reach them as WebMCP tools, through `Sutram.tools()`, `Sutram.call()` and `Sutram.exec()` in the page, or as command lines typed into the page's console. `Sutram.agentPrompt()` hands a task to an agent that drives a browser.
 
 Sutram sits on top of WebMCP: WebMCP is how a page hands tools to an agent, and Sutram decides what those tools are. It is one registry that every part of an app (a form, the navigation, a module) registers its commands with, so they are named and found the same way, and people can use the same commands in the console. Sutram registers tools through WebMCP's own `registerTool()` and never reads or changes the page's HTML. It does not replace Playwright or browser agents: they call its commands instead of clicking. Without WebMCP in the browser, the same commands work through `Sutram.call()`.
 
@@ -28,7 +28,7 @@ Agents using a page: start with `status` (or the `sutram_status` tool), then `he
 - [Write descriptions agents can use](https://d34dman.github.io/sutram/docs/guides/descriptions.md): The documentation agents read is your command definitions. How to write them.
 - [Errors that help agents](https://d34dman.github.io/sutram/docs/guides/errors.md): How to word failures so an agent fixes one thing instead of starting over.
 - [Annotations and the policy](https://d34dman.github.io/sutram/docs/concepts/annotations-and-policy.md): How commands describe what they do, and how the page decides who has to agree before one runs.
-- [Test with Playwright](https://d34dman.github.io/sutram/docs/guides/testing.md): Drive a page's commands from a headless browser, in tests or in an agent, with Sutram.tools() and Sutram.call().
+- [Test with Playwright](https://d34dman.github.io/sutram/docs/guides/testing.md): Drive a page's commands from a headless browser, in tests or in an agent, with Sutram.tools(), Sutram.call() and Sutram.exec().
 
 ## How agents reach them
 

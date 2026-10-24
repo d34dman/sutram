@@ -21,7 +21,7 @@ The prompt is generic, like a skill: it lists no commands. It tells the
 agent to:
 
 - open the page and type into its console, so the person sees every command
-  run (WebMCP tools and `Sutram.call()` are the fallback);
+  run (WebMCP tools, `Sutram.exec()` and `Sutram.call()` are the fallback);
 - start with `help` and `status` instead of guessing, and ask the console
   (`man <command>`, `<command> -h`) whenever it is unsure;
 - leave hard-to-undo commands to the person, who is asked to confirm them.
