@@ -59,6 +59,8 @@ forms({
 | `check(form)` | no | Problems you find before sending, such as the browser's validation: `[{ field, message }]`. |
 | `notes` | no | `{ submit(form), upload(form, input) }`: a sentence for the person's question, such as "It will be published." |
 | `valueHelp` | no | Added to `form set`'s value description: how your own types take values. |
+| `example` | no | A form id for the examples in help, such as `node-article-edit-form`; `contact` if you give none. |
+| `examples` | no | Examples with your own fields, by command name, in place of the kit's: `{ "form set": ['form set node-article-form title "Hello"'] }`. |
 | `add`, `remove`, `search`, `upload` | no | The optional commands, each registered only when you supply it. They answer `{ data, text? }`; the kit writes a text when you give none. `addable`, `removable`, `searchable` and `uploadable` list what Tab offers. |
 
 Pass the forms and fields back as you like: the kit hands your objects to

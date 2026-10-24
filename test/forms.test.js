@@ -76,6 +76,13 @@ test("registers the core seven with titles; the optional four only with the adap
   assert.deepEqual(all.get("form search").annotations, { readOnly: true });
 });
 
+test("the adapter's form id and examples replace the kit's in help", () => {
+  const { r } = setup({ example: "node-article-form", examples: { "form set": ['form set node-article-form title "Hello"'] } });
+  assert.deepEqual(r.get("form set").examples, ['form set node-article-form title "Hello"']);
+  assert.deepEqual(r.get("form status").examples, ["form status node-article-form"]);
+  assert.match(r.get("form get").input.properties.form.description, /such as node-article-form\./);
+});
+
 test("the adapter is checked", () => {
   const r = createRegistry();
   assert.throws(() => forms({ forms() {}, read() {}, write() {}, submit() {} }, { registry: r }), /reloads: true or false/);

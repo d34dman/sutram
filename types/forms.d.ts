@@ -76,6 +76,10 @@ export interface FormsAdapter<F extends FormInfo = FormInfo> {
   notes?: { submit?(form: F): string; upload?(form: F, input: Record<string, unknown>): string };
   /** More for form set's value description: how this app's types take values. */
   valueHelp?: string;
+  /** A form id for the examples in help, such as node-article-edit-form. "contact" if none. */
+  example?: string;
+  /** Examples of the app's own, by command name, in place of the kit's. */
+  examples?: Record<string, string[]>;
   /** form add: an empty item (value undefined) or a value added to what the field holds. */
   add?(form: F, field: string, value: string | undefined, options: FormCallOptions): FormAnswer<{ added: unknown[]; item?: string; [key: string]: unknown }> | Promise<FormAnswer<{ added: unknown[]; item?: string; [key: string]: unknown }>>;
   addable?(form: F): Array<{ field: string; label?: string }> | Promise<Array<{ field: string; label?: string }>>;

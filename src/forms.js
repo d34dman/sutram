@@ -26,7 +26,6 @@
 import { CommandError, EXIT, getRegistry } from "./core.js";
 import { checkAdapter, registerAll } from "./kit.js";
 
-const EXAMPLE = "contact";
 /** The largest file form upload takes as --text or --base64. */
 const MAX_CONTENT = 5 * 1024 * 1024;
 
@@ -206,7 +205,7 @@ async function fromUrl(source, { name, type }, { signal, verb }) {
     throw new CommandError(
       own || url.protocol === "data:" || url.protocol === "blob:"
         ? `${verb}: ${url.href} could not be fetched: ${err && err.message}.`
-        : `${verb}: the browser did not let the page fetch ${url.href}. Cross-site URLs work only if that site allows it (CORS): give a URL of this site, or the file's content (--base64 or --text with --name).`,
+        : `${verb}: the browser did not let the page fetch ${url.href}. Cross-site URLs are not supported unless that site allows it (CORS): give a URL of this site, or the file's content (--base64 or --text with --name).`,
       EXIT.FAILED,
     );
   }
@@ -220,9 +219,7 @@ async function fromUrl(source, { name, type }, { signal, verb }) {
 
 // --- Inputs shared by the commands -----------------------------------------
 
-const FORM = { type: "string", description: `The form's id, such as ${EXAMPLE}. form list shows the forms on this page.` };
 const FIELD = { type: "string", description: "A field of the form as a dotted path, such as title, body.summary or links.0.uri. form fields <form> lists them." };
-const ONE = { type: "object", properties: { form: FORM }, required: ["form"] };
 
 /**
  * Registers the form commands on a registry (the page's by default). The
@@ -261,6 +258,10 @@ const ONE = { type: "object", properties: { form: FORM }, required: ["form"] };
  *                            uploading, such as "It will be published."
  *   valueHelp                more for form set's value description: how this
  *                            app's types take values.
+ *   example                  a form id for the examples in help, such as
+ *                            node-article-edit-form ("contact" if none).
+ *   examples                 examples of the app's own, by command name:
+ *                            { "form set": ['form set f title "Hello"'] }.
  *   add(form, field, value)  adds an item to a field that takes several
  *                            (value undefined), or adds a value to what it
  *                            holds. Returns { data: { added, item? }, text? }.
@@ -299,6 +300,9 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
     "uploadable(form)": "function?",
   });
   const types = adapter.types || {};
+  const EXAMPLE = typeof adapter.example === "string" && adapter.example ? adapter.example : "contact";
+  const FORM = { type: "string", description: `The form's id, such as ${EXAMPLE}. form list shows the forms on this page.` };
+  const ONE = { type: "object", properties: { form: FORM }, required: ["form"] };
   const notes = adapter.notes || {};
   const typeOf = (f) => (f.handler && types[f.handler]) || types[f.type] || BASIC[f.type] || {};
 
@@ -910,6 +914,10 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
       },
     });
   }
+
+  // The app's own examples, where it has them: its fields, not the kit's.
+  const own = adapter.examples || {};
+  for (const def of defs) if (Array.isArray(own[def.name])) def.examples = own[def.name].map(String);
 
   return registerAll(registry, defs);
 }
