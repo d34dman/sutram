@@ -13,7 +13,7 @@ tracks unsaved changes and writes the messages. It never touches the page.
 
 | Command | Does | Annotations | Registered |
 |---|---|---|---|
-| `form list` | The forms on the page, with unsaved changes and errors | read-only, `untrustedContent` | always |
+| `form list` | The forms on the page, with unsaved changes and errors; with one form, its fields too | read-only, `untrustedContent` | always |
 | `form status [form]` | Unsaved changes, required fields still empty, errors. Without a form, one line for every form, so `status` has one | read-only, `untrustedContent` | always |
 | `form fields <form>` | Every field: path, label, type, required, value, options, format | read-only, `untrustedContent` | always |
 | `form get <form> <field>` | One field in full, with its options or format | read-only, `untrustedContent` | always |

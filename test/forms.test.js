@@ -98,6 +98,9 @@ test("form list, status and fields read the form as it is now", async () => {
   a.values.email = "ada@example.com";
   const list = await line(r, "form list");
   assert.deepEqual(list.data.forms, [{ form: "contact", label: "Contact", unsaved: 1, errors: 0 }]);
+  // One form on the page: form list gives its fields too, as form fields does.
+  assert.deepEqual(list.data.fields, (await line(r, "form fields contact")).data.fields);
+  assert.equal(list.data.fields.find((f) => f.field === "email").value, "ada@example.com");
 
   const st = await line(r, "form status contact");
   assert.equal(st.text, "Unsaved changes in Contact: email. form submit contact sends them.");

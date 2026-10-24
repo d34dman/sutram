@@ -253,6 +253,23 @@ function fetchedFrom(source) {
 // --- Inputs shared by the commands -----------------------------------------
 
 const FIELD = { type: "string", description: "A field of the form as a dotted path, such as title, body.summary or links.0.uri. form fields <form> lists them." };
+/** form fields' rows, which form list also gives when the page has one form. */
+const FIELD_ROWS = {
+  type: "array",
+  items: {
+    type: "object",
+    required: ["field", "type"],
+    properties: {
+      field: { type: "string", title: "Field" },
+      label: { type: "string" },
+      type: { type: "string", description: "string, text, html, number, boolean, choice, choices, and the app's own types; unsupported when the field cannot be filled yet" },
+      required: { type: "boolean" },
+      value: {},
+      options: { type: "object", description: "For choice and choices fields: the keys and their labels. A choices value is a list of keys" },
+      format: { type: "string", description: "How form set takes the value" },
+    },
+  },
+};
 
 /**
  * Registers the form commands on a registry (the page's by default). The
@@ -381,6 +398,13 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
   }
 
   /** The open form a command names, or an error that says which are open. */
+  /** Every field of an open form, unsupported ones too, with its value: what form fields lists. */
+  async function fieldRows(f) {
+    const all = f.form.fields.filter((x) => x && typeof x.field === "string");
+    const values = await Promise.all(all.map((x) => (x.type === "unsupported" ? "" : f.read(x))));
+    return all.map((x, i) => ({ ...describe(x), value: values[i] }));
+  }
+
   async function find(id, verb) {
     const all = await load();
     const found = all.find((f) => f.id === id);
@@ -467,14 +491,17 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
               properties: { form: { type: "string", title: "Form" }, label: { type: "string", title: "Editing" }, unsaved: { type: "integer" }, errors: { type: "integer" } },
             },
           },
+          fields: { ...FIELD_ROWS, description: "When the page has one form: its fields, as form fields lists them" },
         },
       },
-      view: { columns: ["form", "label", "unsaved", "errors"] },
+      view: { columns: ["form", "field", "label", "unsaved", "errors", "type", "required", "value"] },
       annotations: { readOnly: true, untrustedContent: true },
       seeAlso: ["form status", "form fields"],
       async run() {
         const list = (await load()).map(open);
         const data = await Promise.all(list.map(async (f) => ({ form: f.id, label: f.label, unsaved: (await f.unsaved()).length, errors: f.errors.length })));
+        // One form: its fields too, so the agent needs no form fields first.
+        if (list.length === 1) return { data: { forms: data, fields: await fieldRows(list[0]) } };
         return { ...(data.length ? {} : { text: "There is no form on this page." }), data: { forms: data } };
       },
     },
@@ -543,22 +570,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
         type: "object",
         required: ["fields"],
         properties: {
-          fields: {
-            type: "array",
-            items: {
-              type: "object",
-              required: ["field", "type"],
-              properties: {
-                field: { type: "string", title: "Field" },
-                label: { type: "string" },
-                type: { type: "string", description: "string, text, html, number, boolean, choice, choices, and the app's own types; unsupported when the field cannot be filled yet" },
-                required: { type: "boolean" },
-                value: {},
-                options: { type: "object", description: "For choice and choices fields: the keys and their labels. A choices value is a list of keys" },
-                format: { type: "string", description: "How form set takes the value" },
-              },
-            },
-          },
+          fields: FIELD_ROWS,
         },
       },
       view: { columns: ["field", "label", "type", "required", "value"] },
@@ -567,10 +579,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
       seeAlso: ["form get", "form set"],
       suggest,
       async run({ form: id }) {
-        const f = await find(id, "fields");
-        const all = f.form.fields.filter((x) => x && typeof x.field === "string");
-        const values = await Promise.all(all.map((x) => (x.type === "unsupported" ? "" : f.read(x))));
-        return { data: { fields: all.map((x, i) => ({ ...describe(x), value: values[i] })) } };
+        return { data: { fields: await fieldRows(await find(id, "fields")) } };
       },
     },
     {

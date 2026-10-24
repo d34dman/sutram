@@ -34,6 +34,11 @@ run there.
   agents skip `help` before their first change. The "use a Sutram page"
   skill says tools first too.
 
+### Commands
+
+- `form list` also lists the fields, as `form fields` does, when the page
+  has one form, so an agent needs one call less before its first change.
+
 ## 0.8.1 (2026-10-24)
 
 Agents see more of what they are asked to approve, and are told that the

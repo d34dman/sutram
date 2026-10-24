@@ -16,7 +16,7 @@ so an agent that has filled one knows them all:
 
 | Command | Does | Annotations |
 |---|---|---|
-| `form list` | The forms on the page now | read-only, `untrustedContent` |
+| `form list` | The forms on the page now; with one form, its fields too | read-only, `untrustedContent` |
 | `form status <form>` | Unsaved changes, missing fields, errors | read-only, `untrustedContent` |
 | `form fields <form>` | Every field the form has now: name, label, type, required, value | read-only, `untrustedContent` |
 | `form get <form> <field>` | One field in full, with its allowed values or format | read-only, `untrustedContent` |
