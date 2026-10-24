@@ -93,3 +93,12 @@ test("a line that leaves the page goes last, and the answer says to wait", async
   assert.equal(last.code, 0);
   assert.ok(last.text.endsWith(REINITIALIZED_NOTE));
 });
+
+test("status takes provider names, as in the console", async () => {
+  const { r } = todos();
+  assert.equal((await execLines("status todo", { registry: r })).text, "› status todo\ntodo  0 todos");
+  const unknown = await execLines("status cart", { registry: r });
+  assert.equal(unknown.code, EXIT.USAGE);
+  assert.match(unknown.text, /status: cart reports no status on this page; these do: todo\. \(exit 2\)$/);
+  assert.equal((await execLines("status --wide", { registry: r })).code, EXIT.USAGE);
+});

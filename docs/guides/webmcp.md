@@ -32,9 +32,13 @@ connectWebMCP(registry, findModelContext());
   formats mean.
 - **`sutram_status`**, which runs every `<provider> status` at once and
   returns `{ code: 0, data: { providers: [{ provider, code, text?, data? }] } }`.
-  Agents should call it first.
+  Agents should call it first. Later, `{ providers: ["form", "page"] }`
+  asks only those, so the agent does not read the whole page again.
 - **`sutram_batch`**, which runs several tools as one change:
-  `{ calls: [{ tool: "cart_add", input: { sku: "V60" } }, …] }`.
+  `{ calls: [{ tool: "cart_add", input: { sku: "V60" } }, …] }`. With
+  `quiet: true` it leaves out the results of the calls that worked and
+  returns `{ code, completed, total }`, plus the failing call's result as
+  `failed`.
 
 When commands are added or removed, the tools follow. If you change a
 definition in place, register it again (`registry.register(def)`) so the

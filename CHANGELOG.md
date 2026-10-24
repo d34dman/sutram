@@ -65,6 +65,13 @@ in the app: nav, page, user, messages, lists and forms.
   and approved once under the page's policy (`{ confirmed: true }`, as for
   `Sutram.call()`); `help`, `man`, `status`, `-h` and `--json` work. It
   answers with the console's text, `{ code, text, completed, total }`.
+- `sutram_status` takes `providers`, such as `["form", "page"]`, to ask only
+  those; a name that reports no status is a usage error listing the ones
+  that do. The console's and `Sutram.exec()`'s `status` take names too:
+  `status form page`.
+- `sutram_batch` takes `quiet: true`: the answer leaves out the results of
+  the calls that worked, `{ code, completed, total }`, with the failing
+  call's result as `failed`.
 - The example page has adapters for every kit: static menus with a hash
   router, the route's title, a pretend login, the todo commands' messages and
   a list of the docs that pages, sorts and filters in place.

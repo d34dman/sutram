@@ -611,13 +611,23 @@ export function getRegistry() {
 /** True for a command that follows the status convention: `<provider> status`, read-only. */
 export const isStatusCommand = (def) => / status$/.test(def.name) && !!def.annotations.readOnly;
 
+/** Names in `providers` that report no status, said so that the next call can fix them; null when all do. */
+export function unknownProviders(registry, providers) {
+  if (!providers) return null;
+  const known = [...new Set(registry.list().filter(isStatusCommand).map((d) => d.provider))];
+  const unknown = providers.filter((p) => !known.includes(p));
+  if (!unknown.length) return null;
+  return `${unknown.join(", ")} ${unknown.length === 1 ? "reports" : "report"} no status on this page; ${known.length ? `these do: ${known.join(", ")}` : "none does"}.`;
+}
+
 /**
- * Runs every `<provider> status` command, the way a bare `status` does.
- * Resolves to [{ provider, code, text?, data?, message? }].
+ * Runs every `<provider> status` command, the way a bare `status` does, or
+ * only those of `providers`. Resolves to [{ provider, code, text?, data?, message? }].
  */
-export async function runStatus(registry, { caller = "status", signal } = {}) {
+export async function runStatus(registry, { caller = "status", signal, providers } = {}) {
   const results = [];
   for (const def of registry.list().filter(isStatusCommand)) {
+    if (providers && !providers.includes(def.provider)) continue;
     results.push({ provider: def.provider, ...(await registry.run(def.name, {}, { caller, signal })) });
   }
   return results;

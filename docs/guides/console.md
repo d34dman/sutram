@@ -39,7 +39,7 @@ command field.
 | `help`, `help <provider>` | See the commands on this page |
 | `man <command>` | Read a command's full manual |
 | `<command> -h` | See a command's usage |
-| `status` | See every provider's status |
+| `status` | See every provider's status; `status form` for one |
 | `clear` | Clear the screen |
 | <kbd>Tab</kbd> | Complete a command, an option or a value; with several choices, a list opens |
 | ↑ / ↓ | Walk through history. It lasts as long as the page, unless the app passes a `historyStore` |

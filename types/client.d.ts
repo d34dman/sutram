@@ -16,7 +16,7 @@ export declare function checkOutput(schema: Schema, data: unknown, root?: Schema
 
 export declare function isStatusCommand(def: CommandDefinition): boolean;
 
-export declare function runStatus(registry: Registry, options?: { caller?: Caller; signal?: AbortSignal }): Promise<Array<{ provider: string } & Result>>;
+export declare function runStatus(registry: Registry, options?: { caller?: Caller; signal?: AbortSignal; providers?: string[] }): Promise<Array<{ provider: string } & Result>>;
 
 export declare function tokenize(line: string): Token[];
 

@@ -404,7 +404,7 @@ export declare function isStatusCommand(def: CommandDefinition): boolean;
 
 export declare function runStatus(
   registry: Registry,
-  options?: { caller?: Caller; signal?: AbortSignal },
+  options?: { caller?: Caller; signal?: AbortSignal; providers?: string[] },
 ): Promise<Array<{ provider: string } & Result>>;
 
 export declare function tokenize(line: string): Token[];
@@ -659,10 +659,12 @@ export declare function callTool(
     caller?: Caller;
     signal?: AbortSignal;
   },
-): Promise<Result | BatchResult | {
+): Promise<Result | BatchResult | QuietBatchResult | {
   code: 0;
   data: { providers: Array<{ provider: string } & Result> };
 }>;
+/** sutram_batch with quiet: true: no results, only the one that failed. */
+export type QuietBatchResult = Omit<BatchResult, "results"> & { failed?: Result };
 /**
  * Runs command lines as pasted into the console: several lines as one batch,
  * checked first and approved once. Follows the page's policy. Resolves to the

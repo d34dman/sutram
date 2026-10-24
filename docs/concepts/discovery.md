@@ -13,7 +13,7 @@ generated from your command definitions, so it always matches the page.
 |---|---|---|
 | What can I do here? | `help`, `help <provider>` | One line per command: usage, description, annotation |
 | How does this one work? | `man <command>`, `<command> -h` | Arguments, output, annotations, examples, related commands |
-| What state is the page in? | `status` | Every provider's `<provider> status`, at once |
+| What state is the page in? | `status` | Every provider's `<provider> status`, at once; `status form page` for only some |
 | What values fit here? | <kbd>Tab</kbd>, a command's `suggest` | Completions for names, options and values |
 
 ```

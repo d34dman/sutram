@@ -8,7 +8,7 @@
 // WebMCP decides which origins see the tools, not whether a call may change
 // the user's page, so calls go through the page's policy (policy.js) first.
 
-import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, isStatusCommand, mayReinitialize, runStatus } from "./core.js";
+import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, isStatusCommand, mayReinitialize, runStatus, unknownProviders } from "./core.js";
 import { approvalLine, checkFields, describeShape, formatHelp, formatMan, formatResult, formatUsage, formatsUsed, sentence } from "./format.js";
 import { getFormats } from "./formats.js";
 import { parse, splitLines, suggest, tokenize } from "./parse.js";
@@ -45,8 +45,13 @@ export function toTool(def, formats = getFormats()) {
 export const STATUS_TOOL = {
   name: "sutram_status",
   title: "Report on the page",
-  description: "Run every provider's status command and return what each reports about the page. Call this first. Returns { data: { providers: [{ provider, code, text?, data? }] } }.",
-  inputSchema: { type: "object", properties: {} },
+  description: "Run every provider's status command and return what each reports about the page. Call this first; later, name only the providers you need. Returns { data: { providers: [{ provider, code, text?, data? }] } }.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      providers: { type: "array", items: { type: "string" }, description: "Only these providers, such as [\"form\", \"page\"]. Leave it out for all" },
+    },
+  },
   // What providers report about the page holds the page's own text, such as its title.
   annotations: { readOnlyHint: true, untrustedContentHint: true },
 };
@@ -55,7 +60,7 @@ export const BATCH_TOOL = {
   name: "sutram_batch",
   title: "Run several tools as one change",
   description: "Run several tools in order as one change. Every call is checked before any runs. When a call needs the user's approval, the user is asked once, before anything runs. The batch stops at the first call that fails, "
-    + "and providers that support it undo the earlier calls. Use it for edits that belong together. Returns { code, results, completed, total }.",
+    + "and providers that support it undo the earlier calls. Use it for edits that belong together. Returns { code, results, completed, total }; with quiet, { code, completed, total } and the failed call's result as failed.",
   inputSchema: {
     type: "object",
     properties: {
@@ -71,6 +76,7 @@ export const BATCH_TOOL = {
           required: ["tool"],
         },
       },
+      quiet: { type: "boolean", description: "Leave out the results of the calls that worked: return only a count, and the result of the call that failed" },
     },
     required: ["calls"],
   },
@@ -176,7 +182,12 @@ async function runBatchTool(registry, input, options) {
   const refusal = await approve(registry, steps, options);
   if (refusal) return refusal;
   const before = registry.generation;
-  const result = await registry.batch(steps.map((s) => ({ name: s.def.name, input: s.input, def: s.def })), { caller: options.caller, signal: options.signal });
+  let result = await registry.batch(steps.map((s) => ({ name: s.def.name, input: s.input, def: s.def })), { caller: options.caller, signal: options.signal });
+  if (input.quiet === true || input.quiet === "true") {
+    // The step that failed is the one after the completed ones; a failed commit has none.
+    const { results, ...rest } = result;
+    result = results.length > result.completed ? { ...rest, failed: results[result.completed] } : rest;
+  }
   return registry.generation === before ? result : { ...result, note: REINITIALIZED_NOTE };
 }
 
@@ -185,11 +196,17 @@ async function runBatchTool(registry, input, options) {
  * call. It goes through the policy like every tool: status commands are
  * read-only, but a page's policy may still ask about them.
  */
-async function status(registry, options) {
-  const steps = registry.list().filter(isStatusCommand).map((def) => ({ def, input: {} }));
+async function status(registry, input, options) {
+  const providers = input && input.providers;
+  if (providers !== undefined && (!Array.isArray(providers) || providers.some((p) => typeof p !== "string"))) {
+    return { code: EXIT.USAGE, message: "sutram_status: providers must be a list of provider names, such as [\"form\"]" };
+  }
+  const unknown = unknownProviders(registry, providers);
+  if (unknown) return { code: EXIT.USAGE, message: `sutram_status: ${unknown}` };
+  const steps = registry.list().filter((d) => isStatusCommand(d) && (!providers || providers.includes(d.provider))).map((def) => ({ def, input: {} }));
   const refusal = await approve(registry, steps, options, STATUS_TOOL.name);
   if (refusal) return refusal;
-  return { code: EXIT.OK, data: { providers: await runStatus(registry, { caller: options.caller, signal: options.signal }) } };
+  return { code: EXIT.OK, data: { providers: await runStatus(registry, { caller: options.caller, signal: options.signal, providers }) } };
 }
 
 /**
@@ -210,7 +227,7 @@ async function status(registry, options) {
  */
 export async function callTool(name, input = {}, { registry = getRegistry(), confirmed = false, caller = "agent", signal } = {}) {
   const options = { confirmed, caller, signal, interactive: false };
-  if (name === STATUS_TOOL.name) return status(registry, options);
+  if (name === STATUS_TOOL.name) return status(registry, input, options);
   if (name === BATCH_TOOL.name) return runBatchTool(registry, input, options);
   const def = findTool(registry, name);
   if (!def) return { code: EXIT.NOT_FOUND, message: `${noSuchTool(registry, name)} Call tools() for the list.` };
@@ -231,16 +248,21 @@ async function clientWord(registry, words, options) {
     if (!def && !RESERVED_WORDS.includes(name)) return [EXIT.FAILED, `No manual entry for ${name}. See help. (exit 1)`];
     return [EXIT.OK, blocksText(formatMan(def, name, registry.formats))];
   }
-  if (first === "status" && (!rest.length || (rest.length === 1 && rest[0] === "--json"))) {
-    const results = await runStatus(registry, { caller: options.caller, signal: options.signal });
-    if (rest.length) return [EXIT.OK, JSON.stringify(results.map(({ provider, data }) => ({ provider, data })), null, 2)];
+  if (first === "status") {
+    const json = rest.includes("--json");
+    const names = rest.filter((w) => w !== "--json");
+    if (names.some((w) => w.startsWith("-"))) return [EXIT.USAGE, "status: usage: status [provider …] [--json] (exit 2)"];
+    const unknown = unknownProviders(registry, names.length ? names : undefined);
+    if (unknown) return [EXIT.USAGE, `status: ${unknown} (exit 2)`];
+    const results = await runStatus(registry, { caller: options.caller, signal: options.signal, providers: names.length ? names : undefined });
+    if (json) return [EXIT.OK, JSON.stringify(results.map(({ provider, data }) => ({ provider, data })), null, 2)];
     if (!results.length) return [EXIT.OK, "No provider on this page reports a status."];
     const w = Math.max(...results.map((r) => r.provider.length));
     return [EXIT.OK, results.map((r) => `${r.provider.padEnd(w)}  ${(r.code ? r.message : r.text || "").split("\n")[0]}`).join("\n")];
   }
   // clear has nothing to clear here.
   if (first === "clear" && !rest.length) return [EXIT.OK, ""];
-  return [EXIT.USAGE, `${first}: usage: help [provider], man <command>, status [--json] (exit 2)`];
+  return [EXIT.USAGE, `${first}: usage: help [provider], man <command>, status [provider …] [--json] (exit 2)`];
 }
 
 /**
@@ -347,7 +369,7 @@ export function connectWebMCP(registry = getRegistry(), modelContext = findModel
   };
 
   const options = (signal) => ({ caller: "agent", signal, interactive: true, strict: true });
-  add("\0status", STATUS_TOOL, (_, { signal } = {}) => status(registry, options(signal)));
+  add("\0status", STATUS_TOOL, (input, { signal } = {}) => status(registry, input || {}, options(signal)));
   add("\0batch", BATCH_TOOL, (input, { signal } = {}) => runBatchTool(registry, input, options(signal)));
   const addCommand = (def) => add(def.name, toTool(def, registry.formats), (input, { signal } = {}) => {
     // The definition is looked up at call time: it may have been replaced since.

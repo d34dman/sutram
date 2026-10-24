@@ -72,3 +72,6 @@ one at a time, and the next one waits until you do.
 Through WebMCP, agents get a `sutram_batch` tool:
 `{ calls: [{ tool: "cart_add", input: { sku: "V60" } }, …] }`. Use it for
 edits that belong together; it saves round trips and asks the user once.
+Add `quiet: true` when the results of the calls that work do not matter:
+the answer is then `{ code, completed, total }`, with the result of the call
+that failed as `failed`.

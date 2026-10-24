@@ -358,7 +358,7 @@ export function formatUsage(def) {
 const BUILT_IN_MAN = {
   help: ["help [provider]", "List the commands on this page with their usage and annotations. Generated from the registry; providers write nothing for it."],
   man: ["man <command>", "Show the full manual entry for a command, generated from its definition: arguments from the input schema, output from the output schema, annotations, examples and related commands."],
-  status: ["status [--json]", "Run every read-only command named <provider> status, and show what each provider reports about the page right now."],
+  status: ["status [provider …] [--json]", "Run every read-only command named <provider> status, and show what each provider reports about the page right now. Name providers to ask only them: status form page."],
   clear: ["clear", "Clear the console."],
 };
 

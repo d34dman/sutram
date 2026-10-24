@@ -389,3 +389,42 @@ test("sutram_status and events recent carry the page's own text, so agents get u
   assert.deepEqual(tools.sutram_status.annotations, { readOnlyHint: true, untrustedContentHint: true });
   assert.deepEqual(tools.events_recent.annotations, { readOnlyHint: true, untrustedContentHint: true });
 });
+
+test("sutram_status takes only the providers an agent names", async () => {
+  const r = createRegistry();
+  for (const provider of ["form", "page"]) {
+    r.register({
+      name: `${provider} status`, provider, description: `The ${provider}`,
+      input: { type: "object", properties: {} }, annotations: { readOnly: true },
+      run: () => ({ text: `${provider} ok`, data: { provider } }),
+    });
+  }
+  const all = await callTool("sutram_status", {}, { registry: r });
+  assert.deepEqual(all.data.providers.map((p) => p.provider), ["form", "page"]);
+  const one = await callTool("sutram_status", { providers: ["page"] }, { registry: r });
+  assert.deepEqual(one.data.providers, [{ provider: "page", code: 0, text: "page ok", data: { provider: "page" } }]);
+
+  const unknown = await callTool("sutram_status", { providers: ["page", "messages"] }, { registry: r });
+  assert.equal(unknown.code, EXIT.USAGE);
+  assert.equal(unknown.message, "sutram_status: messages reports no status on this page; these do: form, page.");
+  assert.equal((await callTool("sutram_status", { providers: "page" }, { registry: r })).code, EXIT.USAGE);
+
+  // The WebMCP tool passes its input on.
+  const mc = fakeModelContext();
+  connectWebMCP(r, mc);
+  assert.deepEqual((await mc.tools.get("sutram_status").execute({ providers: ["form"] }, {})).data.providers.map((p) => p.provider), ["form"]);
+});
+
+test("sutram_batch with quiet returns a count, and only the result of the call that failed", async () => {
+  const { r, log } = counter();
+  const ok = await callTool("sutram_batch", { quiet: true, calls: [{ tool: "doc_add", input: { item: "a" } }, { tool: "doc_add", input: { item: "b" } }] }, { registry: r });
+  assert.deepEqual(ok, { code: 0, completed: 2, total: 2 });
+  assert.deepEqual(log, ["a", "b"]);
+
+  const failed = await callTool("sutram_batch", { quiet: true, calls: [{ tool: "doc_add", input: { item: "c" } }, { tool: "doc_add", input: { item: "bad" } }, { tool: "doc_add", input: { item: "d" } }] }, { registry: r });
+  assert.equal(failed.code, 1);
+  assert.equal(failed.completed, 1);
+  assert.equal(failed.results, undefined);
+  assert.deepEqual(failed.failed, { code: 1, message: "cannot add bad" });
+  assert.match(failed.message, /step 2 of 3: cannot add bad/);
+});

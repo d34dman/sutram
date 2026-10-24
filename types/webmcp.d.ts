@@ -26,7 +26,9 @@ export declare function callTool(
   name: string,
   input?: Record<string, unknown>,
   options?: { registry?: Registry; confirmed?: boolean; caller?: Caller; signal?: AbortSignal },
-): Promise<Result | BatchResult | { code: 0; data: { providers: Array<{ provider: string } & Result> } }>;
+): Promise<Result | BatchResult | QuietBatchResult | { code: 0; data: { providers: Array<{ provider: string } & Result> } }>;
+/** sutram_batch with quiet: true: no results, only the one that failed. */
+export type QuietBatchResult = Omit<BatchResult, "results"> & { failed?: Result };
 /**
  * Runs command lines as pasted into the console: several lines as one batch,
  * checked first and approved once. Follows the page's policy. Resolves to the

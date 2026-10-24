@@ -100,7 +100,7 @@ A command cannot declare inputs named `help`, `json` or `wide`.
 |---|---|
 | `help`, `help <provider>` | List commands |
 | `man <command>` | Show a command's manual |
-| `status` | Run every `<provider> status` |
+| `status`, `status <provider …>` | Run every `<provider> status`, or only those |
 | `clear` | Clear the console |
 
 Command names cannot start with these words, or with `sutram`, which

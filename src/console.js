@@ -4,7 +4,7 @@
 // values, confirmation by the page's policy, --json[=fields] and --wide,
 // syntax highlighting of the line being typed, and pasted batches of lines.
 
-import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, mayReinitialize, runStatus } from "./core.js";
+import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, mayReinitialize, runStatus, unknownProviders } from "./core.js";
 import { complete, highlight, openQuote, parse, splitLines, tokenize } from "./parse.js";
 import { formatHelp, formatMan, formatResult, formatUsage, annotationLabel, checkFields, approvalLine } from "./format.js";
 import { genericQuestion, ownQuestion } from "./policy.js";
@@ -866,9 +866,13 @@ export class SutramConsole extends Base {
       this.out.replaceChildren(...(this.pendingAsk && this.askEl ? [this.askEl] : []));
       return EXIT.OK;
     }
-    if (first === "status" && (!rest.length || (rest.length === 1 && rest[0] === "--json"))) {
-      const results = await runStatus(this.registry, { caller: "console" });
-      if (rest.length) { this.print(JSON.stringify(results.map(({ provider, data }) => ({ provider, data })), null, 2), "json"); return EXIT.OK; }
+    if (first === "status" && !rest.some((w) => w.startsWith("-") && w !== "--json")) {
+      // status [provider …] [--json]: only some providers' status.
+      const names = rest.filter((w) => w !== "--json");
+      const unknown = unknownProviders(this.registry, names.length ? names : undefined);
+      if (unknown) return this.fail(`status: ${unknown}`, EXIT.USAGE);
+      const results = await runStatus(this.registry, { caller: "console", providers: names.length ? names : undefined });
+      if (rest.includes("--json")) { this.print(JSON.stringify(results.map(({ provider, data }) => ({ provider, data })), null, 2), "json"); return EXIT.OK; }
       if (!results.length) { this.print(this.messages.noStatus, "dim"); return EXIT.OK; }
       const w = Math.max(...results.map((r) => r.provider.length));
       this.print(results.map((r) => `${r.provider.padEnd(w)}  ${(r.code ? r.message : r.text || "").split("\n")[0]}`).join("\n"), "text");
