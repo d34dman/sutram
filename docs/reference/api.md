@@ -733,6 +733,7 @@ export type SutramGlobal = {
     page?: typeof page;
     user?: typeof user;
     messages?: typeof messages;
+    lists?: typeof lists;
   };
 };
 

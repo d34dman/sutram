@@ -6,7 +6,7 @@ breaking changes bump the minor version.
 ## Unreleased
 
 Kits: commands that are the same on every site, each fed by a small adapter
-in the app. Nav, page, user and messages so far.
+in the app: nav, page, user, messages and lists.
 
 ### Added
 
@@ -33,15 +33,24 @@ in the app. Nav, page, user and messages so far.
   registers the `messages` command and emits a `message.shown` event for each
   message, at the start and after the adapter's `changed()`. See the
   [messages kit guide](docs/guides/messages-kit.md).
-- `dist/page.js`, `dist/user.js` and `dist/messages.js` (and their `.min.js`),
-  adding `Sutram.kits.page`, `.user` and `.messages`.
+- `@d34dman/sutram/lists`: the lists kit, read-only. `lists({ lists, go,
+  reloads })` registers `list status`, `list rows` and `list go`. `list go`
+  changes page, sort and filters in one go and hands the adapter the complete
+  state; the kit checks sorts and filters against what the list offers. See
+  the [lists kit guide](docs/guides/lists-kit.md).
+- `dist/page.js`, `dist/user.js`, `dist/messages.js` and `dist/lists.js` (and
+  their `.min.js`), adding `Sutram.kits.page`, `.user`, `.messages` and
+  `.lists`.
 - The example page has adapters for every kit: static menus with a hash
-  router, the route's title, a pretend login and the todo commands' messages.
+  router, the route's title, a pretend login, the todo commands' messages and
+  a list of the docs that pages, sorts and filters in place.
 
 ### Changed
 
 - The note after a run that started Sutram again, and the agent prompt's
   rules, say to look at `messages` where the page has it.
+- Completion adds no space after a value that ends in `=`, such as the
+  `type=` of a `key=value` pair, so the value can follow.
 
 ## 0.7.0 (2026-10-24)
 

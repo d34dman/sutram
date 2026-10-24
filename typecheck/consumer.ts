@@ -11,6 +11,7 @@ import { nav, type NavMenus } from "@d34dman/sutram/nav";
 import { page } from "@d34dman/sutram/page";
 import { user } from "@d34dman/sutram/user";
 import { messages, type Message } from "@d34dman/sutram/messages";
+import { lists, type ListState } from "@d34dman/sutram/lists";
 
 const registry = getRegistry();
 const off = registry.register({
@@ -59,3 +60,11 @@ user({ user: async () => ({ authenticated: true, id: 7, name: "ada", roles: ["ed
 const shown: Message[] = [{ type: "status", text: "Saved." }];
 messages({ messages: () => shown, watch: (changed) => { addEventListener("message", changed); return () => removeEventListener("message", changed); } })();
 Sutram.kits.messages?.({ messages: async () => shown });
+
+// The lists kit.
+lists({
+  lists: () => ({ content: { label: "Content", columns: [{ key: "title", label: "Title" }], rows: [{ title: "Hello", url: "/node/5" }], page: 1, pages: 2, sorts: ["title"], filters: [{ key: "type", value: "", options: ["article"] }] } }),
+  go: (list: string, state: ListState) => { location.assign(`/${list}?page=${state.page - 1}`); },
+  reloads: true,
+})();
+Sutram.kits.lists?.({ lists: async () => ({}), go() {}, reloads: false });

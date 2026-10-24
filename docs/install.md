@@ -77,7 +77,8 @@ special cases.
 | `@d34dman/sutram/page` | The [page kit](guides/page-kit.md): `page status` from your adapter | no |
 | `@d34dman/sutram/user` | The [user kit](guides/user-kit.md): `user status`, `login` and `logout` | no |
 | `@d34dman/sutram/messages` | The [messages kit](guides/messages-kit.md): the `messages` command and `message.shown` events | no |
-| `@d34dman/sutram/dist/page.js` · `user.js` · `messages.js` | Those kits as files of their own, like `dist/nav.js`; add `Sutram.kits.page`, `.user` and `.messages` | yes |
+| `@d34dman/sutram/lists` | The [lists kit](guides/lists-kit.md): `list status`, `rows` and `go` over listings your adapter describes | no |
+| `@d34dman/sutram/dist/page.js` · `user.js` · `messages.js` · `lists.js` | Those kits as files of their own, like `dist/nav.js`; add `Sutram.kits.page`, `.user`, `.messages` and `.lists` | yes |
 | `@d34dman/sutram/internals` | Helpers Sutram uses itself. No semver promise | no |
 
 ### Several copies on one page

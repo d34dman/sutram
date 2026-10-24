@@ -37,6 +37,10 @@ They are demos, not a stable API: try them, or copy them as a starting point.
 - **`sutram_demo_messages`**: Drupal's status messages, after a page load or
   an AJAX request, as the `messages` command and `message.shown` events, from
   the [messages kit](guides/messages-kit.md) (`sutram/messages`).
+- **`sutram_demo_lists`**: Views listings on the page, such as the content
+  overview, as `list status`, `list rows` and `list go`, from the
+  [lists kit](guides/lists-kit.md) (`sutram/lists`): rows, pages, table
+  sorts and exposed filters.
 - **`sutram_demo_form`**: fill in and save content forms. See below.
 - **`sutram_demo_canvas`**: build pages in the
   [Drupal Canvas](https://www.drupal.org/project/canvas) editor. See below.

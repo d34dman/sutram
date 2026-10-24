@@ -48,6 +48,10 @@
       "types": "./types/messages.d.ts",
       "default": "./src/messages.js"
     },
+    "./lists": {
+      "types": "./types/lists.d.ts",
+      "default": "./src/lists.js"
+    },
     "./package.json": "./package.json",
     "./dist/sutram.js": {
       "types": "./types/dist.d.ts",
@@ -72,6 +76,10 @@
     "./dist/messages.js": {
       "types": "./types/messages.d.ts",
       "default": "./dist/messages.js"
+    },
+    "./dist/lists.js": {
+      "types": "./types/lists.d.ts",
+      "default": "./dist/lists.js"
     },
     "./skins/*": "./skins/*"
   },
@@ -100,7 +108,9 @@
     "./dist/user.js",
     "./dist/user.min.js",
     "./dist/messages.js",
-    "./dist/messages.min.js"
+    "./dist/messages.min.js",
+    "./dist/lists.js",
+    "./dist/lists.min.js"
   ],
   "scripts": {
     "test": "node --test",

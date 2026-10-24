@@ -80,7 +80,7 @@ console.log(`build: wrote dist/sutram.js (${order.map((m) => m.name).join(", ")}
 // it imports from the globalThis.Sutram that dist/sutram.js defined, so it
 // uses the page's one registry, and adds itself to Sutram.kits. What the
 // kits share (src/kit.js) is copied into each.
-const KITS = ["nav", "page", "user", "messages"];
+const KITS = ["nav", "page", "user", "messages", "lists"];
 const KIT_IMPORTS = {
   CommandError: "Sutram.CommandError",
   EXIT: "Sutram.EXIT",

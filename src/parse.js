@@ -508,7 +508,8 @@ export async function complete(registry, line, { signal, limit = 50 } = {}) {
     }
     const seen = new Set();
     return out.filter((o) => !seen.has(o.value) && seen.add(o.value))
-      .map((o) => ({ value: `${prefix}${quoteWord(o.value)} `, label: o.label || o.value, description: o.description || "" }));
+      // A value that ends in "=" (key= of a key=value pair) waits for the rest: no space.
+      .map((o) => ({ value: `${prefix}${quoteWord(o.value)}${o.value.endsWith("=") ? "" : " "}`, label: o.label || o.value, description: o.description || "" }));
   };
 
   const options = (typed) => {

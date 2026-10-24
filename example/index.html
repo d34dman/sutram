@@ -25,6 +25,8 @@
 <p>The page, user and messages kits, with adapters of their own: <code>page status</code>, <code>user login</code>, <code>user status</code>, and after <code>todo add x</code>, <code>messages</code> or <code>events recent</code>.</p>
 <p>Page: <b id="page"></b> · <a href="#/">Home</a> · <a href="#/docs">Docs</a> · <a href="#/about">About</a> · User: <b id="user"></b></p>
 <p id="messages" role="status"></p>
+<p>The lists kit, over the table below, which pages, sorts and filters in place: <code>list rows</code>, <code>list go --page=2</code>, <code>list go --filter=section=guides --sort=title --order=desc</code>.</p>
+<table id="docs"></table>
 <p><a href="?inline">Show the console inline</a>, the way an app places it in its own panel.</p>
 <ul id="todos"></ul>
 <div id="panel" hidden style="height: 260px; border-radius: 8px; overflow: hidden;"></div>
@@ -39,6 +41,7 @@
   import { page } from "../src/page.js";
   import { user } from "../src/user.js";
   import { messages } from "../src/messages.js";
+  import { lists } from "../src/lists.js";
   const menus = {
     main: {
       label: "Main",
@@ -90,6 +93,52 @@
   const shown = [];
   let changed = () => {};
   messages({ messages: () => shown, watch: (fn) => { changed = fn; } });
+  // The lists kit: a table of docs, three rows a page, shown in place
+  // (reloads: false), so go() shows the new state and calls initialized().
+  const docs = [
+    ["Install", "start", "/docs/install"], ["Quick start", "start", "/docs/quick-start"],
+    ["Write a provider", "guides", "/docs/guides/write-a-provider"], ["Nav kit", "guides", "/docs/guides/nav-kit"],
+    ["Lists kit", "guides", "/docs/guides/lists-kit"], ["Commands", "concepts", "/docs/concepts/commands"],
+    ["Events", "concepts", "/docs/concepts/events"], ["Command line", "reference", "/docs/reference/command-line"],
+  ].map(([title, section, url]) => ({ title, section, url }));
+  const PER_PAGE = 3;
+  let state = { page: 1, sort: "title", order: "asc", filters: { section: "" } };
+  const shownDocs = () => {
+    const all = docs.filter((d) => !state.filters.section || d.section === state.filters.section)
+      .sort((a, b) => a[state.sort].localeCompare(b[state.sort]) * (state.order === "asc" ? 1 : -1));
+    return { all, rows: all.slice((state.page - 1) * PER_PAGE, state.page * PER_PAGE) };
+  };
+  const showDocs = () => {
+    const cell = (tag, text) => Object.assign(document.createElement(tag), { textContent: text });
+    const { all, rows } = shownDocs();
+    document.getElementById("docs").replaceChildren(
+      Object.assign(document.createElement("caption"), { textContent: `Docs: page ${state.page} of ${Math.max(1, Math.ceil(all.length / PER_PAGE))}` }),
+      ...rows.map((d) => { const tr = document.createElement("tr"); tr.append(cell("td", d.title), cell("td", d.section)); return tr; }),
+    );
+  };
+  showDocs();
+  lists({
+    lists: () => {
+      const { all, rows } = shownDocs();
+      return {
+        docs: {
+          label: "Docs",
+          columns: [{ key: "title", label: "Title" }, { key: "section", label: "Section" }],
+          rows,
+          page: state.page,
+          pages: Math.max(1, Math.ceil(all.length / PER_PAGE)),
+          total: all.length,
+          sort: state.sort,
+          order: state.order,
+          sorts: [{ key: "title", label: "Title" }, { key: "section", label: "Section" }],
+          filters: [{ key: "section", label: "Section", value: state.filters.section, options: ["start", "guides", "concepts", "reference"] }],
+        },
+      };
+    },
+    go: (list, next) => { state = next; showDocs(); Sutram.initialized(); },
+    reloads: false,
+  });
+
   globalThis.example = {
     say(type, text) {
       shown.push({ type, text });
