@@ -37,7 +37,10 @@ async function main() {
   void checkInput({ type: "object" }, {}).errors;
   void formatResult(r);
   void commandLine(registry.get("cart add")!, { sku: "V60" });
-  createEvents(registry).define("cart.changed", { description: "The cart changed" });
+  const events = createEvents(registry);
+  events.define("cart.changed", { description: "The cart changed" });
+  const next = await events.next("cart.changed", { since: 0, timeout: 1000 });
+  if (next) void next.payload;
   void (await callTool("cart_add", { sku: "V60" }, { confirmed: true })).code;
   void listTools().length;
   connectWebMCP()();

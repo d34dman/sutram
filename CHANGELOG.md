@@ -53,6 +53,12 @@ in the app: nav, page, user, messages, lists and forms.
 - The forms example uses the forms kit, with a type of its own for fields
   with a pattern; `form discard` there now puts back the start values
   instead of clearing every field.
+- `events wait [name] --since=<id> --timeout=<seconds>`: returns the first
+  matching event after the id, at once when the page still keeps one,
+  otherwise when it is emitted, so agents need not ask `events recent` again
+  and again. It gives up after 10 seconds by default (60 at most) with exit
+  1 and the `--since` that keeps waiting without missing one. In JavaScript:
+  `events.next(name, { since, timeout, signal })`.
 - The example page has adapters for every kit: static menus with a hash
   router, the route's title, a pretend login, the todo commands' messages and
   a list of the docs that pages, sorts and filters in place.

@@ -44,7 +44,7 @@ Agents using a page: start with `status` (or the `sutram_status` tool), then `he
 - [Batches](https://d34dman.github.io/sutram/docs/concepts/batches.md): Several commands as one change, checked first, asked once, rolled back on failure.
 - [Results and exit codes](https://d34dman.github.io/sutram/docs/concepts/results.md): What every run returns, how the console shows it, and the options every command gets for free.
 - [Formats](https://d34dman.github.io/sutram/docs/concepts/formats.md): App-defined formats such as money, following JSON Schema custom formats.
-- [Events](https://d34dman.github.io/sutram/docs/concepts/events.md): Facts a page declares and emits, and how agents poll for what changed.
+- [Events](https://d34dman.github.io/sutram/docs/concepts/events.md): Facts a page declares and emits, and how agents wait or poll for what changed.
 
 ## Reference
 

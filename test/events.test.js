@@ -64,3 +64,57 @@ test("the event buffer keeps the payload as it was emitted", async () => {
   payload.title = "b";
   assert.deepEqual((await r.run("events recent", { since: 0 })).data.events[0].payload, { title: "a" });
 });
+
+test("events wait returns a kept event at once, or the next one emitted", async () => {
+  const r = createRegistry();
+  const ev = createEvents(r);
+  ev.define("message.shown", { description: "A message" });
+  ev.define("cart.changed", { description: "The cart changed" });
+  ev.emit("message.shown", { text: "Saved" });
+  const kept = await r.run("events wait", { name: "message.shown", since: 0 });
+  assert.equal(kept.code, 0);
+  assert.deepEqual(kept.data, { event: { id: 1, name: "message.shown", payload: { text: "Saved" }, source: "code" }, cursor: 1 });
+
+  // Without --since it waits for the next one, and skips other events.
+  const waiting = r.run("events wait", { name: "message.shown" });
+  ev.emit("cart.changed");
+  ev.emit("message.shown", { text: "Again" });
+  const next = await waiting;
+  assert.equal(next.data.event.id, 3);
+  assert.equal(next.data.cursor, 3);
+  ev.on("message.shown", () => {}, { as: "badge" });
+  assert.deepEqual(ev.emit("message.shown").heardBy, ["badge"], "the wait stopped listening, and never shows in heardBy");
+
+  const any = r.run("events wait");
+  ev.emit("cart.changed");
+  assert.equal((await any).data.event.name, "cart.changed");
+});
+
+test("events wait gives up after its timeout, and refuses events the page does not declare", async () => {
+  const r = createRegistry();
+  const ev = createEvents(r);
+  ev.define("message.shown", { description: "A message" });
+  const unknown = await r.run("events wait", { name: "nope" });
+  assert.equal(unknown.code, 2);
+  assert.match(unknown.message, /no event "nope"; it has message.shown/);
+  assert.equal((await r.run("events wait", { timeout: 0 })).code, 2, "at least a second");
+
+  const ctrl = new AbortController();
+  const waiting = r.run("events wait", { name: "message.shown" }, { signal: ctrl.signal });
+  ctrl.abort();
+  assert.equal((await waiting).code, 130);
+
+  const late = await ev.next("message.shown", { timeout: 10 });
+  assert.equal(late, null);
+  assert.throws(() => ev.next("nope"), /not defined/);
+});
+
+test("a timed-out events wait says how to keep waiting without missing one", { timeout: 5000 }, async () => {
+  const r = createRegistry();
+  const ev = createEvents(r);
+  ev.define("message.shown", { description: "A message" });
+  ev.emit("message.shown");
+  const res = await r.run("events wait", { name: "message.shown", timeout: 1 });
+  assert.equal(res.code, 1);
+  assert.match(res.message, /no message.shown within 1 s\. To keep waiting without missing one: events wait message.shown --since=1/);
+});

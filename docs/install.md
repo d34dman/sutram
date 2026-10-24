@@ -68,7 +68,7 @@ special cases.
 | `@d34dman/sutram` | What app authors use: the registry, formats, the policy, `commandLine()`, `agentPrompt()` | no |
 | `@d34dman/sutram/console` | `<sutram-console>`, the console, as a web component | yes |
 | `@d34dman/sutram/webmcp` | Mirrors the registry into `document.modelContext` as WebMCP tools | no |
-| `@d34dman/sutram/events` | Events your app declares and emits, and the `events list` and `events recent` commands | no |
+| `@d34dman/sutram/events` | Events your app declares and emits, and the `events list`, `events recent` and `events wait` commands | no |
 | `@d34dman/sutram/client` | For a client of your own: parse and complete command lines, check input, run status, format results | no |
 | `@d34dman/sutram/browser` | `globalThis.Sutram`: the registry and its helpers, with `/client` as `Sutram.client` | yes |
 | `@d34dman/sutram/dist/sutram.js` | The same as `browser`, bundled into one file; `sutram.min.js` stripped | yes |

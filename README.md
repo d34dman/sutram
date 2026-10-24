@@ -140,7 +140,7 @@ layer, and WebMCP is one of the ways out of it.
   tool per form. Commands look up their target when they run and answer "not
   on this page" when it is gone, so the tool list stays put.
 - **What WebMCP leaves out.** Discovery (`help`, `man`, status), errors that
-  name the fix, changes to poll (`events recent`), and app-defined formats.
+  name the fix, changes to wait for (`events wait`) or poll (`events recent`), and app-defined formats.
   What WebMCP has no field for, like what a command returns or that it leaves
   the page, goes into the tool description.
 - **Works before WebMCP does.** Browser agents, tests and Claude Code use the

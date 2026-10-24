@@ -11,7 +11,7 @@ two ways, fed by one adapter function:
 
 - The `messages` command lists them, for an agent that asks.
 - Each message is emitted as a `message.shown` event, for an agent that reads
-  `events recent`.
+  `events recent` or waits for one with `events wait message.shown`.
 
 | Command | Does | Annotations |
 |---|---|---|
