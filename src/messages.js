@@ -87,7 +87,7 @@ export function messages(adapter, { registry = getRegistry(), events = getEvents
     input: { type: "object", properties: {} },
     output: { type: "object", required: ["messages"], properties: { messages: { type: "array", items: MESSAGE } } },
     view: { columns: ["type", "text"] },
-    annotations: { readOnly: true },
+    annotations: { readOnly: true, untrustedContent: true },
     examples: ["messages", "messages --json"],
     seeAlso: ["events recent"],
     async run() {

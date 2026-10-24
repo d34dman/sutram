@@ -9,6 +9,7 @@ test("page status: title, route, path and the entity, asked of the adapter each 
   const off = page({ page: () => p, here: () => "/node/5" }, { registry: r });
   assert.equal(r.get("page status").provider, "page");
   assert.equal(r.get("page status").title, "Show page status");
+  assert.deepEqual(r.get("page status").annotations, { readOnly: true, untrustedContent: true }, "the title and label are the site's text");
   const res = await r.run("page status");
   assert.equal(res.text, '"Hello", route entity.node.canonical. It shows node 5 (article): "Hello".');
   assert.deepEqual(res.data, {

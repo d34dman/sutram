@@ -11,8 +11,8 @@ themselves; it shows another page, sort or filter.
 
 | Command | Does | Annotations |
 |---|---|---|
-| `list status` | The lists on this page: rows shown, page, sort, and the sorts and filters each offers | read-only |
-| `list rows [list]` | The rows a list shows now, one value per column, with each row's link | read-only |
+| `list status` | The lists on this page: rows shown, page, sort, and the sorts and filters each offers | read-only, `untrustedContent` |
+| `list rows [list]` | The rows a list shows now, one value per column, with each row's link | read-only, `untrustedContent` |
 | `list go [list] --page --sort --order --filter` | Shows the list at another page, sort or filter, all in one go | `navigates` or `reinitializes` |
 
 ```text
@@ -56,7 +56,7 @@ lists({
 | Adapter key | Required | What it is |
 |---|---|---|
 | `lists()` | yes | The lists, keyed by name. Each has `columns` and `rows`; `page` (from 1), `pages`, `total`, `sort`, `order`, `sorts` and `filters` are optional. A filter has a `key`, its `value` now (`""` when not set) and, for a choice, `options`. It may return a promise. |
-| `go(list, state)` | yes | Shows the list in `state`: `{ page, sort?, order?, filters }`. The state is complete (filters not changed keep their value), so the adapter only builds its URL or query. |
+| `go(list, state)` | yes | Shows the list in `state`: `{ page, sort?, order?, filters }`. The state is complete (filters not changed keep their value), so the adapter only builds its URL or query. Return `false` (or reject) when the page did not leave, such as when your app handled it in place; Sutram then resumes on this page at once. |
 | `reloads` | yes | `true` if `go()` loads a new page; `false` if your app shows the list in place. Then call `Sutram.initialized()` once it does, as for a router in the [nav kit](nav-kit.md#full-page-loads-or-a-router). |
 
 Give the values as people read them, without HTML. A row's `url` is where

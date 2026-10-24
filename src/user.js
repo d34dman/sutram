@@ -16,7 +16,7 @@
 // Sutram.kits.user(adapter).
 
 import { getRegistry } from "./core.js";
-import { checkAdapter, registerAll } from "./kit.js";
+import { afterResult, checkAdapter, registerAll } from "./kit.js";
 
 const NONE = { type: "object", properties: {} };
 
@@ -93,7 +93,7 @@ export function user(adapter, { registry = getRegistry() } = {}) {
         const u = await load(adapter);
         if (u.authenticated) return { text: `Already logged in as ${u.name}.`, data: { authenticated: true } };
         reinitializes();
-        setTimeout(() => adapter.login(), 0);
+        afterResult(registry, () => adapter.login());
         return {
           text: "Opening the login. The person logs in there, and you come back here; then run user status.",
           data: { authenticated: false },
@@ -115,7 +115,7 @@ export function user(adapter, { registry = getRegistry() } = {}) {
         const u = await load(adapter);
         if (!u.authenticated) return { text: "Not logged in.", data: { authenticated: false } };
         reinitializes();
-        setTimeout(() => adapter.logout(), 0);
+        afterResult(registry, () => adapter.logout());
         return { text: `Logging out ${u.name}.`, data: { authenticated: false } };
       },
     },

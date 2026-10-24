@@ -15,7 +15,7 @@
 // Sutram.kits.nav(adapter).
 
 import { CommandError, EXIT, getRegistry } from "./core.js";
-import { checkAdapter, currentPath, registerAll } from "./kit.js";
+import { afterResult, checkAdapter, currentPath, registerAll } from "./kit.js";
 
 const NONE = { type: "object", properties: {} };
 const SEP = " › ";
@@ -69,6 +69,22 @@ function find(flat, target) {
   });
 }
 
+/**
+ * A path typed by the caller, as a path on this site, or null when it leads
+ * elsewhere. The URL parser reads "/\evil.example" and "/<tab>/evil.example"
+ * as "//evil.example", so the text alone cannot tell: resolve it and compare
+ * origins. Outside a browser a fixed origin stands in for the page's.
+ */
+function onSite(target) {
+  const base = new URL((globalThis.location && globalThis.location.href) || "http://localhost/");
+  let url;
+  try { url = new URL(target, base); } catch { return null; }
+  return url.origin === base.origin ? url.pathname + url.search + url.hash : null;
+}
+
+/** A target written as a URL with a scheme, such as https://… or javascript:…, not a link title. */
+const URL_LIKE = /^(https?|javascript|data|blob|file|ftp|mailto|tel):/i;
+
 const ITEM = {
   type: "object",
   required: ["title", "url"],
@@ -96,8 +112,9 @@ const ITEM = {
  *   here()    optional: the current path, such as /admin?tab=2. Defaults to
  *             location.pathname + location.search.
  *
- * Only paths that start with a single "/" are taken as "any path on this
- * site"; anything else must name a menu link. Returns a function that
+ * A target that starts with "/", or is a whole URL, and is not a menu link
+ * is taken as a path on this site only if it resolves to this site's origin; the adapter gets
+ * the resolved path, not the text. Anything else must name a menu link. Returns a function that
  * removes the commands again.
  */
 export function nav(adapter, { registry = getRegistry() } = {}) {
@@ -188,7 +205,7 @@ export function nav(adapter, { registry = getRegistry() } = {}) {
         },
       },
       view: { columns: ["menu", "label", "links", "title", "url", "description"] },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       examples: ["nav menu", "nav menu main", "nav menu main --depth=3"],
       seeAlso: ["nav search", "nav go"],
       suggest: (key, partial) => (key === "menu" ? quietly(({ names }) => names.filter(startsWith(partial))) : []),
@@ -233,7 +250,7 @@ export function nav(adapter, { registry = getRegistry() } = {}) {
         properties: { matches: { type: "array", items: ITEM } },
       },
       view: { columns: ["trail", "url", "description"] },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       examples: ["nav search content type", 'nav search "text format"'],
       seeAlso: ["nav go", "nav menu"],
       async run({ query }) {
@@ -289,16 +306,21 @@ export function nav(adapter, { registry = getRegistry() } = {}) {
             `nav go: "${target}" matches ${hits.length} links: ${hits.slice(0, 4).map((h) => `${h.menuLabel}${SEP}${h.trail}`).join("; ")}. Use the path or the breadcrumb, with its menu if need be.`,
             EXIT.FAILED,
           );
-        } else if (/^\/(?!\/)/.test(target)) {
+        } else if (target.startsWith("/") || URL_LIKE.test(target.trim())) {
           // Any path on this site: the same as following a link to it.
-          url = target;
-          title = target;
+          url = onSite(target.trim());
+          if (url === null) {
+            throw new CommandError(`nav go: "${target}" leads off this site. Only paths on this site are taken, such as /admin/content.`, EXIT.USAGE);
+          }
+          title = url;
         } else {
-          throw new CommandError(`nav go: no menu link "${target}". Try nav search ${target.split(/\s+/)[0]}.`, EXIT.FAILED);
+          // Search for the last part of a breadcrumb, not its menu.
+          const last = target.split("›").pop().trim().split(/\s+/)[0];
+          throw new CommandError(`nav go: no menu link "${target}". Try nav search ${last}.`, EXIT.FAILED);
         }
         reinitializes();
         // Go after the result has been delivered to the caller.
-        setTimeout(() => adapter.go(url), 0);
+        afterResult(registry, () => adapter.go(url));
         return { text: `Going to ${title} (${url}).`, data: { url, title } };
       },
     },

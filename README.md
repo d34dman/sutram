@@ -38,7 +38,8 @@ Place an order for 2 items, €48.00? [Yes] [No]
 - **The user's own session.** Commands run in the browser, as the logged-in
   user. No new API, no new login, no new way into your server.
 - **Asks before it matters.** Commands that are hard to undo ask the person
-  first.
+  first. (An agent typing into the console could answer for them: see
+  [the console](docs/guides/console.md).)
 - **Feels like a terminal.** `help`, `man`, Tab completion, history and
   "did you mean". You write no help pages.
 - **Small.** No dependencies, 31 kB minified and gzipped, TypeScript types

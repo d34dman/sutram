@@ -15,7 +15,7 @@ two ways, fed by one adapter function:
 
 | Command | Does | Annotations |
 |---|---|---|
-| `messages` | The messages this page has shown, oldest first | read-only |
+| `messages` | The messages this page has shown, oldest first | read-only, `untrustedContent` |
 
 When a command starts Sutram again, the note agents get says to look at
 `messages` once the page is ready.

@@ -21,7 +21,7 @@ test("messages lists what the adapter says the page showed", async () => {
   const res = await r.run("messages");
   assert.deepEqual(res.data.messages, [{ type: "status", text: "Saved." }, { type: "error", text: "Title is required." }]);
   assert.equal(r.get("messages").title, "Show messages");
-  assert.deepEqual(r.get("messages").annotations, { readOnly: true });
+  assert.deepEqual(r.get("messages").annotations, { readOnly: true, untrustedContent: true });
   set([]);
   const none = await r.run("messages");
   assert.equal(none.text, "No messages on this page.");

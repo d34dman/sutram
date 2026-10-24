@@ -6,7 +6,7 @@
 
 import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, mayReinitialize, runStatus } from "./core.js";
 import { complete, highlight, openQuote, parse, splitLines, tokenize } from "./parse.js";
-import { formatHelp, formatMan, formatResult, formatUsage, annotationLabel, checkFields, commandLine } from "./format.js";
+import { formatHelp, formatMan, formatResult, formatUsage, annotationLabel, checkFields, approvalLine } from "./format.js";
 import { genericQuestion, ownQuestion } from "./policy.js";
 import { agentPrompt } from "./prompt.js";
 
@@ -51,6 +51,7 @@ export const MESSAGES = Object.freeze({
   agentAsks: "An agent wants to run:",
   agentAsksBatch: (n) => `An agent wants to run ${n} commands as one change:`,
   agentBatch: (n) => `Run these ${n} commands?`,
+  agentBatchConsequential: (n, names) => `Run these ${n} commands? ${names.join(", ")} cannot easily be undone.`,
 });
 
 const STYLE = `
@@ -836,9 +837,13 @@ export class SutramConsole extends Base {
     this.open();
     const lead = () => {
       this.print(steps.length === 1 ? m.agentAsks : m.agentAsksBatch(steps.length), "dim");
-      for (const { def, input } of steps) this.echo(commandLine(def, input), "input agent");
+      // Shortened, so a long value cannot push the other commands off the screen.
+      for (const { def, input } of steps) this.echo(approvalLine(def, input), "input agent");
     };
-    const question = steps.length === 1 ? (ownQuestion(steps[0].def, steps[0].input) || m.run(steps[0].def.name, steps[0].def.title)) : m.agentBatch(steps.length);
+    // A batch names its consequential commands, as a pasted batch does.
+    const consequential = [...new Set(steps.filter((s) => s.def.annotations.consequential).map((s) => s.def.name))];
+    const question = steps.length === 1 ? (ownQuestion(steps[0].def, steps[0].input) || m.run(steps[0].def.name, steps[0].def.title))
+      : consequential.length ? m.agentBatchConsequential(steps.length, consequential) : m.agentBatch(steps.length);
     return this.ask(question, { always: this.canStopAsking(who, steps.map((s) => s.def)), lead, signal });
   }
 

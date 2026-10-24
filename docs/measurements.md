@@ -49,6 +49,12 @@ The ways to do it:
 
 ## The numbers
 
+> These numbers were captured on 16 October 2026 with Sutram 0.3 and 0.4,
+> before the forms kit. Then each form had tools of its own
+> (`form_node-article-form_set`) and the send command was `save`; today it
+> is one `form_set` tool with the form as an argument, and `form submit`.
+> The ratios should hold, but the figures have not been measured again yet.
+
 Bytes, and tokens estimated as bytes ÷ 4. Real tokenizers differ; the ratios
 between the rows hold.
 

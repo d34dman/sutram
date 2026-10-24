@@ -20,6 +20,7 @@ over.
 
 So the schema is your first error message. A `minimum`, an `enum`, a
 `maxLength`, a `pattern` or a `required` turns into a precise usage error without a line of code.
+It ends with where the usage is: `form get: field is required. Try form get -h.`
 
 ## Writing your own
 
@@ -43,9 +44,10 @@ A good message:
 5. **Lists everything at once.** "email, summary and phone are required" saves
    two round trips over naming one at a time.
 
-Use `EXIT.USAGE` (2) when the input was wrong, `EXIT.FAILED` (1) when the
-input was fine but it did not work, `EXIT.NOT_FOUND` (127) for a thing that
-does not exist.
+Use `EXIT.USAGE` (2) when the input was wrong, and `EXIT.FAILED` (1) when the
+input was fine but it did not work, including when the thing it names (a form,
+a list, a menu) is not on the page. `EXIT.NOT_FOUND` (127) belongs to the
+clients: it means the command itself does not exist.
 
 ## Hints on success, too
 

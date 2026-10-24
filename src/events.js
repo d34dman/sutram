@@ -112,7 +112,8 @@ export function createEvents(registry, { bufferSize = 50 } = {}) {
       },
     },
     view: { columns: ["id", "name", "payload", "source"] },
-    annotations: { readOnly: true },
+    // Payloads carry the page's own text, such as the messages it showed.
+    annotations: { readOnly: true, untrustedContent: true },
     examples: ["events recent", "events recent --since=4", "events recent --json"],
     seeAlso: ["events list"],
     run({ since }) {

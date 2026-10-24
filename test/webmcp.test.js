@@ -154,6 +154,32 @@ test("sutram_batch runs calls as one batch, asks once, and checks everything fir
   assert.match(consequential.message, /contains consequential commands.*doc add a\ndoc clear/s);
 });
 
+test("a batch question names its consequential commands and keeps each command to one line", async () => {
+  const { r, log } = counter();
+  const calls = [{ tool: "doc_clear" }, { tool: "doc_add", input: { item: "x" + "\n".repeat(80) + "y" } }];
+
+  // Sutram.call cannot ask; the question it hands over is short.
+  const refused = await callTool("sutram_batch", { calls }, { registry: r });
+  assert.equal(refused.code, EXIT.CANCELLED);
+  assert.match(refused.message, /Run these 2 commands\? doc clear cannot easily be undone\.\ndoc clear\ndoc add "x…" \(81 lines\)/);
+  assert.ok(!refused.message.includes("\n\n"));
+
+  // Without an asker, WebMCP falls back to the browser's confirm().
+  const mc = fakeModelContext();
+  connectWebMCP(r, mc);
+  const asked = [];
+  const confirm = globalThis.confirm;
+  globalThis.confirm = (text) => { asked.push(text); return true; };
+  try {
+    assert.equal((await mc.tools.get("sutram_batch").execute({ calls }, {})).code, 0);
+  } finally { globalThis.confirm = confirm; }
+  assert.equal(asked.length, 1);
+  assert.match(asked[0], /doc clear cannot easily be undone/);
+  assert.ok(!asked[0].includes("\n\n\n"));
+  // What runs is the full value.
+  assert.deepEqual(log, ["x" + "\n".repeat(80) + "y"]);
+});
+
 test("a command replaced while the user is asked does not run", async () => {
   const r = createRegistry();
   const mc = fakeModelContext();
@@ -353,4 +379,13 @@ test("a title becomes the tool's title and the generic question", async () => {
   const r = createRegistry();
   r.register({ name: "form save", title: "Save a form.", provider: "form", description: "Save", annotations: { consequential: true }, run: () => ({}) });
   assert.match((await callTool("form_save", {}, { registry: r })).message, /"Save a form\? \(form save\)"/);
+});
+
+test("sutram_status and events recent carry the page's own text, so agents get untrustedContentHint", async () => {
+  const { createEvents } = await import("../src/events.js");
+  const r = createRegistry();
+  createEvents(r);
+  const tools = Object.fromEntries(listTools(r).map((t) => [t.name, t]));
+  assert.deepEqual(tools.sutram_status.annotations, { readOnlyHint: true, untrustedContentHint: true });
+  assert.deepEqual(tools.events_recent.annotations, { readOnlyHint: true, untrustedContentHint: true });
 });

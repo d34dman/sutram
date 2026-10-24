@@ -168,11 +168,16 @@ export interface Registry {
   readonly ready: Promise<void>;
   /** How many times Sutram started again on this page. */
   readonly generation: number;
-  /** Sutram starts again: clears events, refuses runs, and makes ready wait for initialized(). */
-  reinitialize(): void;
+  /**
+   * Sutram starts again: clears events, refuses runs, and makes ready wait for initialized().
+   * navigates: true says the page is being left; if it is not left after all, the browser
+   * entry point calls initialized() again. A command's reinitializes() passes its navigates annotation.
+   */
+  reinitialize(options?: { navigates?: boolean }): void;
   /** The page's commands are registered: resolves ready and allows runs again. */
   initialized(): void;
-  onReinitialize(fn: (event: { generation: number }) => void): () => void;
+  /** Called on every reinitialize(). navigates is true when the page is being left. */
+  onReinitialize(fn: (event: { generation: number; navigates: boolean }) => void): () => void;
   /** A console or agent run of a provider a batch is changing waits until the batch is done. */
   run(name: string, input?: Record<string, unknown>, options?: RunOptions): Promise<Result>;
   defineBatch(provider: string, hooks: BatchHooks): () => void;

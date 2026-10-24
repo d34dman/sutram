@@ -185,10 +185,39 @@ test("nav go takes any path on this site, and refuses other targets clearly", as
 
   const missing = await r.run("nav go", { target: "Blocks layout" });
   assert.equal(missing.message, 'nav go: no menu link "Blocks layout". Try nav search Blocks.');
-  assert.equal((await r.run("nav go", { target: "//evil.example/x" })).code, EXIT.FAILED);
+  // A breadcrumb with its menu: search for the link, not the menu.
+  assert.equal((await r.run("nav go", { target: "Footer › Blocks layout" })).message, 'nav go: no menu link "Footer › Blocks layout". Try nav search Blocks.');
+  assert.equal((await r.run("nav go", { target: "https://evil.example/x" })).code, EXIT.USAGE);
   assert.equal(r.generation, 1);
   await tick();
   assert.deepEqual(calls.go, ["/node/5/edit"]);
+});
+
+test("nav go refuses a path that the URL parser reads as another site", async () => {
+  const { r, calls } = setup();
+  for (const target of ["https://evil.example/x", "javascript:alert(1)", "//evil.example/x", "/\\evil.example/?d=SECRET", "/\t/evil.example/", "/\n/evil.example/", "/\\/evil.example/"]) {
+    const res = await r.run("nav go", { target });
+    assert.equal(res.code, EXIT.USAGE, JSON.stringify(target));
+    assert.equal(res.message, `nav go: "${target}" leads off this site. Only paths on this site are taken, such as /admin/content.`);
+  }
+  assert.equal(r.generation, 0);
+
+  // A path on this site goes, query and fragment kept.
+  const ok = await r.run("nav go", { target: "/admin/content?x=1#y" });
+  assert.equal(ok.code, 0);
+  assert.equal(ok.data.url, "/admin/content?x=1#y");
+  await tick();
+  assert.deepEqual(calls.go, ["/admin/content?x=1#y"]);
+
+  // This site's own URL in full is a path on this site.
+  r.initialized();
+  assert.equal((await r.run("nav go", { target: "http://localhost/admin/people" })).data.url, "/admin/people");
+});
+
+test("nav menu and nav search mark their output as untrusted content", () => {
+  const { r } = setup();
+  for (const name of ["nav menu", "nav search"]) assert.deepEqual(r.get(name).annotations, { readOnly: true, untrustedContent: true });
+  assert.deepEqual(r.get("nav status").annotations, { readOnly: true });
 });
 
 test("a link reachable twice is not ambiguous", async () => {

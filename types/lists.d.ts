@@ -32,8 +32,8 @@ export interface ListState {
 export interface ListsAdapter {
   /** The lists on this page, keyed by name. Called each time a command runs, so it should be cheap. */
   lists(): Record<string, ListInfo> | Promise<Record<string, ListInfo>>;
-  /** Shows a list in a new state. Called after list go has delivered its result. */
-  go(list: string, state: ListState): void;
+  /** Shows a list in a new state. Called after list go has delivered its result. Answer false (or reject) when the page did not leave: Sutram resumes on this page at once. */
+  go(list: string, state: ListState): void | false | Promise<void | false>;
   /** true if that loads a new page (list go is marked navigates); false if the app shows it in place (reinitializes). */
   reloads: boolean;
 }

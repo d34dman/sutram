@@ -45,7 +45,7 @@ test("validate checks typed input and results; display shows values", async () =
   });
   const bad = await r.run("cart add", { sku: "v60 02" });
   assert.equal(bad.code, EXIT.USAGE);
-  assert.equal(bad.message, "cart add: sku must be sku, a product code such as V60-02");
+  assert.equal(bad.message, "cart add: sku must be sku, a product code such as V60-02. Try cart add -h.");
   const ok = await r.run("cart add", { sku: "V60-02" });
   assert.equal(blocksToText(formatResult(ok, r.get("cart add"), { formats: f })), "sku: #V60-02");
   assert.equal(checkOutput({ type: "string", format: "sku" }, "nope!", undefined, f), "expected sku, a product code such as V60-02");

@@ -53,7 +53,7 @@ export function page(adapter, { registry = getRegistry() } = {}) {
         },
       },
     },
-    annotations: { readOnly: true },
+    annotations: { readOnly: true, untrustedContent: true },
     async run() {
       const p = (await adapter.page()) || {};
       const title = String(p.title || "");

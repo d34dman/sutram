@@ -37,6 +37,9 @@ test("registers list status, list rows and list go with titles; reloads picks th
   const { r, off } = setup();
   for (const name of ["list status", "list rows", "list go"]) assert.ok(r.get(name).title, name);
   assert.deepEqual(r.get("list go").annotations, { navigates: true });
+  // Row values, labels and filter values are the site's text.
+  assert.deepEqual(r.get("list rows").annotations, { readOnly: true, untrustedContent: true });
+  assert.deepEqual(r.get("list status").annotations, { readOnly: true, untrustedContent: true });
   assert.deepEqual(setup({ reloads: false }).r.get("list go").annotations, { reinitializes: true });
   off();
   assert.equal(r.get("list rows"), undefined);

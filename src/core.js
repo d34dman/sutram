@@ -161,7 +161,8 @@ function checkValue(name, prop, v, errors, formats, strict) {
  * (type, enum, const, format, the number, string and array limits; items one
  * level deep). Strings typed in a console are converted to the declared
  * types; other values must already have them. `null` and `undefined` mean
- * "not given"; so does "" for anything but a string, where "" is a value.
+ * "not given"; so does "" for a typed property that is not a string. For
+ * a string, or a property with no type, "" is a value.
  * With { strict: true }, no string is converted, for values that come from
  * code, such as event payloads. Returns { errors, value }.
  */
@@ -177,7 +178,7 @@ export function checkInput(schema, input = {}, formats = getFormats(), { strict 
   }
   for (const [key, prop] of Object.entries(props)) {
     let v = own(input, key) ? input[key] : undefined;
-    if (v === undefined || v === null || (v === "" && typeOfProp(prop) !== "string")) {
+    if (v === undefined || v === null || (v === "" && prop.type !== undefined && typeOfProp(prop) !== "string")) {
       if (prop.default === undefined) {
         if (required.includes(key)) errors.push(`${key} is required`);
         continue;
@@ -354,7 +355,8 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
     if (leaving) return { code: EXIT.CANCELLED, message: `${name}: Sutram is starting again, so it did not run. Wait for Sutram.ready, then look again.` };
     if (!def) return { code: EXIT.NOT_FOUND, message: `${name}: command not found` };
     const { errors, value } = checkInput(def.input, input, formats);
-    if (errors.length) return { code: EXIT.USAGE, message: `${name}: ${errors.join("; ")}` };
+    // The next step, as a command line tool says it: where the usage is.
+    if (errors.length) return { code: EXIT.USAGE, message: `${name}: ${errors.join("; ")}. Try ${name} -h.` };
     if (signal && signal.aborted) return cancelled(name);
 
     notify(runFns, { name, input: value, caller });
@@ -363,7 +365,7 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
         // An abort settles the call even when the handler ignores the signal.
         const reinitializes = () => {
           if (!mayReinitialize(def)) throw new Error(`${name} called reinitializes() but does not declare the reinitializes or navigates annotation`);
-          registry.reinitialize();
+          registry.reinitialize({ navigates: !!def.annotations.navigates });
         };
         let res = await raceAbort(def.run(value, { caller, signal, reinitializes }), signal);
         if (signal && signal.aborted) return cancelled(name);
@@ -429,15 +431,17 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
      * what listens (events), refuses runs, and makes ready wait for
      * initialized(). A command calls it through reinitializes() in its run
      * context; app code, such as a single-page app's router, calls it here.
+     * navigates: true says the page is being left, so the browser entry
+     * point can start Sutram on this page again if it is not left after all.
      */
-    reinitialize() {
+    reinitialize({ navigates = false } = {}) {
       generation++;
       leaving = true;
       if (isReady) {
         isReady = false;
         ready = new Promise((resolve) => { resolveReady = resolve; });
       }
-      notify(reinitFns, { generation });
+      notify(reinitFns, { generation, navigates: !!navigates });
     },
 
     /** The page's commands are registered: resolves ready and allows runs again. */
@@ -446,7 +450,7 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
       if (!isReady) { isReady = true; resolveReady(); }
     },
 
-    /** Called on every reinitialize(). Returns a function that stops listening. */
+    /** Called on every reinitialize(), with { generation, navigates }. Returns a function that stops listening. */
     onReinitialize(fn) { reinitFns.add(fn); return () => reinitFns.delete(fn); },
 
     get: (name) => commands.get(name),

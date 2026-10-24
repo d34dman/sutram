@@ -16,11 +16,11 @@ so an agent that has filled one knows them all:
 
 | Command | Does | Annotations |
 |---|---|---|
-| `form list` | The forms on the page now | read-only |
-| `form status <form>` | Unsaved changes, missing fields, errors | read-only |
-| `form fields <form>` | Every field the form has now: name, label, type, required, value | read-only |
-| `form get <form> <field>` | One field in full, with its allowed values or format | read-only |
-| `form set <form> <field> <value>` | Change one field. Nothing is saved yet | |
+| `form list` | The forms on the page now | read-only, `untrustedContent` |
+| `form status <form>` | Unsaved changes, missing fields, errors | read-only, `untrustedContent` |
+| `form fields <form>` | Every field the form has now: name, label, type, required, value | read-only, `untrustedContent` |
+| `form get <form> <field>` | One field in full, with its allowed values or format | read-only, `untrustedContent` |
+| `form set <form> <field> <value>` | Change one field. Nothing is saved yet | `untrustedContent` |
 | `form submit <form>` | Send it, the same as the form's button | consequential |
 | `form discard <form>` | Undo the unsaved changes | consequential |
 

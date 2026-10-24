@@ -13,10 +13,10 @@ export interface UserInfo {
 export interface UserAdapter {
   /** Who is logged in. Called each time a command runs, so it should be cheap. */
   user(): UserInfo | Promise<UserInfo>;
-  /** Opens the app's login, and comes back to this page after. Called after user login has delivered its result. */
-  login(): void;
-  /** Logs out, and comes back to this page. Called after user logout has delivered its result. */
-  logout(): void;
+  /** Opens the app's login, and comes back to this page after. Called after user login has delivered its result. Answer false (or reject) when the page did not leave: Sutram resumes on this page at once. */
+  login(): void | false | Promise<void | false>;
+  /** Logs out, and comes back to this page. Called after user logout has delivered its result. Answer false (or reject) when the page did not leave. */
+  logout(): void | false | Promise<void | false>;
   /** true if logging in and out loads a new page (navigates); false if the app stays on the page (reinitializes). */
   reloads: boolean;
 }

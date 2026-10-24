@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createRegistry, createFormats } from "../src/index.js";
 import { formatResult, blocksToText, formatMan, formatHelp, checkFields } from "../src/client.js";
 import { describeShape } from "../src/internals.js";
+import { approvalLine, commandLine } from "../src/format.js";
 
 // Money is the app's format, not Sutram's: this test defines it the way a commerce module would.
 const formats = createFormats();
@@ -157,4 +158,19 @@ test("view.columns counts only the columns a table has", () => {
   assert.match(menus, /^MENU\s+LINKS\nmain\s+3$/m);
   const items = blocksToText(formatResult({ code: 0, data: { items: [{ id: "a", title: "Home", url: "/" }] } }, def));
   assert.match(items, /^TITLE\s+URL\nHome\s+\/$/m);
+});
+
+test("approvalLine keeps each command to one line; commandLine keeps the full value", () => {
+  const def = {
+    name: "page edit", description: "Edit a page", positional: ["title"],
+    input: { type: "object", properties: { title: { type: "string" }, body: { type: "string" }, tags: { type: "array" } } },
+  };
+  const body = "<p>Hello</p>\n".repeat(11) + "<p>Bye</p>";
+  const title = "t".repeat(70);
+  assert.equal(approvalLine(def, { title: "Short", body }), 'page edit Short --body="<p>Hello</p>…" (12 lines)');
+  assert.equal(approvalLine(def, { title }), `page edit "${"t".repeat(60)}…" (70 characters)`);
+  assert.equal(approvalLine(def, { title: "Short", tags: ["a", "b"] }), "page edit Short --tags=a,b");
+  assert.equal(approvalLine(def, { tags: [{ long: "x".repeat(80) }] }).split("\n").length, 1);
+  assert.match(approvalLine(def, { tags: [{ long: "x".repeat(80) }] }), /… \(\d+ characters\)$/);
+  assert.equal(commandLine(def, { title: "Short", body }), `page edit Short --body <<END\n${body}\nEND`);
 });

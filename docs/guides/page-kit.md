@@ -12,7 +12,7 @@ they know where they are before they act.
 
 | Command | Does | Annotations |
 |---|---|---|
-| `page status` | The page's title, path, route and the thing it shows | read-only |
+| `page status` | The page's title, path, route and the thing it shows | read-only, `untrustedContent` |
 
 ## The adapter
 

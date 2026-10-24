@@ -9,7 +9,7 @@
 // the user's page, so calls go through the page's policy (policy.js) first.
 
 import { EXIT, checkInput, getRegistry, isStatusCommand, runStatus } from "./core.js";
-import { commandLine, describeShape, formatsUsed, sentence } from "./format.js";
+import { approvalLine, describeShape, formatsUsed, sentence } from "./format.js";
 import { getFormats } from "./formats.js";
 import { suggest } from "./parse.js";
 import { genericQuestion, ownQuestion } from "./policy.js";
@@ -47,7 +47,8 @@ export const STATUS_TOOL = {
   title: "Report on the page",
   description: "Run every provider's status command and return what each reports about the page. Call this first. Returns { data: { providers: [{ provider, code, text?, data? }] } }.",
   inputSchema: { type: "object", properties: {} },
-  annotations: { readOnlyHint: true },
+  // What providers report about the page holds the page's own text, such as its title.
+  annotations: { readOnlyHint: true, untrustedContentHint: true },
 };
 
 export const BATCH_TOOL = {
@@ -95,10 +96,16 @@ function noSuchTool(registry, name, prefix = "") {
   return `${prefix}${name}: no such tool.${hint}`;
 }
 
-/** The question for a call or a batch, in plain text. */
+/**
+ * The question for a call or a batch, in plain text. A batch names its
+ * consequential commands first, and each command takes one short line:
+ * native dialogs cut long text, so a long value must not hide the rest.
+ */
 function question(steps) {
   if (steps.length === 1) return ownQuestion(steps[0].def, steps[0].input) || genericQuestion(steps[0].def);
-  return `Run these ${steps.length} commands?\n${steps.map((s) => commandLine(s.def, s.input)).join("\n")}`;
+  const consequential = [...new Set(steps.filter((s) => s.def.annotations.consequential).map((s) => s.def.name))];
+  const warning = consequential.length ? ` ${consequential.join(", ")} cannot easily be undone.` : "";
+  return `Run these ${steps.length} commands?${warning}\n${steps.map((s) => approvalLine(s.def, s.input)).join("\n")}`;
 }
 
 /**

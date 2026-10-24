@@ -68,7 +68,34 @@ and nothing changes. A command that calls it without declaring `navigates` or
   again.
 
 App code outside a command, such as a single-page app's router, calls
-`registry.reinitialize()` itself.
+`registry.reinitialize()` itself, or `registry.reinitialize({ navigates: true })`
+before it leaves the page.
+
+Sometimes the page is not left after all: the person clicks "Stay on page",
+a router handles the URL in place, the URL only changes the `#hash`, the
+browser blocks a form submit, or the page comes back from the back/forward
+cache. When a command that declares `navigates` called `reinitializes()`,
+Sutram starts on the same page again. Runs work again and `Sutram.ready`
+resolves; nothing on the page is registered again. In this order:
+
+1. The adapter's answer, or `Sutram.initialized()`. A kit's adapter returns
+   `false` from `go()`, `submit()`, `login()` or `logout()`, or rejects, when
+   the page stayed, and Sutram resumes at once. App code calls
+   `Sutram.initialized()` for the same.
+2. The browser entry point (`browser.js`, `dist/sutram.js`) resumes at once on
+   a `hashchange` or on a `pageshow` from the back/forward cache, and, where
+   the browser has the Navigation API, when a navigation ends in the document
+   (`navigatesuccess`) or is stopped (`navigateerror`).
+3. As a last resort, it resumes when the page is still there about 3 seconds
+   later and no navigation has started. Once the browser has started one
+   (the Navigation API's `navigate` event), such as a slow form POST, it
+   waits up to a minute instead, so an agent cannot act on the old page and
+   send the form twice. Without the Navigation API it cannot tell, and waits
+   3 seconds.
+
+Steps 2 and 3 apply only to `navigates`. After a `reinitializes` command, a
+single-page app calls `Sutram.initialized()` itself once its new commands are
+registered, or its adapter answers `false` when nothing changed.
 
 ## The policy
 
@@ -99,6 +126,13 @@ life; it never covers a consequential command.
   needs approval returns exit 130 and runs only when called again with
   `{ confirmed: true }`, which says the user agreed.
 - App code that calls `registry.run()` is never asked. It is the app.
+- The console cannot tell who is typing. Lines typed there follow the
+  person's level, and an agent that drives the browser can answer the
+  console's questions itself. So can an agent that also drives the
+  browser's `confirm()` dialog. Only a question the agent cannot reach keeps
+  it from approving its own calls: WebMCP, when the agent does not also
+  drive the page. `Sutram.call()` asks nobody: its caller passes
+  `{ confirmed: true }` itself.
 
 `confirmed` is a courtesy between a caller and its user, not a security
 boundary. Any code in the page can pass it, or call `registry.run()`

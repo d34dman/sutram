@@ -17,6 +17,7 @@ import * as client from "./client.js";
 import { getEvents } from "./events.js";
 import { connectWebMCP, findModelContext, listTools, callTool } from "./webmcp.js";
 import { defineConsole, mountConsole } from "./console.js";
+import { watchNavigation } from "./leave.js";
 
 const registry = core.getRegistry();
 
@@ -25,10 +26,13 @@ const registry = core.getRegistry();
 // loads have registered by then; the extra turn lets DOMContentLoaded
 // listeners run first. After a command calls reinitializes(), Sutram.ready
 // is a new promise: on a page that is being left it never resolves, and a
-// single-page app resolves it with Sutram.initialized().
+// single-page app resolves it with Sutram.initialized(). If a command meant
+// to leave the page and the page stays (Stay on page, a #hash URL, a blocked
+// submit, the back/forward cache), watchNavigation() resolves it here again.
 const initialized = () => setTimeout(() => registry.initialized(), 0);
 if (typeof document === "undefined" || document.readyState !== "loading") initialized();
 else document.addEventListener("DOMContentLoaded", initialized, { once: true });
+if (typeof window !== "undefined" && typeof window.addEventListener === "function" && !globalThis.Sutram) watchNavigation(registry, window);
 const events = getEvents(registry);
 defineConsole();
 

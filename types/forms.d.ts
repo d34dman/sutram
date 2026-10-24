@@ -64,8 +64,12 @@ export interface FormsAdapter<F extends FormInfo = FormInfo> {
   read(form: F, field: FormField): unknown;
   /** Fills a field with a converted value. */
   write(form: F, field: FormField, value: unknown, options: FormCallOptions): void | Promise<void>;
-  /** Sends the form. With reloads, called after form submit has answered; without, awaited for its text and data. */
-  submit(form: F, options: FormCallOptions): void | { text?: string; data?: Record<string, unknown> } | Promise<void | { text?: string; data?: Record<string, unknown> }>;
+  /**
+   * Sends the form. With reloads, called after form submit has answered: answer false (or reject)
+   * when the page did not leave, such as a submit the browser blocked, and Sutram resumes on this page at once.
+   * Without reloads, awaited for its text and data.
+   */
+  submit(form: F, options: FormCallOptions): void | false | { text?: string; data?: Record<string, unknown> } | Promise<void | false | { text?: string; data?: Record<string, unknown> }>;
   /** true if submitting loads a new page (form submit is marked navigates); false if the app answers in place. */
   reloads: boolean;
   /** Value types of the app's own, by type or handler. They come before the basic types. */

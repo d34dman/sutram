@@ -9,6 +9,16 @@ description: Open, use, place, restyle and translate the console that people and
 and agents that drive a browser type into it, so the person sees every
 command run.
 
+The console cannot tell who is typing. Everything typed there follows the
+policy for people, and an agent that drives the browser can answer the
+console's questions itself, by typing `y` or clicking *Yes*. The
+[agent prompt](agent-prompt.md) tells it not to, but that is a request, not
+a lock. Only a question the agent cannot reach keeps it from approving
+its own calls: the page's WebMCP tools, when the agent does not also drive
+the page, so the [policy](../concepts/annotations-and-policy.md) asks the
+person. `Sutram.call()` is no lock either: its caller passes
+`{ confirmed: true }` itself.
+
 Open it with the key left of <kbd>1</kbd> (outside text fields), or with
 <kbd>Ctrl</kbd> and that key anywhere; it opens with the cursor in the
 command field. Close it with <kbd>Esc</kbd> while it has the focus; an

@@ -37,8 +37,8 @@ user({
 | Adapter key | Required | What it is |
 |---|---|---|
 | `user()` | yes | `{ authenticated, id?, name?, roles? }`. Roles are ids, or `{ id, label }`. It may return a promise. |
-| `login()` | yes | Opens the login and comes back to this page. The kit calls it after `user login` has answered, and only when nobody is logged in. |
-| `logout()` | yes | Logs out and comes back. Called after `user logout` has answered, and only when someone is logged in. |
+| `login()` | yes | Opens the login and comes back to this page. The kit calls it after `user login` has answered, and only when nobody is logged in. Return `false` (or reject) when the page did not leave, such as when the person stayed; Sutram then resumes on this page at once. |
+| `logout()` | yes | Logs out and comes back. Called after `user logout` has answered, and only when someone is logged in. Return `false` (or reject) when the page did not leave. |
 | `reloads` | yes | `true` if logging in and out loads a new page; `false` if your app stays on the page, as with a login dialog. |
 
 Secrets your app needs to log out, such as a CSRF token, stay in the

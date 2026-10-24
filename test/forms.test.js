@@ -73,7 +73,10 @@ test("registers the core seven with titles; the optional four only with the adap
   assert.deepEqual(all.get("form submit").annotations, { consequential: true, navigates: true });
   assert.deepEqual(all.get("form remove").annotations, { consequential: true });
   assert.deepEqual(all.get("form upload").annotations, { consequential: true });
-  assert.deepEqual(all.get("form search").annotations, { readOnly: true });
+  assert.deepEqual(all.get("form search").annotations, { readOnly: true, untrustedContent: true });
+  // What the site wrote comes back: values, labels, errors, candidates.
+  for (const name of ["form list", "form status", "form fields", "form get"]) assert.deepEqual(all.get(name).annotations, { readOnly: true, untrustedContent: true }, name);
+  for (const name of ["form set", "form add"]) assert.deepEqual(all.get(name).annotations, { untrustedContent: true }, name);
 });
 
 test("the adapter's form id and examples replace the kit's in help", () => {
@@ -116,7 +119,7 @@ test("form list, status and fields read the form as it is now", async () => {
 test("an unknown form or field is an error that names the ones there are", async () => {
   const { r } = setup();
   const form = await line(r, "form status nope");
-  assert.equal(form.code, EXIT.NOT_FOUND);
+  assert.equal(form.code, EXIT.FAILED, "127 is for a command that does not exist");
   assert.match(form.message, /no form "nope" on this page\. Open: contact\./);
   const field = await line(r, "form get contact nope");
   assert.equal(field.code, EXIT.USAGE);
@@ -175,7 +178,7 @@ test("form submit on a page that reloads starts Sutram again and submits after a
   const sent = [];
   const { r } = setup({ reloads: true, submit: (form) => sent.push(form.id), notes: { submit: () => "It will be published." } });
   await line(r, "form set contact email ada@example.com");
-  assert.equal(r.get("form submit").confirm({ form: "contact" }), "Submit Contact with 1 change? It will be published.");
+  assert.equal(r.get("form submit").confirm({ form: "contact" }), 'Submit Contact with 1 change (email: "ada@example.com")? It will be published.');
   const res = await line(r, "form submit contact");
   assert.match(res.text, /^Submitting Contact\. The page reloads; then messages says how it went/);
   assert.deepEqual(sent, [], "not before the answer");
@@ -195,9 +198,31 @@ test("form discard puts back the values the form loaded with", async () => {
   assert.equal((await line(r, "form discard contact")).text, "Nothing to discard.");
 });
 
-test("a question for the person falls back to the generic one when the adapter is async", async () => {
-  const { r } = setup({ forms: async () => app().adapter.forms() });
-  assert.throws(() => r.get("form discard").confirm({ form: "contact" }));
+test("form submit shows the person the values it sends, cut short, five at most", async () => {
+  const { r } = setup();
+  await line(r, "form set contact email ada@example.com");
+  await line(r, `form set contact body "<p>Buy pills at evil.example, ${"now ".repeat(20)}</p>"`);
+  const q = r.get("form submit").confirm({ form: "contact" });
+  assert.match(q, /^Submit Contact with 2 changes \(email: "ada@example\.com"; body: "<p>Buy pills at evil\.example, now now [^"]*…"\)\?$/);
+  for (const g of ["v60", "aero"]) await line(r, `form set contact gear ${g}`);
+  await line(r, "form set contact callback true");
+  await line(r, "form set contact topic bug");
+  await line(r, "form set contact when 2026-10-24");
+  assert.match(r.get("form submit").confirm({ form: "contact" }), /with 6 changes \(.*; 1 more\)\?$/);
+  assert.equal(r.get("form submit").confirm({ form: "nope" }), "Submit nope?");
+});
+
+test("a question for an async adapter leaves out what it cannot read, never the form or the URL", async () => {
+  const { r } = setup({ forms: async () => app().adapter.forms(), upload() {}, remove() {}, notes: { upload: () => "It is public." } });
+  assert.equal(r.get("form submit").confirm({ form: "contact" }), "Submit contact?");
+  assert.equal(r.get("form discard").confirm({ form: "contact" }), "Discard the unsaved changes in contact?");
+  assert.equal(r.get("form remove").confirm({ form: "contact", target: "links.1" }), "Remove links.1 from contact?");
+  assert.equal(
+    r.get("form upload").confirm({ form: "contact", field: "image", source: "https://evil.example/p.png?d=SECRET" }),
+    "Upload https://evil.example/p.png?d=SECRET to image of contact?",
+  );
+  const { r: r2 } = setup({ read: async () => "", notes: { submit: async () => "It will be published." } });
+  assert.equal(r2.get("form submit").confirm({ form: "contact" }), "Submit Contact?", "async read and note: the label stays");
   assert.equal((await line(r, "form status contact")).code, 0, "commands still run");
 });
 
@@ -227,6 +252,28 @@ test("form add, remove, search and upload go to the adapter, with the kit's text
   assert.deepEqual(data.data.uploaded[0], { field: "files.0", filename: "hi.txt", size: 2, fid: 9 });
 });
 
+test("form upload asks with where a URL is fetched from, even with --name", () => {
+  const { r } = setup({ upload() {} });
+  const ask = (input) => r.get("form upload").confirm({ form: "contact", field: "image", ...input });
+  const before = globalThis.location;
+  globalThis.location = new URL("https://site.example/node/1/edit");
+  try {
+    assert.equal(ask({ source: "https://evil.example/collect?d=SECRET", name: "photo.jpg" }), "Upload photo.jpg from https://evil.example/collect?d=SECRET to image of contact?");
+    assert.equal(ask({ source: "/files/photo.png" }), "Upload /files/photo.png to image of contact?", "this site: a path is enough");
+    assert.equal(ask({ source: "https://site.example/files/a.png", name: "b.png" }), "Upload b.png from /files/a.png to image of contact?");
+    assert.equal(ask({ source: "data:text/plain;base64,SGk=", name: "hi.txt" }), "Upload hi.txt from a data: URL to image of contact?");
+    assert.equal(ask({ source: "/a.png https://other.example/b.png" }), "Upload /a.png, https://other.example/b.png to image of contact?");
+    const long = ask({ source: `https://evil.example/x?d=${"S".repeat(200)}` });
+    assert.match(long, /^Upload https:\/\/evil\.example\/x\?d=S+… to image of contact\?$/, "a long URL is cut after the host");
+    assert.ok(long.length < 120);
+    assert.equal(ask({ name: "notes.txt", text: "Hi" }), "Upload notes.txt to image of contact?");
+    assert.equal(ask({}), "Upload a file you choose to image of contact?");
+  } finally {
+    if (before === undefined) delete globalThis.location;
+    else globalThis.location = before;
+  }
+});
+
 test("an adapter's optional command must answer with data", async () => {
   const { r } = setup({ remove: () => ({ text: "done" }) });
   const res = await line(r, "form remove contact links.1");
@@ -242,4 +289,23 @@ test("completion: forms, fields, values of choices, and the adapter's lists", as
   assert.deepEqual(await values("form set contact topic b"), ["billing", "bug"]);
   assert.deepEqual(await values("form set contact callback t"), ["true"]);
   assert.deepEqual(await values("form add contact l"), ["links"]);
+});
+
+test("form set takes an agent's JSON as it comes: true, a number, a list", async () => {
+  const got = [];
+  const { r, a } = setup({ types: { date: { coerce: (f, raw) => { got.push(raw); return raw; } } } });
+  const set = (field, value) => r.run("form set", { form: "contact", field, value });
+  assert.equal((await set("callback", true)).code, 0);
+  assert.equal(a.values.callback, true);
+  assert.equal((await set("gear", ["v60", "AeroPress"])).code, 0);
+  assert.deepEqual(a.values.gear, ["v60", "aero"]);
+  assert.equal((await set("email", 42)).code, 0);
+  assert.equal(a.values.email, "42", "a string field gets text");
+  await set("when", ["2026-10-24"]);
+  await set("when", 20261024);
+  assert.deepEqual(got, ['["2026-10-24"]', "20261024"], "an adapter's type gets text: a list as JSON");
+  const obj = await set("email", { a: 1 });
+  assert.equal(obj.code, EXIT.USAGE);
+  assert.equal(obj.message, "form set: email takes text, true or false, a number or a list, not an object.");
+  assert.equal((await set("gear", ["nope"])).code, EXIT.USAGE);
 });

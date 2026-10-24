@@ -24,7 +24,7 @@
 // Sutram.kits.forms(adapter).
 
 import { CommandError, EXIT, getRegistry } from "./core.js";
-import { checkAdapter, registerAll } from "./kit.js";
+import { afterResult, checkAdapter, registerAll } from "./kit.js";
 
 /** The largest file form upload takes as --text or --base64. */
 const MAX_CONTENT = 5 * 1024 * 1024;
@@ -115,6 +115,19 @@ function several(f, raw) {
     i = j;
   }
   return [...new Set(keys)];
+}
+
+/**
+ * A value as an agent's JSON may bring it: a choices field takes a list as
+ * it is; every other type gets text, as from the console (a list as JSON).
+ */
+function fromJson(f, takesList, v) {
+  if (typeof v === "string") return v;
+  if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+    throw new CommandError(`form set: ${f.field} takes text, true or false, a number or a list, not an object.`, EXIT.USAGE);
+  }
+  if (Array.isArray(v)) return takesList ? v : JSON.stringify(v);
+  return String(v);
 }
 
 const optionsOf = (f, partial) =>
@@ -217,6 +230,24 @@ async function fromUrl(source, { name, type }, { signal, verb }) {
   return new File([blob], filename, { type: type || (blob.type || "").split(";")[0] });
 }
 
+/**
+ * Where form upload fetches a source from, for the question to the person:
+ * a path for this site, the whole origin for another, so a URL that sends
+ * data elsewhere is never hidden behind a file name.
+ */
+function fetchedFrom(source) {
+  const cut = (s, max = 60) => (s.length > max ? `${s.slice(0, max - 1)}…` : s);
+  const here = globalThis.location;
+  let url;
+  try { url = new URL(source, here ? here.href : undefined); } catch { return `"${cut(source)}"`; }
+  if (url.protocol === "data:") return "a data: URL";
+  if (url.protocol === "blob:") return here && url.origin === here.origin ? "a blob: URL of this page" : `a blob: URL of ${url.origin}`;
+  const rest = `${url.pathname}${url.search}`;
+  if (here && url.origin === here.origin) return cut(rest);
+  // The origin is shown in full; only the path after it is shortened.
+  return `${url.origin}${cut(rest)}`;
+}
+
 // --- Inputs shared by the commands -----------------------------------------
 
 const FIELD = { type: "string", description: "A field of the form as a dotted path, such as title, body.summary or links.0.uri. form fields <form> lists them." };
@@ -278,8 +309,9 @@ const FIELD = { type: "string", description: "A field of the form as a dotted pa
  *
  * The four optional commands are registered only when the adapter supplies
  * them. The question asked before submit, discard, remove and upload reads
- * the form at once: when forms(), read() or notes return a promise, the
- * generic question is asked instead. Every adapter function gets { signal, verb } last. Returns a
+ * the form at once: when forms(), read() or notes return a promise, it
+ * leaves out what it cannot read (the label, the values, the note) but
+ * still names the form, the field and any URL. Every adapter function gets { signal, verb } last. Returns a
  * function that removes the commands again.
  */
 export function forms(adapter, { registry = getRegistry() } = {}) {
@@ -352,11 +384,11 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
     const found = all.find((f) => f.id === id);
     if (found) return open(found);
     const ids = all.map((f) => f.id);
-    throw new CommandError(ids.length ? `form ${verb}: no form "${id}" on this page. Open: ${ids.join(", ")}.` : `form ${verb}: there is no form on this page.`, EXIT.NOT_FOUND);
+    throw new CommandError(ids.length ? `form ${verb}: no form "${id}" on this page. Open: ${ids.join(", ")}.` : `form ${verb}: there is no form on this page.`, EXIT.FAILED);
   }
   // A question for the person is asked synchronously: these read the form
   // without waiting, and throw when the adapter answers with a promise, so
-  // the generic question is asked instead.
+  // the question leaves that part out (orElse below).
   const now = (v) => {
     if (v && typeof v.then === "function") throw new Error("the adapter answers asynchronously");
     return v;
@@ -368,6 +400,12 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
     return open(raw);
   }
   const unsavedNow = (f) => f.fields.filter((x) => !same(x.value, now(f.read(x)))).map((x) => x.field);
+  /** Each unsaved change as "field: value", for the person to see what is sent. */
+  const changesNow = (f) => f.fields.map((x) => [x, now(f.read(x))]).filter(([x, v]) => !same(x.value, v)).map(([x, v]) => `${x.field}: ${short(v)}`);
+  /** fn()'s question, or `fallback` when the form cannot be read at once. */
+  const orElse = (fallback, fn) => { try { return fn(); } catch { return fallback; } };
+  /** At most five items, then how many more. */
+  const few = (list) => (list.length > 5 ? [...list.slice(0, 5), `${list.length - 5} more`] : list).join("; ");
   const quietly = async (fn) => { try { return await fn(); } catch { return []; } };
   const starts = (partial) => (s) => String(s.value ?? s).startsWith(partial);
 
@@ -430,7 +468,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
         },
       },
       view: { columns: ["form", "label", "unsaved", "errors"] },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       seeAlso: ["form status", "form fields"],
       async run() {
         const list = (await load()).map(open);
@@ -459,7 +497,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
           },
         },
       },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       examples: [`form status ${EXAMPLE}`],
       seeAlso: ["form list", "form fields", "form submit"],
       suggest,
@@ -511,7 +549,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
         },
       },
       view: { columns: ["field", "label", "type", "required", "value"] },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       examples: [`form fields ${EXAMPLE}`],
       seeAlso: ["form get", "form set"],
       suggest,
@@ -534,7 +572,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
         required: ["field", "value"],
         properties: { field: { type: "string" }, value: {}, label: { type: "string" }, type: { type: "string" }, required: { type: "boolean" }, options: { type: "object" }, format: { type: "string" } },
       },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       examples: [`form get ${EXAMPLE} email`],
       seeAlso: ["form set"],
       suggest,
@@ -555,10 +593,10 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
         properties: {
           form: FORM,
           field: FIELD,
+          // No type: an agent's JSON may bring true, 12 or a list, and the field's type decides.
           value: {
-            type: "string",
             description: [
-              "The new value, as text. Yes/no fields take true or false; choice fields take a key or its label; choices fields take keys or labels separated by commas, or a JSON array, and replace the selection; HTML fields take HTML such as <p>…</p>. Empty clears a field that is not required. form get shows a field's format.",
+              "The new value, as text or as JSON true, false, a number or a list. Yes/no fields take true or false; choice fields take a key or its label; choices fields take keys or labels separated by commas, or a JSON array, and replace the selection; HTML fields take HTML such as <p>…</p>. Empty clears a field that is not required. form get shows a field's format.",
               adapter.valueHelp ? String(adapter.valueHelp) : "",
             ].filter(Boolean).join(" "),
           },
@@ -577,15 +615,16 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
           removed: { type: "array", items: { type: "string" }, description: "Fields the form no longer asks for" },
         },
       },
-      annotations: {},
+      annotations: { untrustedContent: true },
       examples: [`form set ${EXAMPLE} email ada@example.com`, `form set ${EXAMPLE} summary "Charged twice in May"`, `form set ${EXAMPLE} callback true`],
       seeAlso: ["form fields", "form status", "form submit"],
       suggest,
       async run({ form: id, field, value }, { signal }) {
         const f = await find(id, "set");
         const x = f.field(field, "set");
-        const coerce = typeOf(x).coerce;
-        const next = coerce ? await coerce(x, value, f.form, { signal, verb: "form set" }) : String(value);
+        const type = typeOf(x);
+        const raw = fromJson(x, type === BASIC.choices, value);
+        const next = type.coerce ? await type.coerce(x, raw, f.form, { signal, verb: "form set" }) : raw;
         const from = await f.read(x);
         await adapter.write(f.form, x, next, { signal, verb: "form set" });
         // Filling a field may change the form: read it as it is now.
@@ -615,11 +654,15 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
       positional: ["form"],
       output: { type: "object", required: ["form", "submitted"], properties: { form: { type: "string" }, submitted: { type: "boolean" } } },
       annotations: adapter.reloads ? { consequential: true, navigates: true } : { consequential: true },
+      // The person sees the values that are sent: an agent sets fields without asking.
       confirm({ form: id }) {
-        const f = findNow(id);
-        const changes = unsavedNow(f).length;
-        const note = notes.submit ? now(notes.submit(f.form)) : "";
-        return `Submit ${f.label}${changes ? ` with ${plural(changes, "change")}` : ""}?${note ? ` ${note}` : ""}`;
+        return orElse(`Submit ${id}?`, () => {
+          const f = findNow(id);
+          const changes = orElse(null, () => changesNow(f));
+          const note = orElse("", () => (notes.submit ? now(notes.submit(f.form)) : ""));
+          const what = changes && changes.length ? ` with ${plural(changes.length, "change")} (${few(changes)})` : "";
+          return `Submit ${f.label}${what}?${note ? ` ${note}` : ""}`;
+        });
       },
       examples: [`form submit ${EXAMPLE}`],
       seeAlso: ["form status", "messages"],
@@ -640,7 +683,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
           // The page reloads: Sutram starts again there.
           reinitializes();
           // Submit after the result has been delivered to the caller.
-          setTimeout(() => adapter.submit(f.form, { verb }), 0);
+          afterResult(registry, () => adapter.submit(f.form, { verb }));
           return {
             text: `Submitting ${f.label}. The page reloads; then messages says how it went, or form status ${id} shows errors if the form comes back.`,
             data: { form: id, submitted: true },
@@ -660,8 +703,10 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
       output: { type: "object", required: ["discarded"], properties: { discarded: { type: "array", items: { type: "string" } } } },
       annotations: { consequential: true },
       confirm({ form: id }) {
-        const changes = unsavedNow(findNow(id));
-        return changes.length ? `Discard the unsaved changes in ${changes.join(", ")}?` : "There are no unsaved changes. Run anyway?";
+        return orElse(`Discard the unsaved changes in ${id}?`, () => {
+          const changes = unsavedNow(findNow(id));
+          return changes.length ? `Discard the unsaved changes in ${changes.join(", ")}?` : "There are no unsaved changes. Run anyway?";
+        });
       },
       examples: [`form discard ${EXAMPLE}`],
       seeAlso: ["form status"],
@@ -716,7 +761,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
           value: { description: "With a value: what the field holds now, as form get reads it" },
         },
       },
-      annotations: {},
+      annotations: { untrustedContent: true },
       examples: [`form add ${EXAMPLE} links`],
       seeAlso: ["form set", "form remove", "form fields"],
       suggest: adapter.addable ? suggestFrom(adapter.addable, "field") : suggest,
@@ -755,9 +800,11 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
       output: { type: "object", required: ["removed"], properties: { removed: { type: "string" }, items: { type: "integer", description: "Items the field has now" } } },
       annotations: { consequential: true },
       confirm({ form: id, target }) {
-        const f = findNow(id);
-        const values = f.fields.filter((x) => x.field === target || x.field.startsWith(`${target}.`)).map((x) => short(now(f.read(x))));
-        return `Remove ${target}${values.length ? ` (${values.join(", ")})` : ""} from ${f.label}?`;
+        return orElse(`Remove ${target} from ${id}?`, () => {
+          const f = findNow(id);
+          const values = orElse([], () => f.fields.filter((x) => x.field === target || x.field.startsWith(`${target}.`)).map((x) => short(now(f.read(x)))));
+          return `Remove ${target}${values.length ? ` (${values.join(", ")})` : ""} from ${f.label}?`;
+        });
       },
       examples: [`form remove ${EXAMPLE} links.1`],
       seeAlso: ["form add", "form fields"],
@@ -812,7 +859,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
         },
       },
       view: { columns: ["value", "label", "id"] },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       examples: [`form search ${EXAMPLE} tags cof`],
       seeAlso: ["form set", "form fields"],
       suggest: adapter.searchable ? suggestFrom(adapter.searchable, "field") : suggest,
@@ -880,8 +927,13 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
       annotations: { consequential: true },
       confirm(input) {
         const { form: id, field, source, name, text: t, base64 } = input;
-        const what = name || (source ? source.split(/\s+/).join(", ") : t !== undefined || base64 ? "a file" : "a file you choose");
-        const note = notes.upload ? now(notes.upload(findNow(id).form, input)) : "";
+        // With a URL, always say where it is fetched from: the fetch happens once approved.
+        const urls = source && source.trim() ? source.trim().split(/\s+/).map(fetchedFrom) : [];
+        const what = urls.length
+          ? `${name ? `${name} from ` : ""}${urls.join(", ")}`
+          : name || (t !== undefined || base64 ? "a file" : "a file you choose");
+        // Only the note reads the form: an adapter that cannot answer at once loses the note, never the URL.
+        const note = orElse("", () => (notes.upload ? now(notes.upload(findNow(id).form, input)) : ""));
         return `Upload ${what} to ${field} of ${id}?${note ? ` ${note}` : ""}`;
       },
       examples: [`form upload ${EXAMPLE} image /files/photo.png --alt="A photo"`, `form upload ${EXAMPLE} files --name=notes.txt --text="Grind at 18"`, `form upload ${EXAMPLE} image`],

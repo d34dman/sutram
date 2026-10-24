@@ -24,6 +24,28 @@ export function checkAdapter(kit, adapter, needs) {
 }
 
 /**
+ * Calls the adapter after a command that called reinitializes() has
+ * delivered its result: fn() goes, submits, logs in or out. Its answer says
+ * whether the page stayed: false, or a throw or rejection (logged), means it
+ * did, and Sutram resumes on this page at once, unless it started again since.
+ * Any other answer changes nothing: the page goes, or the app calls
+ * initialized() itself.
+ */
+export function afterResult(registry, fn) {
+  const generation = registry.generation;
+  setTimeout(async () => {
+    let stayed;
+    try {
+      stayed = (await fn()) === false;
+    } catch (err) {
+      console.error(err);
+      stayed = true;
+    }
+    if (stayed && registry.generation === generation) registry.initialized();
+  }, 0);
+}
+
+/**
  * Registers a kit's commands. If one cannot be registered, the ones before it
  * are removed again, so a kit is all there or not at all. Returns a function
  * that removes them.

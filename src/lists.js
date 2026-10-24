@@ -17,7 +17,7 @@
 // Sutram.kits.lists(adapter).
 
 import { CommandError, EXIT, getRegistry } from "./core.js";
-import { checkAdapter, registerAll } from "./kit.js";
+import { afterResult, checkAdapter, registerAll } from "./kit.js";
 
 const ORDERS = ["asc", "desc"];
 
@@ -156,7 +156,7 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
         },
       },
       view: { columns: ["list", "label", "rows", "total", "page", "pages", "sort", "order"] },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       seeAlso: ["list rows", "list go"],
       async run() {
         const all = await load(adapter);
@@ -200,7 +200,7 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
           rows: { type: "array", items: { type: "object", description: "One value per column, and url when the row links somewhere" } },
         },
       },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       examples: ["list rows", "list rows content", "list rows content --json"],
       seeAlso: ["list go", "list status"],
       suggest: (key, partial) => (key === "list" ? quietly((all) => all.map((l) => l.name).filter(startsWith(partial))) : []),
@@ -314,7 +314,7 @@ export function lists(adapter, { registry = getRegistry() } = {}) {
           filters,
         };
         reinitializes();
-        setTimeout(() => adapter.go(l.name, state), 0);
+        afterResult(registry, () => adapter.go(l.name, state));
         const how = [`page ${state.page}`, state.sort ? `sorted by ${state.sort} ${state.order}` : ""];
         const set = Object.entries(filters).filter(([, v]) => v !== "").map(([k, v]) => `${k}=${v}`);
         if (set.length) how.push(`filtered by ${set.join(", ")}`);

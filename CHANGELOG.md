@@ -65,6 +65,60 @@ in the app: nav, page, user, messages, lists and forms.
   rules, say to look at `messages` where the page has it.
 - Completion adds no space after a value that ends in `=`, such as the
   `type=` of a `key=value` pair, so the value can follow.
+- The kits' commands that return text from the site carry
+  `untrustedContent`: `nav menu`, `nav search`, `page status`, `messages`,
+  `list status`, `list rows`, and `form list`, `status`, `fields`, `get`,
+  `set`, `add` and `search`. WebMCP agents get `untrustedContentHint`.
+  So do `sutram_status` and `events recent`, which pass on what the page's
+  providers report and the messages it showed.
+- An input error ends with where the usage is: `form get: field is
+  required. Try form get -h.`
+- The question before `form submit` lists the unsaved values it sends, five
+  at most, each on one short line: "Submit Article with 2 changes (title:
+  …; body: …)?". An agent sets fields without asking, so the person sees
+  them here.
+- A form that is not on the page exits with 1, like a missing list or menu;
+  127 is only for a command that does not exist.
+- When an agent's batch needs approval, the question names its
+  consequential commands, and each command shows on one short line: a long
+  or multi-line value is cut, with its size, so it cannot push the other
+  lines out of view. The same goes for the browser's `confirm()` and the
+  question `Sutram.call()` hands back.
+- The docs say plainly that the console cannot tell who types: an agent
+  that drives the browser can answer its questions, and `Sutram.call()`'s
+  `{ confirmed: true }` is the caller's own word. Only WebMCP, with an agent
+  that does not also drive the page, keeps it from approving its own calls.
+- The measurements page says its numbers were captured with Sutram 0.3 and
+  0.4, before the forms kit.
+
+### Fixed
+
+- `nav go` refuses a path that the browser would take to another site, such
+  as `/\example.com` or a path with a tab, and hands the adapter the
+  resolved path. Before, an agent could send the user's tab, with data in
+  the address, anywhere without being asked.
+- `form upload` asks with where a URL is fetched from, even with `--name`
+  and with an adapter whose `forms()` or notes answer with a promise.
+  Before, `--name=photo.jpg` hid the URL from the question, and an async
+  adapter got the generic question. Such an adapter's questions for
+  `form submit`, `discard` and `remove` now name the form too.
+- A command that calls `reinitializes()` for a navigation that does not
+  happen no longer leaves Sutram refusing every call. The page resumes when
+  the adapter's `go()`, `submit()`, `login()` or `logout()` resolves to
+  `false` or fails, when the app calls `initialized()`, on `hashchange`, on
+  a page restored from the back/forward cache, or, last, when the page is
+  still there after 3 seconds and no navigation has started. A navigation
+  the browser has started, such as a slow form POST, is waited for (up to a
+  minute, ended early by `navigateerror` or `navigatesuccess`), so the old
+  page does not answer while the form is on its way and cannot be sent
+  twice. `registry.reinitialize({ navigates })` and the reinitialize
+  event's `navigates` say which kind it was.
+- `form set` takes an agent's JSON as it comes: `true`, a number, or a list
+  for a choices field. Before, anything but a string was refused with
+  "value must be a string". An object is refused with what the field takes.
+- `nav go https://…` to another site is refused like `nav go //…`, with
+  exit 2 and "leads off this site"; a full URL of this site goes there.
+  Before, it was "no menu link" with a search that could not help.
 
 ## 0.7.0 (2026-10-24)
 

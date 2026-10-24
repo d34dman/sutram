@@ -228,15 +228,48 @@ function heredoc(s) {
  * to show what an agent or a button ran in the words a person would type.
  */
 export function commandLine(def, input = {}) {
+  return buildLine(def, input, false);
+}
+
+/** How long a value may be on an approval line before it is cut. */
+const SHORT = 60;
+
+/**
+ * A value as one word for an approval line: a long or multi-line value is
+ * cut to its first line, with an ellipsis and its size, such as
+ * `"<p>Hello…" (12 lines)`.
+ */
+function shortArg(value) {
+  if (typeof value === "string") {
+    const lines = value.split("\n");
+    if (lines.length === 1 && value.length <= SHORT) return quoteArg(value);
+    const size = lines.length > 1 ? plural(lines.length, "line") : plural(value.length, "character");
+    return `${quoteWord(lines[0].slice(0, SHORT) + "…")} (${size})`;
+  }
+  const word = quoteArg(value);
+  return word.length <= SHORT ? word : `${word.slice(0, SHORT)}… (${plural(word.length, "character")})`;
+}
+
+/**
+ * commandLine() for asking the user: one line per command, however long
+ * its values. For showing only; what runs is the full value.
+ */
+export function approvalLine(def, input = {}) {
+  return buildLine(def, input, true);
+}
+
+function buildLine(def, input, short) {
   const parts = [def.name];
   const props = (def.input && def.input.properties) || {};
   const order = def.positional || [];
-  const block = Object.keys(input).find((key) => typeof input[key] === "string" && input[key].includes("\n"));
+  const arg = short ? shortArg : quoteArg;
+  // On an approval line a multi-line value is cut like any other, so it needs no heredoc.
+  const block = !short && Object.keys(input).find((key) => typeof input[key] === "string" && input[key].includes("\n"));
   const used = new Set(block ? [block] : []);
   // A positional word is plain text, so only strings and numbers go there.
   for (const key of order) {
     if (!own(input, key) || input[key] == null || key === block || !["string", "number"].includes(typeof input[key])) break;
-    parts.push(quoteArg(input[key]));
+    parts.push(arg(input[key]));
     used.add(key);
   }
   // null and undefined mean "not given", so they are left out.
@@ -244,7 +277,7 @@ export function commandLine(def, input = {}) {
     if (used.has(key) || value == null) continue;
     const flag = props[key] && [].concat(props[key].type).includes("boolean");
     if (flag && typeof value === "boolean") parts.push(value ? `--${key}` : `--no-${key}`);
-    else parts.push(`--${key}=${quoteArg(value)}`);
+    else parts.push(`--${key}=${arg(value)}`);
   }
   if (block) parts.push(`--${block} ${heredoc(input[block])}`);
   return parts.join(" ");

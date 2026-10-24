@@ -17,8 +17,8 @@ export type NavMenus = Record<string, { label?: string; items: NavItem[] }>;
 export interface NavAdapter {
   /** The menus. Called each time a command runs, so it should be cheap. */
   menus(): NavMenus | Promise<NavMenus>;
-  /** Goes to a url. Called after nav go has delivered its result. */
-  go(url: string): void;
+  /** Goes to a url. Called after nav go has delivered its result. Answer false (or reject) when the page did not leave, such as when a router handled it in place: Sutram resumes on this page at once. */
+  go(url: string): void | false | Promise<void | false>;
   /** true if going loads a new page (nav go is marked navigates); false for a client-side router (reinitializes). */
   reloads: boolean;
   /** The current path, such as /admin?tab=2. Defaults to location.pathname + location.search. */
