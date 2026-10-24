@@ -37,6 +37,8 @@ const remove = getRegistry().register({
   name: "cart add",
   // Who owns it; help groups by this.
   provider: "cart",
+  // Optional: a short name for people, in approval prompts and tool lists.
+  title: "Add to the cart",
   description: "Add a product to the cart",
 
   // JSON Schema, checked before run() is called.
@@ -92,8 +94,9 @@ const remove = getRegistry().register({
 |---|---|---|
 | `name` | yes | Lowercase words separated by single spaces. Start with the provider: `cart add`, `form set`. |
 | `provider` | yes | Who owns the command. `help <provider>` lists one group. |
+| `title` | no | A short name for people, such as "Save a form". WebMCP shows it as the tool's title, and the generic approval question uses it: "Save a form? (form save)". One line. |
 | `description` | yes | What it does, in one line first. `help` shows the first line, `man` all of it; agents read all of it. See [descriptions](../guides/descriptions.md). |
-| `input` | no | JSON Schema for the input, checked before `run()`. Leave it out for a command with no arguments. |
+| `input` | no | JSON Schema for the input, checked before `run()`. Leave it out for a command with no arguments. Name parameters with one lowercase word (`target`, `limit`), or words joined by `_` (`per_page`); `register()` warns about other names. |
 | `annotations` | yes | Hints such as `readOnly` and `consequential`. See [annotations](annotations-and-policy.md). |
 | `positional` | no | Input keys that can be given without `--name=`, in order. The last takes the rest of the line. |
 | `output` | no | JSON Schema for `data`. Drives tables and `man`, and tells agents what comes back. Data that does not fit logs a warning. |
@@ -103,6 +106,11 @@ const remove = getRegistry().register({
 | `suggest` | no | `(key, partial, { input, signal })` returns values for completion. May be async. |
 | `view` | no | `{ columns: [...] }`: the columns a table shows. `--wide` shows all. |
 | `run` | yes | `(input, { caller, signal })`. Return `{ text?, data? }`, or a string for text only; throw to fail. |
+
+Use one verb for one meaning across your commands: `search` for finding,
+`add` and `remove` for what goes into or out of something, `go` for going
+to another page, `status` for the state. Agents pick tools by name; two
+verbs for the same thing make them guess.
 
 Names starting with `help`, `man`, `status` or `clear` are refused: those
 words belong to clients. So are inputs named `help`, `json` or `wide`.

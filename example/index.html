@@ -39,7 +39,7 @@
   };
 
   register({
-    name: "todo status", provider: "todo", description: "How many todos are open",
+    name: "todo status", title: "Show todo status", provider: "todo", description: "How many todos are open",
     input: { type: "object", properties: {} }, annotations: { readOnly: true },
     output: { type: "object", properties: { open: { type: "integer" }, done: { type: "integer" } } },
     run: () => {
@@ -48,7 +48,7 @@
     },
   });
   register({
-    name: "todo list", provider: "todo", description: "List the todos",
+    name: "todo list", title: "List todos", provider: "todo", description: "List the todos",
     input: { type: "object", properties: { all: { type: "boolean", default: true, description: "Include done todos" } } },
     annotations: { readOnly: true },
     output: { type: "object", properties: { todos: { type: "array", items: item } } },
@@ -59,7 +59,7 @@
     },
   });
   register({
-    name: "todo add", provider: "todo", description: "Add a todo",
+    name: "todo add", title: "Add a todo", provider: "todo", description: "Add a todo",
     input: { type: "object", properties: { title: { type: "string", description: "What to do" } }, required: ["title"] },
     positional: ["title"], annotations: {},
     output: item, seeAlso: ["todo list", "todo done"],
@@ -71,7 +71,7 @@
     },
   });
   register({
-    name: "todo done", provider: "todo", description: "Mark a todo as done",
+    name: "todo done", title: "Mark a todo as done", provider: "todo", description: "Mark a todo as done",
     input: { type: "object", properties: { id: { type: "integer", minimum: 1 } }, required: ["id"] },
     positional: ["id"], annotations: {}, output: item,
     // Tab offers the open todos.
@@ -86,7 +86,7 @@
     },
   });
   register({
-    name: "todo clear", provider: "todo", description: "Remove every todo",
+    name: "todo clear", title: "Remove every todo", provider: "todo", description: "Remove every todo",
     input: { type: "object", properties: {} }, annotations: { consequential: true },
     confirm: () => `Remove all ${todos.length} todos?`,
     run: (_, ctx) => { todos.length = 0; changed(ctx.caller); return { text: "All todos removed." }; },

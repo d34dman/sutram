@@ -338,3 +338,18 @@ test("ready resolves on initialized(), and is a new promise after reinitialize()
   r.initialized();
   assert.equal(await state(r.ready), "ready");
 });
+
+test("register checks a title, and warns about parameter names that are not snake_case", (t) => {
+  const warn = t.mock.method(console, "warn", () => {});
+  const r = createRegistry();
+  r.register(def({ name: "a", title: "Add to the cart" }));
+  assert.equal(r.get("a").title, "Add to the cart");
+  for (const title of ["", "  ", "two\nlines", 3]) {
+    assert.throws(() => r.register(def({ name: "b", title })), /has a title that is not one line of text/);
+  }
+  r.register(def({ name: "c", positional: [], input: { type: "object", properties: { per_page: { type: "integer" }, page: { type: "integer" } } } }));
+  assert.equal(warn.mock.callCount(), 0);
+  r.register(def({ name: "d", positional: [], input: { type: "object", properties: { perPage: { type: "integer" }, "per-page": { type: "integer" }, q: { type: "string" } } } }));
+  assert.equal(warn.mock.callCount(), 1);
+  assert.match(warn.mock.calls[0].arguments[0], /d: name parameters with lowercase words joined by _, such as per_page: perPage, per-page$/);
+});

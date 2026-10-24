@@ -33,6 +33,8 @@ export const ANNOTATIONS = Object.freeze(["readOnly", "consequential", "navigate
 /** Whether a command may call reinitializes(): navigates implies it. */
 export const mayReinitialize = (def) => !!(def && (def.annotations.reinitializes || def.annotations.navigates));
 const NAME = /^[a-z][a-z0-9-]*( [a-z][a-z0-9-]*)*$/;
+/** How parameters are named: one lowercase word, or words joined by _ (per_page). */
+const PARAM = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/;
 /** The most words a command name may have; the parser looks no further. */
 export const MAX_NAME_WORDS = 6;
 
@@ -257,6 +259,9 @@ function checkDefinition(def) {
   for (const key of Object.keys(def.annotations)) {
     if (!ANNOTATIONS.includes(key)) throw new TypeError(`register: "${def.name}" has an unknown annotation "${key}"; known: ${ANNOTATIONS.join(", ")}`);
   }
+  if (def.title !== undefined && (typeof def.title !== "string" || !def.title.trim() || /[\r\n]/.test(def.title))) {
+    throw new TypeError(`register: "${def.name}" has a title that is not one line of text`);
+  }
   if (def.suggest !== undefined && typeof def.suggest !== "function") throw new TypeError(`register: "${def.name}" has a suggest that is not a function`);
   if (!NAME.test(def.name)) throw new TypeError(`register: "${def.name}" is not a valid name; use lowercase words separated by single spaces`);
   if (def.name.split(" ").length > MAX_NAME_WORDS) throw new TypeError(`register: "${def.name}" has more than ${MAX_NAME_WORDS} words, so no command line could reach it`);
@@ -276,6 +281,9 @@ function checkDefinition(def) {
       try { new RegExp(p.pattern, "u"); } catch (err) { throw new TypeError(`register: "${def.name}": ${where}.pattern is not a valid regular expression: ${err.message}`); }
     }
   }
+  // Agents read parameter names in every schema; one naming style keeps them guessable.
+  const odd = Object.keys(props).filter((key) => !PARAM.test(key));
+  if (odd.length) console.warn(`sutram: ${def.name}: name parameters with lowercase words joined by _, such as per_page: ${odd.join(", ")}`);
   const unchecked = uncheckedKeywords(def.input);
   if (unchecked.length) console.warn(`sutram: ${def.name}: these input keywords are not checked: ${unchecked.join(", ")}. Check them in run().`);
 }

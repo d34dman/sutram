@@ -113,8 +113,10 @@ export interface CommandDefinition<I extends Record<string, any> = Record<string
   name: string;
   /** Who owns it; help groups by this. */
   provider: string;
+  /** A short name for people, such as "Save a form": tool title in WebMCP, and the question before a consequential run. */
+  title?: string;
   description: string;
-  /** JSON Schema for the input. Leave it out for a command with no arguments. */
+  /** JSON Schema for the input. Name parameters with one lowercase word, or words joined by _ (per_page). Leave it out for a command with no arguments. */
   input?: Schema;
   output?: Schema;
   /** Input keys that can be given without --, in order. The last takes the rest of the line. */
@@ -480,7 +482,8 @@ export interface Messages {
   no: string;
   always: string;
   answered: (answer: Answer) => string;
-  run: (name: string) => string;
+  /** The question before a command without its own; gets its title when it has one. */
+  run: (name: string, title?: string) => string;
   cancelled: string;
   /** Shown after a question whose call was cancelled before anyone answered. */
   withdrawn: string;
@@ -609,6 +612,8 @@ Commands as WebMCP tools, tools() and callTool().
 ```ts
 export interface Tool {
   name: string;
+  /** A short name for people, such as "Save a form". */
+  title?: string;
   description: string;
   inputSchema: Schema;
   annotations: {

@@ -83,8 +83,10 @@ export interface CommandDefinition<I extends Record<string, any> = Record<string
   name: string;
   /** Who owns it; help groups by this. */
   provider: string;
+  /** A short name for people, such as "Save a form": tool title in WebMCP, and the question before a consequential run. */
+  title?: string;
   description: string;
-  /** JSON Schema for the input. Leave it out for a command with no arguments. */
+  /** JSON Schema for the input. Name parameters with one lowercase word, or words joined by _ (per_page). Leave it out for a command with no arguments. */
   input?: Schema;
   output?: Schema;
   /** Input keys that can be given without --, in order. The last takes the rest of the line. */

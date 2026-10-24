@@ -137,13 +137,13 @@
 
   const ONE = { type: "object", properties: { form: formInput }, required: ["form"] };
   registry.register({
-    name: "form list", provider: "form", description: "List the forms on this page",
+    name: "form list", title: "List forms", provider: "form", description: "List the forms on this page",
     annotations: { readOnly: true },
     output: { type: "object", properties: { forms: { type: "array", items: { type: "object", properties: { form: { type: "string" }, label: { type: "string" } } } } } },
     run: () => ({ data: { forms: Object.entries(FORMS).map(([form, f]) => ({ form, label: f.label })) } }),
   });
   registry.register({
-    name: "form status", provider: "form", description: "Show what is filled in, what is still missing, and whether it was sent",
+    name: "form status", title: "Show form status", provider: "form", description: "Show what is filled in, what is still missing, and whether it was sent",
     input: ONE, positional: ["form"], annotations: { readOnly: true }, suggest,
     output: { type: "object", properties: { missing: { type: "array", items: { type: "string" } }, sent: { type: "boolean" } } },
     run: ({ form }) => {
@@ -154,7 +154,7 @@
     },
   });
   registry.register({
-    name: "form fields", provider: "form", description: "List the fields a form has now, with their type and value",
+    name: "form fields", title: "List form fields", provider: "form", description: "List the fields a form has now, with their type and value",
     input: ONE, positional: ["form"], annotations: { readOnly: true }, suggest,
     output: { type: "object", properties: { fields: { type: "array", items: { type: "object", properties: { field: { type: "string" }, label: { type: "string" }, type: { type: "string" }, required: { type: "boolean" }, value: {} } } } } },
     view: { columns: ["field", "label", "type", "required", "value"] },
@@ -162,13 +162,13 @@
     run: ({ form }) => { find(form, "fields"); return { data: { fields: visible().map(describe) } }; },
   });
   registry.register({
-    name: "form get", provider: "form", description: "Show one field, with its allowed values or format",
+    name: "form get", title: "Show a form field", provider: "form", description: "Show one field, with its allowed values or format",
     input: { type: "object", properties: { form: formInput, field: fieldInput }, required: ["form", "field"] },
     positional: ["form", "field"], annotations: { readOnly: true }, suggest,
     run: ({ form, field: key }) => { find(form, "get"); return { data: describe(field(key, "get")) }; },
   });
   registry.register({
-    name: "form set", provider: "form",
+    name: "form set", title: "Change a form field", provider: "form",
     description: "Change one field. Answers can add fields to the form: the result names them",
     input: { type: "object", properties: { form: formInput, field: fieldInput, value: { type: "string", description: "The new value. Yes/no fields take true or false; choices take a key or its label." } }, required: ["form", "field", "value"] },
     positional: ["form", "field", "value"], annotations: {}, suggest,
@@ -191,7 +191,7 @@
     },
   });
   registry.register({
-    name: "form submit", provider: "form", description: "Send a form",
+    name: "form submit", title: "Send a form", provider: "form", description: "Send a form",
     input: ONE, positional: ["form"], annotations: { consequential: true }, suggest,
     confirm: () => `Send the ${values.topic || ""} request from ${values.email || "?"}?`,
     run: ({ form }) => {
@@ -206,7 +206,7 @@
     },
   });
   registry.register({
-    name: "form discard", provider: "form", description: "Clear a form",
+    name: "form discard", title: "Clear a form", provider: "form", description: "Clear a form",
     input: ONE, positional: ["form"], annotations: { consequential: true }, suggest,
     confirm: () => "Clear every field?",
     run: ({ form }) => {

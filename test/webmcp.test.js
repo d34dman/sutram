@@ -345,3 +345,12 @@ test("sutram_batch takes a command that may start Sutram again only as its last 
   assert.equal(last.code, EXIT.OK);
   assert.equal(last.note, REINITIALIZED_NOTE);
 });
+
+test("a title becomes the tool's title and the generic question", async () => {
+  assert.equal(toTool(goDef).title, undefined);
+  assert.equal(toTool({ ...goDef, title: "Go to a page" }).title, "Go to a page");
+  assert.ok(listTools(createRegistry()).every((tool) => tool.title));
+  const r = createRegistry();
+  r.register({ name: "form save", title: "Save a form.", provider: "form", description: "Save", annotations: { consequential: true }, run: () => ({}) });
+  assert.match((await callTool("form_save", {}, { registry: r })).message, /"Save a form\? \(form save\)"/);
+});

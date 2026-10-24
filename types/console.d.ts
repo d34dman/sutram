@@ -19,7 +19,8 @@ export interface Messages {
   no: string;
   always: string;
   answered: (answer: Answer) => string;
-  run: (name: string) => string;
+  /** The question before a command without its own; gets its title when it has one. */
+  run: (name: string, title?: string) => string;
   cancelled: string;
   /** Shown after a question whose call was cancelled before anyone answered. */
   withdrawn: string;

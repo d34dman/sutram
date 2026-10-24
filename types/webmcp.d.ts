@@ -2,6 +2,8 @@ import type { CommandDefinition, Formats, Registry, Result, BatchResult, Caller,
 
 export interface Tool {
   name: string;
+  /** A short name for people, such as "Save a form". */
+  title?: string;
   description: string;
   inputSchema: Schema;
   annotations: { readOnlyHint?: boolean; consequentialHint?: boolean; untrustedContentHint?: boolean };

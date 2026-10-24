@@ -104,3 +104,6 @@ export function ownQuestion(def, input) {
     return null;
   }
 }
+
+/** The question for a command without its own: its title when it has one, "Save a form? (form save)", else "Run form save?". */
+export const genericQuestion = (def) => (def.title ? `${def.title.trim().replace(/[.?!]+$/, "")}? (${def.name})` : `Run ${def.name}?`);

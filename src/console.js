@@ -7,7 +7,7 @@
 import { CommandError, EXIT, RESERVED_WORDS, checkInput, getRegistry, mayReinitialize, runStatus } from "./core.js";
 import { complete, highlight, openQuote, parse, splitLines, tokenize } from "./parse.js";
 import { formatHelp, formatMan, formatResult, formatUsage, annotationLabel, checkFields, commandLine } from "./format.js";
-import { ownQuestion } from "./policy.js";
+import { genericQuestion, ownQuestion } from "./policy.js";
 import { agentPrompt } from "./prompt.js";
 
 /**
@@ -32,7 +32,7 @@ export const MESSAGES = Object.freeze({
   no: "No",
   always: "Yes, and stop asking",
   answered: (answer) => (answer === "always" ? "yes, and stop asking" : answer ? "yes" : "no"),
-  run: (name) => `Run ${name}?`,
+  run: (name, title) => genericQuestion({ name, title }),
   cancelled: "Cancelled. Nothing changed.",
   withdrawn: "withdrawn",
   answerHint: (always) => (always ? "Answer y (yes), a (yes, and stop asking) or n (no)." : "Answer y (yes) or n (no)."),
@@ -838,7 +838,7 @@ export class SutramConsole extends Base {
       this.print(steps.length === 1 ? m.agentAsks : m.agentAsksBatch(steps.length), "dim");
       for (const { def, input } of steps) this.echo(commandLine(def, input), "input agent");
     };
-    const question = steps.length === 1 ? (ownQuestion(steps[0].def, steps[0].input) || m.run(steps[0].def.name)) : m.agentBatch(steps.length);
+    const question = steps.length === 1 ? (ownQuestion(steps[0].def, steps[0].input) || m.run(steps[0].def.name, steps[0].def.title)) : m.agentBatch(steps.length);
     return this.ask(question, { always: this.canStopAsking(who, steps.map((s) => s.def)), lead, signal });
   }
 
@@ -904,7 +904,7 @@ export class SutramConsole extends Base {
       const policy = this.registry.policy;
       const checked = checkInput(def.input, input, this.registry.formats);
       if (!confirmed && policy.needs(def, "person") && !checked.errors.length) {
-        const answer = await this.ask(ownQuestion(def, checked.value) || this.messages.run(def.name), { always: this.canStopAsking("person", [def]) });
+        const answer = await this.ask(ownQuestion(def, checked.value) || this.messages.run(def.name, def.title), { always: this.canStopAsking("person", [def]) });
         if (!answer) { this.print(this.messages.cancelled, "dim"); return EXIT.CANCELLED; }
         if (answer === "always") policy.relax("person");
       }

@@ -3,6 +3,26 @@
 Sutram follows [semantic versioning](https://semver.org/). Before 1.0,
 breaking changes bump the minor version.
 
+## 0.7.0 (unreleased)
+
+Tools get titles people can read, and commands one naming style.
+
+### Added
+
+- `title` in a command definition: a short name for people, such as "Save a
+  form". WebMCP gets it as the tool's `title`, `tools()` lists it, and the
+  generic approval question uses it: "Save a form? (form save)" instead of
+  "Run form save?". `sutram_status`, `sutram_batch` and the `events`
+  commands have titles too.
+- `register()` warns about parameter names that are not one lowercase word
+  or words joined by `_` (`per_page`), the style of the tool names.
+- The console's `run` message gets the command's title as a second argument.
+
+### Changed
+
+- Docs: one verb per meaning (`search`, `add`, `remove`, `go`, `status`),
+  and the examples use `nav search` where they used `nav find`.
+
 ## 0.6.0 (2026-10-18)
 
 Sutram stores nothing in the browser and says when a page is ready; the

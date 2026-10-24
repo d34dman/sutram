@@ -22,7 +22,7 @@ Docs: https://d34dman.github.io/sutram/llms.txt
    its commands are named `<provider> <verb>`.
 3. **Status first.** For each provider, a read-only `<provider> status` that
    returns one line of `text` and the state as `data`.
-4. **Then reading commands** (`list`, `find`, `get`), all
+4. **Then reading commands** (`list`, `search`, `get`), all
    `annotations: { readOnly: true }`.
 5. **Then changes**, one thing per command (`add`, `set`, `remove`). For
    forms: `form list`, then `form status | fields | get | set | save | discard`
@@ -44,6 +44,7 @@ Docs: https://d34dman.github.io/sutram/llms.txt
 ```js
 Sutram.register({
   name: "cart add",
+  title: "Add to the cart",
   provider: "cart",
   description: "Add a product to the cart",
   input: {
@@ -73,8 +74,13 @@ Sutram.register({
 - Return `data` (and a short `text`); do not return formatted tables.
 - Fail with `throw new CommandError("<command>: what is wrong. What to do instead.", EXIT.USAGE or EXIT.FAILED)`.
   Name every missing field at once.
+- One verb per meaning across the app: `search` to find, `add` and `remove`
+  for what goes in or out, `go` to another page, `status` for the state.
+- Give each command a short `title` for people ("Add to the cart"); hosts show
+  it and the approval question uses it.
 - Every input property has a `type`; use `enum` for closed lists and a
-  `description` when the name is not enough.
+  `description` when the name is not enough. Name properties with one
+  lowercase word (`target`, `limit`), or words joined by `_` (`per_page`).
 - `annotations` is required. Decide `readOnly` and `consequential` for each
   command.
 - Names cannot start with `help`, `man`, `status` or `clear`; inputs cannot be

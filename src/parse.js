@@ -211,7 +211,7 @@ function parseArguments(def, rest) {
     throw new CommandError(`${name}: takes no positional arguments. See ${name} -h`, EXIT.USAGE);
   }
   // Positional words fill the positional keys not given as options, in order.
-  // The last positional key takes the rest of the line, so `nav find pour over`
+  // The last positional key takes the rest of the line, so `nav search pour over`
   // works without quotes. A word with no key left is an error, never dropped.
   const free = order.filter((key) => !own(input, key));
   const last = order[order.length - 1];

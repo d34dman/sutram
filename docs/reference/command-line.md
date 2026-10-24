@@ -23,7 +23,7 @@ option:  --name=value
   `form set`. The longest registered name wins.
 - **Positional values** fill the keys listed in `positional` that were not
   given as options, in order. The last one takes the rest of the line:
-  `nav find menu settings` searches for "menu settings". A word with no key
+  `nav search menu settings` searches for "menu settings". A word with no key
   left is a usage error (`unexpected argument`), never dropped.
 - **Options** are GNU long options: `--qty=2` or `--qty 2`. There are no
   short options except `-h`.
@@ -44,7 +44,7 @@ option:  --name=value
   long commands can be split over several lines. In the console,
   <kbd>Enter</kbd> after a trailing backslash starts a new line.
 - An apostrophe opens a single quote, so `don't` in an unquoted value is an
-  unclosed quote. Put such text in double quotes: `nav find "don't panic"`.
+  unclosed quote. Put such text in double quotes: `nav search "don't panic"`.
 - A value that starts with a quote is never an option.
 - An unclosed quote is a usage error (exit 2). In the console, <kbd>Enter</kbd>
   inside quotes starts a new line of the value instead.

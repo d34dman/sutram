@@ -73,6 +73,7 @@ export function createEvents(registry, { bufferSize = 50 } = {}) {
 
   registry.register({
     name: "events list",
+    title: "List declared events",
     provider: "events",
     description: "List the events providers on this page have declared",
     input: { type: "object", properties: {} },
@@ -87,6 +88,7 @@ export function createEvents(registry, { bufferSize = 50 } = {}) {
 
   registry.register({
     name: "events recent",
+    title: "Show recent events",
     provider: "events",
     description: "Show recent events on this page, optionally only those after an event id",
     input: { type: "object", properties: { since: { type: "integer", minimum: 0, default: 0, description: "Only events with a higher id than this" } } },

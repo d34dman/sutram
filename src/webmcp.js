@@ -12,7 +12,7 @@ import { EXIT, checkInput, getRegistry, isStatusCommand, runStatus } from "./cor
 import { commandLine, describeShape, formatsUsed, sentence } from "./format.js";
 import { getFormats } from "./formats.js";
 import { suggest } from "./parse.js";
-import { ownQuestion } from "./policy.js";
+import { genericQuestion, ownQuestion } from "./policy.js";
 
 /** The page's model context, or null when the browser has none. */
 export function findModelContext() {
@@ -37,11 +37,14 @@ export function toTool(def, formats = getFormats()) {
   if (def.output) description += ` Returns ${describeShape(def.output)}.`;
   // An agent cannot look up a page's own formats, so the description explains them.
   for (const f of formatsUsed(def, formats)) description += ` ${f.name}: ${sentence(f.description)}`;
-  return { name: toolName(def), description, inputSchema: def.input, annotations };
+  const tool = { name: toolName(def), description, inputSchema: def.input, annotations };
+  if (def.title) tool.title = def.title;
+  return tool;
 }
 
 export const STATUS_TOOL = {
   name: "sutram_status",
+  title: "Report on the page",
   description: "Run every provider's status command and return what each reports about the page. Call this first. Returns { data: { providers: [{ provider, code, text?, data? }] } }.",
   inputSchema: { type: "object", properties: {} },
   annotations: { readOnlyHint: true },
@@ -49,6 +52,7 @@ export const STATUS_TOOL = {
 
 export const BATCH_TOOL = {
   name: "sutram_batch",
+  title: "Run several tools as one change",
   description: "Run several tools in order as one change. Every call is checked before any runs. When a call needs the user's approval, the user is asked once, before anything runs. The batch stops at the first call that fails, "
     + "and providers that support it undo the earlier calls. Use it for edits that belong together. Returns { code, results, completed, total }.",
   inputSchema: {
@@ -93,7 +97,7 @@ function noSuchTool(registry, name, prefix = "") {
 
 /** The question for a call or a batch, in plain text. */
 function question(steps) {
-  if (steps.length === 1) return ownQuestion(steps[0].def, steps[0].input) || `Run ${steps[0].def.name}?`;
+  if (steps.length === 1) return ownQuestion(steps[0].def, steps[0].input) || genericQuestion(steps[0].def);
   return `Run these ${steps.length} commands?\n${steps.map((s) => commandLine(s.def, s.input)).join("\n")}`;
 }
 
