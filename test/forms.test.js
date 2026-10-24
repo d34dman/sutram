@@ -82,7 +82,7 @@ test("registers the core seven with titles; the optional four only with the adap
 test("the adapter's form id and examples replace the kit's in help", () => {
   const { r } = setup({ example: "node-article-form", examples: { "form set": ['form set node-article-form title "Hello"'] } });
   assert.deepEqual(r.get("form set").examples, ['form set node-article-form title "Hello"']);
-  assert.deepEqual(r.get("form status").examples, ["form status node-article-form"]);
+  assert.deepEqual(r.get("form status").examples, ["form status node-article-form", "form status"]);
   assert.match(r.get("form get").input.properties.form.description, /such as node-article-form\./);
 });
 
@@ -335,4 +335,19 @@ test("a form changed while the user is asked about form submit is not sent", asy
   assert.equal(a.sent[0].email, "eve@example.com");
   off();
   disconnect();
+});
+
+test("form status without a form sums up the forms, so status has a line for them", async () => {
+  const { r } = setup();
+  await line(r, "form set contact email ada@example.com");
+  const all = await line(r, "form status");
+  assert.equal(all.code, EXIT.OK);
+  assert.equal(all.text, "1 form: Contact (contact): 1 unsaved change. See form status <form>.");
+  assert.deepEqual(all.data.forms, [{ form: "contact", label: "Contact", unsaved: 1, errors: 0 }]);
+  const { runStatus } = await import("../src/client.js");
+  const [form] = await runStatus(r, { providers: ["form"] });
+  assert.equal(form.code, EXIT.OK);
+  const none = createRegistry();
+  forms({ ...app().adapter, forms: () => [] }, { registry: none });
+  assert.equal((await none.run("form status")).text, "There is no form on this page.");
 });
