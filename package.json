@@ -28,6 +28,10 @@
       "types": "./types/console.d.ts",
       "default": "./src/console.js"
     },
+    "./approval": {
+      "types": "./types/approval.d.ts",
+      "default": "./src/approval.js"
+    },
     "./browser": {
       "types": "./types/browser.d.ts",
       "default": "./src/browser.js"

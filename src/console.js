@@ -3,6 +3,10 @@
 // history, help, man, status, "did you mean", Tab completion, multi-line
 // values, confirmation by the page's policy, --json[=fields] and --wide,
 // syntax highlighting of the line being typed, and pasted batches of lines.
+// It also shows what agents run through tools; it does not ask for them:
+// the approval dialog does (approval.js). Its output is mirrored as text in
+// the page, in a visually hidden log, so agents and assistive technology
+// can read it without looking into the shadow root.
 
 import { CommandError, EXIT, getRegistry } from "./core.js";
 import { complete, highlight, openQuote, splitLines } from "./parse.js";
@@ -10,6 +14,7 @@ import { formatResult, formatUsage, annotationLabel, approvalLine } from "./form
 import { LINE_TEXT, clientWord, readBatch, readLine, readLines, runSteps } from "./lines.js";
 import { genericQuestion, ownQuestion } from "./policy.js";
 import { promptFor } from "./prompt.js";
+import { useApprovalDialog } from "./approval.js";
 
 /**
  * Every text the console shows of its own. Set `console.messages = { … }`
@@ -48,10 +53,8 @@ export const MESSAGES = Object.freeze({
   batchStopped: LINE_TEXT.batchStopped,
   batchUndone: LINE_TEXT.batchUndone,
   batchKept: LINE_TEXT.batchKept,
-  agentAsks: "An agent wants to run:",
-  agentAsksBatch: (n) => `An agent wants to run ${n} commands as one change:`,
-  agentBatch: (n) => `Run these ${n} commands?`,
-  agentBatchConsequential: (n, names) => `Run these ${n} commands? ${names.join(", ")} cannot easily be undone.`,
+  agentDeclined: "Declined for an agent:",
+  logLabel: "Sutram console output",
 });
 
 const STYLE = `
@@ -139,6 +142,23 @@ const commonStart = (list) => list.reduce((a, b) => {
 
 const MAX_ROWS = 10;
 const HISTORY_SIZE = 100;
+/** Lines the page's log keeps. */
+const LOG_SIZE = 200;
+
+/**
+ * A printed line as plain text: typed lines start with "› ", exit codes
+ * read "(exit 2)" and annotation tags "[read-only]"; buttons are left out.
+ */
+const lineText = (el) => {
+  if (el.classList.contains("input")) return `› ${el.textContent}`;
+  return [...el.childNodes].map((n) => {
+    if (n.nodeType !== 1) return n.textContent;
+    if (n.classList.contains("code")) return `  (${n.textContent})`;
+    if (n.classList.contains("tag")) return `  [${n.textContent}]`;
+    if (n.tagName === "BUTTON") return "";
+    return n.textContent;
+  }).join("");
+};
 /** The keys that can be held to peek, by peek attribute value. */
 const PEEK_KEYS = Object.freeze({ alt: "Alt", ctrl: "Control", shift: "Shift", meta: "Meta" });
 /** How long the peek key is held alone before the console fades, so Alt+letter does not flicker. */
@@ -215,7 +235,7 @@ export class SutramConsole extends Base {
     root.innerHTML = `<style>${STYLE}</style>
       <div class="panel" part="panel" tabindex="-1">
         <header part="header"><span><b class="title"></b> · <span class="count"></span></span><span class="tools"><button type="button" class="agent-prompt" part="agent-prompt"></button><button type="button" class="copy" part="copy"></button><button type="button" class="close" part="close"></button></span></header>
-        <div class="out" part="output" aria-live="polite" tabindex="-1"></div>
+        <div class="out" part="output" tabindex="-1"></div>
         <ul class="menu" part="menu" role="listbox" id="${menuId}" hidden></ul>
         <form part="prompt"><span aria-hidden="true">›</span><div class="field"><div class="hl" aria-hidden="true"></div><textarea rows="1" wrap="off" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="${menuId}" aria-expanded="false"></textarea></div></form>
       </div>`;
@@ -287,6 +307,14 @@ export class SutramConsole extends Base {
     this.onGlobalKey = this.onGlobalKey.bind(this);
     this.onPeekEvent = this.onPeekEvent.bind(this);
     this.peekTimer = null;
+    // The output as text in the page, where read_page, find and innerText
+    // see it; the shadow root hides it from them. Visually hidden, and the
+    // live region that announces new output.
+    this.log = document.createElement("div");
+    this.log.setAttribute("role", "log");
+    this.log.dataset.sutramLog = "";
+    this.log.style.cssText = "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:pre-wrap;border:0";
+    this.onAnswer = this.onAnswer.bind(this);
     this.renderChrome();
   }
 
@@ -360,8 +388,10 @@ export class SutramConsole extends Base {
     this.offChange = this.registry.onChange(() => { this.updateCount(); this.renderInput(); });
     this.offResult = this.registry.onResult((run) => this.showAgentRun(run));
     connected.add(this);
-    // The first console on the page asks the user when an agent needs approval.
-    this.takeAsker();
+    // Agents are asked about in the approval dialog, unless the page has its own asker.
+    useApprovalDialog(this.registry);
+    document.addEventListener("sutram-answer", this.onAnswer);
+    this.after(this.log);
     this.updateCount();
     if (!this.out.childElementCount && this.hasAttribute("greeting")) this.print(this.getAttribute("greeting"), "dim");
   }
@@ -373,22 +403,16 @@ export class SutramConsole extends Base {
     this.stopPeek();
     if (this.offChange) this.offChange();
     if (this.offResult) this.offResult();
+    document.removeEventListener("sutram-answer", this.onAnswer);
+    this.log.remove();
     // Nobody can answer here any more: open and queued questions are answered no.
     for (const show of this.askQueue.splice(0)) show.cancel();
     if (this.pendingAsk) this.pendingAsk(false);
-    if (this.offAsker) {
-      this.offAsker();
-      this.offAsker = null;
-      // Another console on the page takes over asking.
-      for (const other of connected) if (other.registry === this.registry && other.takeAsker()) break;
-    }
   }
 
-  /** Becomes the policy's asker when there is none. True when it did. */
-  takeAsker() {
-    if (this.registry.policy.hasAsker()) return false;
-    this.offAsker = this.registry.policy.setAsker((request) => this.askForAgent(request));
-    return true;
+  /** True for the first console connected with this registry: it shows what agents do, so each run shows once. */
+  get watchesAgents() {
+    return [...connected].find((c) => c.registry === this.registry) === this;
   }
 
   get formatOptions() {
@@ -400,6 +424,7 @@ export class SutramConsole extends Base {
     const root = this.shadowRoot;
     root.querySelector(".title").textContent = m.title;
     this.panel.setAttribute("aria-label", m.label);
+    this.log.setAttribute("aria-label", m.logLabel);
     this.input.placeholder = m.placeholder;
     this.input.setAttribute("aria-label", m.inputLabel);
     const copy = root.querySelector(".copy");
@@ -682,7 +707,25 @@ export class SutramConsole extends Base {
     el.textContent = text;
     this.out.append(el);
     this.out.scrollTop = this.out.scrollHeight;
+    // Mirrored once the line is complete: echo() and the tags add to it after.
+    queueMicrotask(() => this.mirror(el));
     return el;
+  }
+
+  /** Adds a printed line to the page's log, as transcript() writes it; the log keeps the last LOG_SIZE lines. */
+  mirror(el) {
+    if (!el.isConnected) return;
+    const line = document.createElement("div");
+    line.textContent = lineText(el);
+    el.logLine = line;
+    this.log.append(line);
+    while (this.log.childElementCount > LOG_SIZE) this.log.firstElementChild.remove();
+  }
+
+  /** Empties the output, keeping an open question, and the page's log with it. */
+  clearOutput() {
+    this.out.replaceChildren(...(this.pendingAsk && this.askEl ? [this.askEl] : []));
+    this.log.replaceChildren();
   }
 
   printBlocks(blocks, okKind = "text") {
@@ -806,6 +849,7 @@ export class SutramConsole extends Base {
       if (this.pendingAsk === done) { this.pendingAsk = null; this.askEl = null; }
       el.querySelectorAll("button").forEach((b) => b.remove());
       el.append(label || m.answered(answer));
+      if (el.logLine) el.logLine.textContent = lineText(el);
       resolve(answer);
       this.input.focus();
       const next = this.askQueue.shift();
@@ -825,34 +869,26 @@ export class SutramConsole extends Base {
     return done;
   }
 
-  /** The policy's asker: shows what an agent wants to run, and asks. */
-  async askForAgent({ steps, signal }) {
-    const m = this.messages;
-    this.open();
-    const lead = () => {
-      this.print(steps.length === 1 ? m.agentAsks : m.agentAsksBatch(steps.length), "dim");
-      // Shortened, so a long value cannot push the other commands off the screen.
-      for (const { def, input } of steps) this.echo(approvalLine(def, input), "input agent");
-    };
-    // A batch names its consequential commands, as a pasted batch does.
-    const consequential = [...new Set(steps.filter((s) => s.def.annotations.consequential).map((s) => s.def.name))];
-    const question = steps.length === 1 ? (ownQuestion(steps[0].def, steps[0].input) || m.run(steps[0].def.name, steps[0].def.title))
-      : consequential.length ? m.agentBatchConsequential(steps.length, consequential) : m.agentBatch(steps.length);
-    return this.ask(question, { lead, signal });
-  }
-
   /**
    * Prints a command an agent ran through a tool (WebMCP, Sutram.call(),
    * Sutram.exec()) and its result, so the person sees what agents do, not
-   * only what they are asked about. The console that asks for agents
-   * prints them, so a page with two consoles shows each run once.
+   * only what they are asked about. On a page with two consoles, the first
+   * prints them.
    */
   showAgentRun({ name, input, caller, result }) {
-    if (caller !== "agent" || !this.offAsker) return;
+    if (caller !== "agent" || !this.watchesAgents) return;
     const def = this.registry.get(name);
     this.echo(def ? approvalLine(def, input) : name, "input agent");
     if (result.code !== EXIT.OK) this.fail(result.message, result.code);
     else if (def) this.printResult(result, { def });
+  }
+
+  /** The approval dialog's answer: a no is shown here, since nothing runs to show. */
+  onAnswer(e) {
+    const { steps, answer } = e.detail || {};
+    if (answer || !Array.isArray(steps) || !this.watchesAgents || !steps.every((s) => this.registry.get(s.def.name) === s.def)) return;
+    this.print(this.messages.agentDeclined, "dim");
+    for (const { def, input } of steps) this.echo(approvalLine(def, input), "input agent");
   }
 
   // ---- running -----------------------------------------------------------
@@ -861,7 +897,7 @@ export class SutramConsole extends Base {
   async runClientWord(words) {
     const done = await clientWord(this.registry, words, { caller: "console", text: this.messages });
     // An open question stays: it is still waiting for its answer.
-    if (done.clear) this.out.replaceChildren(...(this.pendingAsk && this.askEl ? [this.askEl] : []));
+    if (done.clear) this.clearOutput();
     this.printBlocks(done.blocks);
     return done.code;
   }
@@ -936,7 +972,7 @@ export class SutramConsole extends Base {
     }
 
     const show = (step, blocks, { result, clear }) => {
-      if (clear) this.out.replaceChildren(...(this.pendingAsk && this.askEl ? [this.askEl] : []));
+      if (clear) this.clearOutput();
       this.printBlocks(blocks, step.def && !step.def.annotations.readOnly && result ? "ok" : "text");
     };
     const done = await runSteps(this.registry, steps, {
@@ -956,13 +992,7 @@ export class SutramConsole extends Base {
    * start with "› ", exit codes read "(exit 2)" and annotation tags "[read-only]".
    */
   transcript() {
-    const text = (el) => [...el.childNodes].map((n) => {
-      if (n.nodeType !== 1) return n.textContent;
-      if (n.classList.contains("code")) return `  (${n.textContent})`;
-      if (n.classList.contains("tag")) return `  [${n.textContent}]`;
-      return n.textContent;
-    }).join("");
-    return [...this.out.children].map((el) => (el.classList.contains("input") ? `› ${el.textContent}` : text(el))).join("\n");
+    return [...this.out.children].map(lineText).join("\n");
   }
 }
 

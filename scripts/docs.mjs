@@ -103,6 +103,7 @@ function apiReference() {
     ["@d34dman/sutram", "index", "What app authors use: the registry, formats, the policy, commandLine() and agentPrompt(), and the types every entry point shares. No DOM."],
     ["@d34dman/sutram/client", "client", "For building a client of your own (a terminal, a console, a test harness): parse and complete command lines, check input, run status, format results. Covered by semver. No DOM."],
     ["@d34dman/sutram/console", "console", "The console, <sutram-console>."],
+    ["@d34dman/sutram/approval", "approval", "The approval dialog, <sutram-approval>: where the person approves what an agent wants to run."],
     ["@d34dman/sutram/webmcp", "webmcp", "Commands as WebMCP tools, tools() and callTool()."],
     ["@d34dman/sutram/events", "events", "Declared events, and the events list and events recent commands."],
     ["@d34dman/sutram/browser", "browser", "globalThis.Sutram: the registry and its helpers in one object, with /client as Sutram.client. Also dist/sutram.js."],

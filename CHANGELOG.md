@@ -19,12 +19,24 @@ run there.
   `{ title, url, commands, prompt }`, where `prompt` is the default text to
   wrap or replace. The console's prompt button and `Sutram.agentPrompt()`
   use it.
+- `<sutram-approval>` (`@d34dman/sutram/approval`): a modal dialog where
+  the person approves what an agent wants to run. No has the focus and
+  Escape answers no. `dist/sutram.js` and every console make it the
+  policy's asker, unless the page set its own.
 - The console prints each command an agent runs through a tool (WebMCP,
-  `Sutram.call()`, `Sutram.exec()`) and its result, not only the ones it
-  asks about. The console that asks for agents prints them.
+  `Sutram.call()`, `Sutram.exec()`) and its result, and the requests the
+  person declined. The first console on the page prints them.
+- The console writes its output, as text, to a visually hidden
+  `role="log"` element next to it in the page (the last 200 lines), so
+  agents that read the page as text and screen readers get it.
 
 ### Changed
 
+- The console no longer asks about agents' calls, and no longer opens for
+  them: the approval dialog asks. `askForAgent()` and the console's
+  `agentAsks`, `agentAsksBatch` and `agentBatch` messages are gone; the
+  dialog's are in `APPROVAL_MESSAGES`. The console's output element is no
+  longer a live region; the page's log is.
 - `agentPrompt()` sends agents to the page's WebMCP tools first, then
   `Sutram.exec()`, then the console, which was first before. Tools answer
   as text; an agent reading the console off the screen used more tokens

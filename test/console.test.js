@@ -192,15 +192,15 @@ test("a typed command whose question changed while the person was asked does not
 });
 
 // A stand-in that records what the console prints for agents' runs.
-const watcher = (registry, { asks = true } = {}) => {
+const watcher = (registry, { asks = true } = {}) => { // asks: the console that watches agents
   const printed = [];
   const c = Object.assign(Object.create(SutramConsole.prototype), {
     registry,
-    offAsker: asks ? () => {} : null,
     echo: (line, kind) => printed.push([kind, line]),
     fail: (text, code) => printed.push(["error", `${text} (exit ${code})`]),
     printResult: (result) => printed.push(["result", result.text]),
   });
+  Object.defineProperty(c, "watchesAgents", { value: asks });
   registry.onResult((run) => c.showAgentRun(run));
   return printed;
 };
@@ -222,7 +222,7 @@ test("the console shows the commands agents run through tools, and their results
   assert.deepEqual(printed, []);
 });
 
-test("only the console that asks for agents shows their runs", async () => {
+test("only the console that watches agents shows their runs", async () => {
   const registry = createRegistry();
   registry.register({ name: "cart add", provider: "cart", description: "Add", annotations: {}, run: () => "Added." });
   const printed = watcher(registry, { asks: false });

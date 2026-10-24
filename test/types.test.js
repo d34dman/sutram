@@ -17,7 +17,7 @@ for (const [entry, file] of [["index", "index.d.ts"], ["client", "client.d.ts"],
 test("types/dist.d.ts covers what the dist bundle exports, and package.json maps both bundles to it", async () => {
   const text = readFileSync(new URL("../types/dist.d.ts", import.meta.url), "utf8");
   const reexported = [...text.matchAll(/^export \* from "\.\/(\w+)\.js";/gm)].map((m) => m[1]);
-  assert.deepEqual(reexported, ["index", "client", "events", "webmcp", "console"]);
+  assert.deepEqual(reexported, ["index", "client", "events", "webmcp", "console", "approval"]);
   assert.match(text, /^export \{ default \} from "\.\/browser\.js";/m);
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   for (const entry of ["./dist/sutram.js", "./dist/sutram.min.js"]) assert.equal(pkg.exports[entry].types, "./types/dist.d.ts");

@@ -17,6 +17,7 @@ import * as client from "./client.js";
 import { getEvents } from "./events.js";
 import { connectWebMCP, findModelContext, listTools, callTool, execLines } from "./webmcp.js";
 import { defineConsole, mountConsole } from "./console.js";
+import { useApprovalDialog } from "./approval.js";
 import { promptFor } from "./prompt.js";
 import { watchNavigation } from "./leave.js";
 
@@ -67,6 +68,9 @@ if (!globalThis.Sutram) {
     kits: {},
   });
   connectWebMCP(registry, findModelContext());
+  // Agents' calls that need the person are asked about in a dialog, with or
+  // without a console. A page that sets its own asker replaces it.
+  useApprovalDialog(registry);
 }
 
 export default globalThis.Sutram;

@@ -5,9 +5,19 @@ description: Open, use, place, restyle and translate the console that people and
 
 # The console
 
-`mountConsole()` adds a terminal-like console to the page. People use it,
-and agents that drive a browser type into it, so the person sees every
-command run.
+`mountConsole()` adds a terminal-like console to the page. People type
+into it, and so may agents that drive a browser. It also shows each
+command an agent runs through a tool (WebMCP, `Sutram.exec()`,
+`Sutram.call()`) and its result, and the requests the person declined, so
+the person can see what agents do. It does not ask about agents' calls:
+the [approval dialog](#the-approval-dialog) does, so the console can stay
+closed, or be left out.
+
+What the console prints is also written, as text, to a visually hidden
+`role="log"` element next to it in the page (the last 200 lines). Screen
+readers announce new lines from there, and agents that read the page as
+text (`read_page`, `find`, `innerText`) see the output without looking
+into the console's shadow root.
 
 The console cannot tell who is typing. Everything typed there follows the
 policy for people, and an agent that drives the browser can answer the
@@ -181,6 +191,25 @@ Parts can be styled with `::part()`: `panel`, `header`, `output`, `menu`,
 `prompt`, and the top bar's buttons `agent-prompt`, `copy` and `close`.
 `sutram-console::part(header) { display: none; }` hides the top bar;
 `sutram-console::part(agent-prompt) { display: none; }` only one button.
+
+## The approval dialog
+
+When an agent calls a command through WebMCP that needs the person's
+approval (see the [policy](../concepts/annotations-and-policy.md)),
+`<sutram-approval>` asks: a modal dialog with the commands and the
+question. *No* has the focus and <kbd>Esc</kbd> answers no, so a stray
+key never approves anything. `dist/sutram.js` and every console add it as
+the policy's asker; a page that calls `policy.setAsker()` uses its own.
+It is styled with the console's `--sutram-*` variables and the parts
+`dialog`, `lead`, `lines`, `question`, `yes` and `no`, and translated with
+`APPROVAL_MESSAGES` from `@d34dman/sutram/approval`:
+
+```js
+document.querySelector("sutram-approval").messages = { yes: "Ja", no: "Nein" };
+```
+
+It fires `sutram-ask` and `sutram-answer` (bubbling, composed) with the
+steps and the question or the answer.
 
 ## In other languages
 

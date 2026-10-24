@@ -36,9 +36,10 @@ export interface Messages {
   batchStopped: (line: number, n: number) => string;
   batchUndone: (line: number, n: number) => string;
   batchKept: (providers: string[]) => string;
-  agentAsks: string;
-  agentAsksBatch: (n: number) => string;
-  agentBatch: (n: number) => string;
+  /** Shown before the commands of an agent's request the person declined in the approval dialog. */
+  agentDeclined: string;
+  /** The label of the visually hidden log that mirrors the output in the page. */
+  logLabel: string;
 }
 
 export declare const MESSAGES: Readonly<Messages>;
@@ -89,8 +90,7 @@ export declare class SutramConsole extends HTMLElement {
   print(text: string, kind?: string): HTMLElement;
   /** Waits its turn when another question is open; `lead` prints what it is about when it shows. */
   ask(message: string, options?: { lead?: (() => void) | null; signal?: AbortSignal }): Promise<Answer>;
-  askForAgent(request: AskRequest): Promise<Answer>;
-  /** The output as plain text. */
+  /** The output as plain text, as the page's visually hidden log has it. */
   transcript(): string;
 }
 

@@ -128,15 +128,16 @@ three levels:
 getRegistry().policy.set({ agent: "changes" });
 ```
 
-When an agent needs approval, the console shows the commands it wants to run
-and asks. A yes covers that call and nothing after it: with `"changes"`,
-every change asks, every time. The console cannot tell who clicks, so no
+When an agent needs approval, the approval dialog shows the commands it
+wants to run and asks. A yes covers that call and nothing after it: with `"changes"`,
+every change asks, every time. The dialog cannot tell who clicks, so no
 answer may lower the level for the calls that follow.
 
 - To ask in your own dialog:
   `policy.setAsker(async ({ who, steps }) => true | false)`. Only `true`
   is yes.
-- Without a console or an asker, the browser's `confirm()` asks.
+- Without `dist/sutram.js`, a console or an asker of your own, the
+  browser's `confirm()` asks.
 - `Sutram.call()` from a headless browser cannot ask anyone: a call that
   needs approval returns exit 130 and runs only when called again with
   `{ confirmed: true }`, which says the user agreed.
@@ -144,7 +145,7 @@ answer may lower the level for the calls that follow.
 - The console cannot tell who is typing. Lines typed there follow the
   person's level, and an agent that drives the browser can answer the
   console's questions itself. So can an agent that also drives the
-  browser's `confirm()` dialog. Only a question the agent cannot reach keeps
+  approval dialog or the browser's `confirm()`. Only a question the agent cannot reach keeps
   it from approving its own calls: WebMCP, when the agent does not also
   drive the page. `Sutram.call()` asks nobody: its caller passes
   `{ confirmed: true }` itself.

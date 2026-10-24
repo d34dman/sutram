@@ -26,7 +26,7 @@ The prompt tells the agent to:
 - use the page's commands, which the prompt lists as `help` prints them, run
   `status` for the page's state, and ask (`man <command>`, `<command> -h`)
   whenever it is unsure;
-- leave hard-to-undo commands to the person: the console asks them, or the
+- leave hard-to-undo commands to the person: the page asks them, or the
   answer tells the agent to ask first.
 
 In the browser, `Sutram.agentPrompt(task)` names the page with

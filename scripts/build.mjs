@@ -61,8 +61,8 @@ const body = [
   ...chunks,
   `export default __browser.default;`,
   `export const { ${exported.join(", ")} } = __index;`,
-  // What the sutram/client, sutram/events, sutram/webmcp and sutram/console entry points export.
-  ...["client", "events", "webmcp", "console"].map((m) => `export const { ${exportsOf[m].join(", ")} } = __${m};`),
+  // What the sutram/client, sutram/events, sutram/webmcp, sutram/console and sutram/approval entry points export.
+  ...["client", "events", "webmcp", "console", "approval"].map((m) => `export const { ${exportsOf[m].join(", ")} } = __${m};`),
   "",
 ].join("\n\n");
 
