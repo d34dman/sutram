@@ -110,7 +110,7 @@ Sutram, it reads a short list of commands and runs them:
 ```text
 form fields node-article-form
 form set node-article-form title "Pour-over, step by step"
-form save node-article-form
+form submit node-article-form
 ```
 
 When something is wrong, the error names the field and the fix, so the agent

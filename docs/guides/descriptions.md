@@ -26,7 +26,7 @@ One line, what the command does, from the caller's side:
 |---|---|
 | `Cart` | `Add a product to the cart` |
 | `Handles saving` | `Save the article form, the same as clicking Save. The page reloads` |
-| `Set field value` | `Change one field. Nothing is saved until form save <form>` |
+| `Set field value` | `Change one field. Nothing is sent until form submit <form>` |
 
 Say what happens that the caller cannot see: that nothing is saved yet, that
 the page reloads, that new fields can appear.

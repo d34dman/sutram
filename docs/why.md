@@ -27,7 +27,7 @@ form fields node-article-form
 form set node-article-form title "Pour-over, step by step"
 form set node-article-form field_tags "coffee, v60"
 form set node-article-form status false
-form save node-article-form
+form submit node-article-form
 ```
 
 Each command has a JSON Schema for its input, and agents with WebMCP get it
@@ -100,7 +100,7 @@ command that ran and failed, `130` for one that was not allowed to run. See
 - **Ask before what matters.** Annotations mark what is consequential, and
   the page's policy decides who has to agree. See
   [Annotations and the policy](concepts/annotations-and-policy.md).
-- **Save on purpose.** Changes go into the page's working copy. `save` sends
+- **Save on purpose.** Changes go into the page's working copy. `submit` sends
   them; `discard` throws them away. Nothing is saved as a side effect. See
   [Drafts and saving](guides/drafts-and-saving.md).
 - **Readable by people.** Every agent call is a command line a person can

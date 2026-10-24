@@ -94,7 +94,7 @@ const remove = getRegistry().register({
 |---|---|---|
 | `name` | yes | Lowercase words separated by single spaces. Start with the provider: `cart add`, `form set`. |
 | `provider` | yes | Who owns the command. `help <provider>` lists one group. |
-| `title` | no | A short name for people, such as "Save a form". WebMCP shows it as the tool's title, and the generic approval question uses it: "Save a form? (form save)". One line. |
+| `title` | no | A short name for people, such as "Submit a form". WebMCP shows it as the tool's title, and the generic approval question uses it: "Submit a form? (form submit)". One line. |
 | `description` | yes | What it does, in one line first. `help` shows the first line, `man` all of it; agents read all of it. See [descriptions](../guides/descriptions.md). |
 | `input` | no | JSON Schema for the input, checked before `run()`. Leave it out for a command with no arguments. Name parameters with one lowercase word (`target`, `limit`), or words joined by `_` (`per_page`); `register()` warns about other names. |
 | `annotations` | yes | Hints such as `readOnly` and `consequential`. See [annotations](annotations-and-policy.md). |

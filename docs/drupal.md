@@ -41,7 +41,8 @@ They are demos, not a stable API: try them, or copy them as a starting point.
   overview, as `list status`, `list rows` and `list go`, from the
   [lists kit](guides/lists-kit.md) (`sutram/lists`): rows, pages, table
   sorts and exposed filters.
-- **`sutram_demo_form`**: fill in and save content forms. See below.
+- **`sutram_demo_form`**: fill in and submit content forms, an adapter for
+  the [forms kit](guides/forms-kit.md) (`sutram/forms`). See below.
 - **`sutram_demo_canvas`**: build pages in the
   [Drupal Canvas](https://www.drupal.org/project/canvas) editor. See below.
 
@@ -52,7 +53,7 @@ registered once and look the form up when they run, so a form that arrives by
 AJAX (in a dialog, say) works too, and a form that has gone answers "not on
 this page". Fields are
 dotted paths such as `title` or `body.value`. `set` writes into the real
-inputs (and CKEditor), so the form on screen and the commands agree. `save`
+inputs (and CKEditor), so the form on screen and the commands agree. `submit`
 clicks the real Save button: Drupal validates, checks access and runs its
 hooks as usual, and errors come back in `form status <form>`, by field.
 
@@ -61,7 +62,7 @@ form fields node-article-form
 form set node-article-form title "Pour-over, step by step"
 form set node-article-form field_tags "coffee, v60"
 form set node-article-form status false
-form save node-article-form
+form submit node-article-form
 ```
 
 ### Canvas
