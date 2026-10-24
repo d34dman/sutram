@@ -92,7 +92,7 @@ export interface CommandDefinition<I extends Record<string, any> = Record<string
   /** Input keys that can be given without --, in order. The last takes the rest of the line. */
   positional?: string[];
   annotations: Annotations;
-  /** The question asked before the command runs, when the page's policy asks. Gets the checked input, as run() does. */
+  /** The question asked before the command runs, when the page's policy asks. Gets the checked input, as run() does. It is asked again just before the run, and a different answer means the page changed meanwhile, so nothing runs: keep it free of things that change on their own, such as the time. */
   confirm?: (input: I) => string;
   /** Values for an argument, for completion. May be async. */
   suggest?: (key: string, partial: string, context: { input: Partial<I>; signal?: AbortSignal }) => Suggestion[] | Promise<Suggestion[]>;
@@ -124,16 +124,20 @@ export interface BatchEnd {
   kept: string[];
 }
 
-/** `expect`: the definition the caller checked or asked about. When the name maps to another by the time it runs, nothing runs (130). */
+/**
+ * `expect`: the definition the caller checked or asked about. When the name maps to another by the time it runs, nothing runs (130).
+ * `asked`: the question the user said yes to, from the command's confirm() (null when it has none). When it would ask something else by the time it runs, because the page changed meanwhile, nothing runs (130).
+ */
 export interface RunOptions {
   caller?: Caller;
   signal?: AbortSignal;
   expect?: CommandDefinition;
+  asked?: string | null;
 }
 
 /** A started batch. Always finish it with commit() or rollback(): the next batch waits until you do. */
 export interface Batch {
-  run(name: string, input?: Record<string, unknown>, options?: { expect?: CommandDefinition }): Promise<Result>;
+  run(name: string, input?: Record<string, unknown>, options?: { expect?: CommandDefinition; asked?: string | null }): Promise<Result>;
   commit(): Promise<BatchEnd>;
   rollback(): Promise<BatchEnd>;
 }
@@ -183,7 +187,7 @@ export interface Registry {
   defineBatch(provider: string, hooks: BatchHooks): () => void;
   startBatch(options?: { caller?: Caller; signal?: AbortSignal }): Batch;
   /** One batch runs at a time; the next waits. A step with `def` runs only while its name still maps to that definition. */
-  batch(steps: Array<{ name: string; input?: Record<string, unknown>; def?: CommandDefinition }>, options?: { caller?: Caller; signal?: AbortSignal }): Promise<BatchResult>;
+  batch(steps: Array<{ name: string; input?: Record<string, unknown>; def?: CommandDefinition; asked?: string | null }>, options?: { caller?: Caller; signal?: AbortSignal }): Promise<BatchResult>;
 }
 
 export declare function createRegistry(options?: { checkResults?: boolean; formats?: Formats; policy?: Policy }): Registry;

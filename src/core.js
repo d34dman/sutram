@@ -3,7 +3,7 @@
 // It holds no app state and touches no DOM.
 
 import { getFormats } from "./formats.js";
-import { createPolicy, whoIs } from "./policy.js";
+import { createPolicy, ownQuestion, whoIs } from "./policy.js";
 
 /** Exit codes, borrowed from the shell. */
 export const EXIT = Object.freeze({
@@ -340,7 +340,7 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
   };
   const cancelled = (name) => ({ code: EXIT.CANCELLED, message: `${name}: cancelled` });
 
-  async function execute(name, input, { caller = "code", signal, expect } = {}, inBatch) {
+  async function execute(name, input, { caller = "code", signal, expect, asked } = {}, inBatch) {
     let def = commands.get(name);
     // A person or an agent waits for a batch that is changing this provider,
     // so its rollback cannot undo their edit. App code does not: it may be
@@ -357,6 +357,12 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
     const { errors, value } = checkInput(def.input, input, formats);
     // The next step, as a command line tool says it: where the usage is.
     if (errors.length) return { code: EXIT.USAGE, message: `${name}: ${errors.join("; ")}. Try ${name} -h.` };
+    // The question is asked again here, just before the run: if the page
+    // changed while the user was answering (another caller set a field),
+    // the yes was for something else.
+    if (asked !== undefined && ownQuestion(def, value) !== asked) {
+      return { code: EXIT.CANCELLED, message: `${name}: the page changed while the user was asked, so it did not run. Run it again to be asked about it as it is now.` };
+    }
     if (signal && signal.aborted) return cancelled(name);
 
     notify(runFns, { name, input: value, caller });
@@ -469,8 +475,11 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
      * Runs a command. Always resolves to a result:
      * { code: 0, text?, data? } on success, { code, message } otherwise.
      * `expect` is the definition a client checked and asked about: when the
-     * name no longer maps to it, nothing runs. A console or agent run of a
-     * provider that a batch is changing waits until the batch is done.
+     * name no longer maps to it, nothing runs. `asked` is the question the
+     * user said yes to (ownQuestion(), or null when the command has none):
+     * when the command would ask something else by now, nothing runs. A
+     * console or agent run of a provider that a batch is changing waits
+     * until the batch is done, and checks `asked` after the wait.
      */
     run: (name, input = {}, options = {}) => execute(name, input, options, false),
     /**
@@ -521,8 +530,8 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
         return { rolledBack: how === "rollback" ? begun.map((b) => b.provider) : [], kept: [...kept] };
       };
       return {
-        /** Runs one command in the batch. `expect`, as for run(). */
-        async run(name, input = {}, { expect } = {}) {
+        /** Runs one command in the batch. `expect` and `asked`, as for run(). */
+        async run(name, input = {}, { expect, asked } = {}) {
           if (finished) throw new Error("batch: already finished");
           if (!started) {
             if (!(await until(turn, signal))) return cancelled(name);
@@ -539,7 +548,7 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
             }
             begun.push({ provider: def.provider, hooks });
           }
-          const result = await execute(name, input, { caller, signal, expect: expect === undefined ? def : expect }, true);
+          const result = await execute(name, input, { caller, signal, expect: expect === undefined ? def : expect, asked }, true);
           if (result.code === EXIT.OK && def && !hooks && !def.annotations.readOnly) kept.add(def.provider);
           return result;
         },
@@ -549,10 +558,11 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
     },
 
     /**
-     * Runs steps, [{ name, input, def? }], as one batch. Every step is checked
+     * Runs steps, [{ name, input, def?, asked? }], as one batch. Every step is checked
      * before any runs, so a typo runs nothing. A step runs only while its name
      * still maps to the definition that was checked: `def` when the step gives
-     * one (the definition a client asked about), else the one found here.
+     * one (the definition a client asked about), else the one found here; with
+     * `asked`, only while it would still ask that question (see run()).
      * The batch stops at the first step that fails and rolls back what the
      * providers' batch hooks can undo.
      * Resolves to { code, results, completed, total, message?, rolledBack?, kept? }.
@@ -575,8 +585,8 @@ export function createRegistry({ checkResults = true, formats = getFormats(), po
       }
       const b = registry.startBatch({ caller, signal });
       const results = [];
-      for (const [i, { name, input }] of steps.entries()) {
-        const result = await b.run(name, input, { expect: defs[i] });
+      for (const [i, { name, input, asked }] of steps.entries()) {
+        const result = await b.run(name, input, { expect: defs[i], asked });
         results.push(result);
         if (result.code !== EXIT.OK) {
           const { rolledBack, kept } = await b.rollback();

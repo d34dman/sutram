@@ -114,7 +114,9 @@ function question(steps) {
 
 /**
  * Asks the user when the page's policy says an agent needs approval.
- * Resolves to null when the call may run, or to the result that refuses it.
+ * Resolves to { refusal } when the call may not run, else to { asked }:
+ * the question a single command asked, which it must still ask when it
+ * runs, so a page that changed while the user answered runs nothing.
  * Interactive callers (WebMCP) ask through the policy's asker, or the
  * browser's confirm() when there is none; Sutram.call() cannot ask, so it
  * tells its caller to ask and call again with { confirmed: true }.
@@ -122,19 +124,22 @@ function question(steps) {
 async function approve(registry, steps, { confirmed = false, interactive = false, caller = "agent", signal } = {}, label = steps.length === 1 ? toolName(steps[0].def) : BATCH_TOOL.name) {
   const policy = registry.policy;
   const needing = steps.filter((s) => policy.needs(s.def, "agent"));
-  if (!needing.length || confirmed) return null;
+  if (!needing.length || confirmed) return {};
   if (interactive) {
+    // Batches are asked about by their lines, with no question of their own.
+    const asked = steps.length === 1 ? ownQuestion(steps[0].def, steps[0].input) : undefined;
+    const no = (refusal) => ({ refusal });
     let yes;
     if (policy.hasAsker()) yes = await policy.ask({ who: "agent", caller, steps, signal });
     else if (typeof globalThis.confirm === "function") yes = globalThis.confirm(`An agent on this page wants to act.\n\n${question(steps)}`);
-    else return { code: EXIT.CANCELLED, message: `${label} needs the user's approval, and this page has no way to ask, so it did not run.` };
-    if (signal && signal.aborted) return { code: EXIT.CANCELLED, message: `${label}: cancelled` };
-    return yes ? null : { code: EXIT.CANCELLED, message: `The user declined ${label}, so nothing ran.` };
+    else return no({ code: EXIT.CANCELLED, message: `${label} needs the user's approval, and this page has no way to ask, so it did not run.` });
+    if (signal && signal.aborted) return no({ code: EXIT.CANCELLED, message: `${label}: cancelled` });
+    return yes ? { asked } : no({ code: EXIT.CANCELLED, message: `The user declined ${label}, so nothing ran.` });
   }
   const why = needing.some((s) => s.def.annotations.consequential)
     ? (steps.length === 1 ? "is consequential" : "contains consequential commands")
     : "needs the user's approval on this page";
-  return { code: EXIT.CANCELLED, message: `${label} ${why}, so it did not run. Ask the user ("${question(steps)}"), then call it again with { confirmed: true }.` };
+  return { refusal: { code: EXIT.CANCELLED, message: `${label} ${why}, so it did not run. Ask the user ("${question(steps)}"), then call it again with { confirmed: true }.` } };
 }
 
 /** Runs one command for an agent: input errors first, then approval, then the command. */
@@ -149,11 +154,11 @@ async function runForAgent(registry, def, input, options) {
   // Bad input runs nothing, so it is reported without asking.
   if (errors.length) return { code: EXIT.USAGE, message: `${def.name}: ${errors.join("; ")}` };
   // The user is asked about the checked value, and that value runs.
-  const refusal = await approve(registry, [{ def, input: value }], options);
+  const { refusal, asked } = await approve(registry, [{ def, input: value }], options);
   if (refusal) return refusal;
-  // expect: the definition the user was asked about, not whatever has the name by now.
+  // expect and asked: the definition and the question the user said yes to, not whatever is there by now.
   const before = registry.generation;
-  const result = await registry.run(def.name, value, { caller: options.caller, signal: options.signal, expect: def });
+  const result = await registry.run(def.name, value, { caller: options.caller, signal: options.signal, expect: def, asked });
   if (registry.generation === before) return result;
   const add = (t) => (t ? `${t} ${REINITIALIZED_NOTE}` : REINITIALIZED_NOTE);
   return result.code === EXIT.OK ? { ...result, text: add(result.text) } : { ...result, message: add(result.message) };
@@ -177,10 +182,10 @@ async function runBatchTool(registry, input, options) {
     if (errors.length) return { code: EXIT.USAGE, message: `${where}: ${def.name}: ${errors.join("; ")}. Nothing ran.` };
     steps.push({ def, input: value });
   }
-  const refusal = await approve(registry, steps, options);
+  const { refusal, asked } = await approve(registry, steps, options);
   if (refusal) return refusal;
   const before = registry.generation;
-  let result = await registry.batch(steps.map((s) => ({ name: s.def.name, input: s.input, def: s.def })), { caller: options.caller, signal: options.signal });
+  let result = await registry.batch(steps.map((s) => ({ name: s.def.name, input: s.input, def: s.def, asked })), { caller: options.caller, signal: options.signal });
   if (input.quiet === true || input.quiet === "true") {
     // The step that failed is the one after the completed ones; a failed commit has none.
     const { results, ...rest } = result;
@@ -202,7 +207,7 @@ async function status(registry, input, options) {
   const unknown = unknownProviders(registry, providers);
   if (unknown) return { code: EXIT.USAGE, message: `sutram_status: ${unknown}` };
   const steps = registry.list().filter((d) => isStatusCommand(d) && (!providers || providers.includes(d.provider))).map((def) => ({ def, input: {} }));
-  const refusal = await approve(registry, steps, options, STATUS_TOOL.name);
+  const { refusal } = await approve(registry, steps, options, STATUS_TOOL.name);
   if (refusal) return refusal;
   return { code: EXIT.OK, data: { providers: await runStatus(registry, { caller: options.caller, signal: options.signal, providers }) } };
 }
@@ -265,7 +270,7 @@ export async function execLines(text, { registry = getRegistry(), confirmed = fa
 
   const running = commandSteps(steps);
   const label = running.length === 1 && total === 1 ? toolName(running[0].def) : "exec";
-  const refusal = await approve(registry, running.map((s) => ({ def: s.def, input: s.value })), { confirmed, caller, signal, interactive: false }, label);
+  const { refusal } = await approve(registry, running.map((s) => ({ def: s.def, input: s.value })), { confirmed, caller, signal, interactive: false }, label);
   if (refusal) return { code: refusal.code, text: refusal.message, completed: 0, total };
 
   const out = [];

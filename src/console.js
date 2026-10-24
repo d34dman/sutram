@@ -876,11 +876,14 @@ export class SutramConsole extends Base {
     const { def } = step;
     if (step.help) { this.printBlocks(formatUsage(def)); return EXIT.OK; }
     const policy = this.registry.policy;
+    // The question the person said yes to: the run checks it still holds.
+    let asked;
     if (policy.needs(def, "person")) {
-      const answer = await this.ask(ownQuestion(def, step.value) || this.messages.run(def.name, def.title));
+      asked = ownQuestion(def, step.value);
+      const answer = await this.ask(asked || this.messages.run(def.name, def.title));
       if (!answer) { this.print(this.messages.cancelled, "dim"); return EXIT.CANCELLED; }
     }
-    const result = await this.registry.run(def.name, step.input, { caller: "console", expect: def });
+    const result = await this.registry.run(def.name, step.input, { caller: "console", expect: def, asked });
     this.printResult(result, step);
     return result.code;
   }

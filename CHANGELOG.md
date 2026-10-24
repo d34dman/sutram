@@ -133,6 +133,14 @@ in the app: nav, page, user, messages, lists and forms.
 
 ### Fixed
 
+- A command that was approved no longer runs when the page changed while
+  the user was asked. Before, an agent could change a form's fields while
+  the person read "Submit Contact with 1 change (email: …)?", and the yes
+  sent the agent's values. The console, WebMCP and `sutram_batch` pass the
+  question they asked to `run()` as `asked`; just before the command runs,
+  it is asked again, and a different question refuses the run with exit
+  130 ("the page changed while the user was asked"). Run it again to be
+  asked about the page as it is now.
 - `status` in a pasted batch or a `Sutram.exec()` batch, after a line that
   changed a provider with batch hooks, no longer waits forever for the batch
   it is part of. `runStatus()` takes `run`, and a batch passes its own.

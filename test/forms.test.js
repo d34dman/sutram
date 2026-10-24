@@ -309,3 +309,30 @@ test("form set takes an agent's JSON as it comes: true, a number, a list", async
   assert.equal(obj.message, "form set: email takes text, true or false, a number or a list, not an object.");
   assert.equal((await set("gear", ["nope"])).code, EXIT.USAGE);
 });
+
+test("a form changed while the user is asked about form submit is not sent", async () => {
+  const { r, a } = setup();
+  await line(r, "form set contact email ada@example.com");
+  // While the person reads the question, an agent changes a field.
+  let release;
+  const answer = new Promise((resolve) => { release = resolve; });
+  const off = r.policy.setAsker(async () => { await answer; return true; });
+  const mc = { tools: new Map(), registerTool(tool) { this.tools.set(tool.name, tool); return Promise.resolve(); } };
+  const { connectWebMCP } = await import("../src/webmcp.js");
+  const disconnect = connectWebMCP(r, mc);
+  const submitting = mc.tools.get("form_submit").execute({ form: "contact" }, {});
+  await tick();
+  assert.equal((await mc.tools.get("form_set").execute({ form: "contact", field: "email", value: "eve@example.com" }, {})).code, EXIT.OK);
+  release();
+  const res = await submitting;
+  assert.equal(res.code, EXIT.CANCELLED);
+  assert.match(res.message, /form submit: the page changed while the user was asked, so it did not run/);
+  assert.deepEqual(a.sent, []);
+
+  // Asked again about the form as it is now, it is sent.
+  r.policy.setAsker(async () => true);
+  assert.equal((await mc.tools.get("form_submit").execute({ form: "contact" }, {})).code, EXIT.OK);
+  assert.equal(a.sent[0].email, "eve@example.com");
+  off();
+  disconnect();
+});

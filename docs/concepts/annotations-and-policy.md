@@ -32,6 +32,15 @@ Word the question for a consequential command with `confirm`:
 confirm: ({ qty }) => `Place an order for ${qty} items, €48.00?`,
 ```
 
+The question may describe the page as it is, such as the values a form
+submit sends. Someone else can change the page while the user reads it: an
+agent sets a field while the person thinks about "Submit Contact with 1
+change?". So `confirm()` runs again just before the command does, and when
+the question has changed, the command does not run (exit 130, "the page
+changed while the user was asked"); run it again to be asked about the page
+as it is now. Keep `confirm()` free of anything that changes on its own,
+such as the time, or every approved run is refused.
+
 ## Starting again
 
 Leaving the page throws away every command, event and answer on it, and a

@@ -151,6 +151,7 @@ const consoleOf = (registry) => {
     echo: (line) => out.push(`› ${line}`),
     printBlocks: (blocks) => { for (const b of blocks) out.push(`${b.kind}: ${b.text}`); },
   });
+  Object.defineProperty(c, "formatOptions", { value: {} });
   return { c, out };
 };
 
@@ -169,4 +170,23 @@ test("the console reads lines as Sutram.exec() does: -h on the built-in words, u
   assert.match(out.join("\n"), /status: usage: status \[provider …\] \[--json\]/);
   assert.equal(await c.submit("status"), 0);
   assert.match(out.join("\n"), /text: todo {2}0 todos/);
+});
+
+test("a typed command whose question changed while the person was asked does not run", async () => {
+  const r = createRegistry();
+  let total = 1;
+  const ran = [];
+  r.register({
+    name: "cart buy", provider: "cart", description: "Buy", annotations: { consequential: true },
+    confirm: () => `Buy ${total} items?`, run: () => { ran.push(total); return "Bought."; },
+  });
+  r.initialized();
+  const { c, out } = consoleOf(r);
+  // Something else changes the cart while the question is open.
+  c.ask = async () => { total = 2; return true; };
+  assert.equal(await c.submit("cart buy"), 130);
+  assert.match(out.join("\n"), /cart buy: the page changed while the user was asked, so it did not run/);
+  c.ask = async () => true;
+  assert.equal(await c.submit("cart buy"), 0);
+  assert.deepEqual(ran, [2]);
 });

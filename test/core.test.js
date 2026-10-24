@@ -353,3 +353,31 @@ test("register checks a title, and warns about parameter names that are not snak
   assert.equal(warn.mock.callCount(), 1);
   assert.match(warn.mock.calls[0].arguments[0], /d: name parameters with lowercase words joined by _, such as per_page: perPage, per-page$/);
 });
+
+test("asked: a run checks the question again after waiting for a batch on its provider", async () => {
+  const r = createRegistry();
+  let total = 1;
+  const ran = [];
+  r.defineBatch("cart", {});
+  r.register({ name: "cart add", provider: "cart", description: "Add", annotations: {}, run: () => { total++; return {}; } });
+  r.register({
+    name: "cart buy", provider: "cart", description: "Buy", annotations: { consequential: true },
+    confirm: () => `Buy ${total} items?`, run: () => { ran.push(total); return {}; },
+  });
+  r.initialized();
+  const asked = r.get("cart buy").confirm({});
+  // A batch has the cart; the agent's buy waits for it, and the batch adds an item.
+  const b = r.startBatch({ caller: "agent" });
+  await b.run("cart add");
+  const buying = r.run("cart buy", {}, { caller: "agent", asked });
+  await b.commit();
+  const res = await buying;
+  assert.equal(res.code, EXIT.CANCELLED);
+  assert.match(res.message, /the page changed while the user was asked/);
+  assert.deepEqual(ran, []);
+  // The same question still holds: it runs. No asked: never checked.
+  assert.equal((await r.run("cart buy", {}, { asked: "Buy 2 items?" })).code, EXIT.OK);
+  assert.equal((await r.batch([{ name: "cart buy", asked: "Buy 1 item?" }])).code, EXIT.CANCELLED);
+  assert.equal((await r.run("cart buy")).code, EXIT.OK);
+  assert.deepEqual(ran, [2, 2]);
+});
