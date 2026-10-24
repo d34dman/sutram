@@ -50,6 +50,9 @@ in the app: nav, page, user, messages, lists and forms.
 - `dist/page.js`, `dist/user.js`, `dist/messages.js`, `dist/lists.js` and
   `dist/forms.js` (and their `.min.js`), adding `Sutram.kits.page`, `.user`,
   `.messages`, `.lists` and `.forms`.
+- The forms example uses the forms kit, with a type of its own for fields
+  with a pattern; `form discard` there now puts back the start values
+  instead of clearing every field.
 - The example page has adapters for every kit: static menus with a hash
   router, the route's title, a pretend login, the todo commands' messages and
   a list of the docs that pages, sorts and filters in place.

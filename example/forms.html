@@ -25,14 +25,15 @@
   <li><code>form fields request</code>, then <code>form set request topic billing</code> and <code>form fields request</code> again</li>
   <li><code>form set request invoice 2024-17</code>: the error says what an invoice number looks like</li>
   <li><code>form submit request</code> before everything is filled in: it names the missing fields</li>
-  <li><code>form status request</code>, <code>form discard request</code></li>
+  <li><code>form status request</code>, <code>form discard request</code>: discard puts back what the form started with</li>
 </ul>
 <form id="request" novalidate></form>
 <p id="sent" hidden></p>
 
 <script type="module" src="../src/browser.js"></script>
 <script type="module">
-  const { registry, mountConsole, CommandError, EXIT } = globalThis.Sutram;
+  import { forms } from "../src/forms.js";
+  const { mountConsole, CommandError, EXIT } = globalThis.Sutram;
 
   // --- The app's own form: which fields exist depends on the answers --------
   const FIELDS = {
@@ -87,137 +88,52 @@
     shown = list;
   }
 
-  // --- Sutram: commands registered once, for every form on the page ---------
-  // The form is the first argument, and each command looks it up when it
-  // runs. The fields are checked when a command runs too, against the fields
-  // that exist then, so nothing is re-registered as the form changes.
-  const FORMS = { request: { label: "Support request" } };
-  const formInput = { type: "string", description: "The form's id, such as request. form list shows the forms on this page." };
-  const fieldInput = { type: "string", description: "A field of the form as it is now. Fields appear as you answer; form fields <form> lists them." };
-  const describe = (key) => {
-    const f = FIELDS[key];
-    return {
-      field: key, label: f.label, type: f.type, required: !!f.required, value: values[key] ?? "",
-      ...(f.options ? { options: f.options } : {}), ...(f.hint ? { format: f.hint } : {}),
-    };
-  };
-  const missing = () => visible().filter((k) => FIELDS[k].required && (values[k] === undefined || values[k] === ""));
-
-  function find(id, verb) {
-    if (Object.hasOwn(FORMS, id)) return FORMS[id];
-    throw new CommandError(`form ${verb}: no form "${id}" on this page. Open: ${Object.keys(FORMS).join(", ")}.`, EXIT.NOT_FOUND);
-  }
-  function field(key, verb) {
-    if (visible().includes(key)) return key;
-    throw new CommandError(`form ${verb}: the form has no field "${key}" now. Fields: ${visible().join(", ")}.`, EXIT.USAGE);
-  }
-  // Completion offers the forms, then the fields the form has now.
-  function suggest(key, partial, { input = {} } = {}) {
-    const list = key === "form" ? Object.keys(FORMS) : key === "field" && Object.hasOwn(FORMS, input.form) ? visible() : [];
-    return list.filter((v) => v.startsWith(partial));
-  }
-
-  function coerce(key, raw) {
-    const f = FIELDS[key];
-    const s = String(raw).trim();
-    if (f.type === "boolean") {
-      if (/^(true|yes|on|1)$/i.test(s)) return true;
-      if (/^(false|no|off|0)$/i.test(s)) return false;
-      throw new CommandError(`form set: ${key} is a yes/no field. Use true or false.`, EXIT.USAGE);
-    }
-    if (f.type === "choice") {
-      const k = Object.keys(f.options).find((o) => o === s || f.options[o].toLowerCase() === s.toLowerCase());
-      if (k === undefined) throw new CommandError(`form set: ${key} takes one of: ${Object.keys(f.options).join(", ")}.`, EXIT.USAGE);
-      return k;
-    }
-    if (f.type === "number" && s !== "" && !Number.isFinite(Number(s))) throw new CommandError(`form set: ${key} takes a number.`, EXIT.USAGE);
-    if (f.pattern && s !== "" && !f.pattern.test(s)) throw new CommandError(`form set: "${s}" is not a valid ${f.label.toLowerCase()}. Use ${f.hint}.`, EXIT.USAGE);
-    return f.type === "number" && s !== "" ? Number(s) : s;
-  }
-
-  const ONE = { type: "object", properties: { form: formInput }, required: ["form"] };
-  registry.register({
-    name: "form list", title: "List forms", provider: "form", description: "List the forms on this page",
-    annotations: { readOnly: true },
-    output: { type: "object", properties: { forms: { type: "array", items: { type: "object", properties: { form: { type: "string" }, label: { type: "string" } } } } } },
-    run: () => ({ data: { forms: Object.entries(FORMS).map(([form, f]) => ({ form, label: f.label })) } }),
-  });
-  registry.register({
-    name: "form status", title: "Show form status", provider: "form", description: "Show what is filled in, what is still missing, and whether it was sent",
-    input: ONE, positional: ["form"], annotations: { readOnly: true }, suggest,
-    output: { type: "object", properties: { missing: { type: "array", items: { type: "string" } }, sent: { type: "boolean" } } },
-    run: ({ form }) => {
-      find(form, "status");
-      const m = missing();
-      const text = sent ? "Sent." : m.length ? `Not sent. Still missing: ${m.join(", ")}.` : `Ready. form submit ${form} sends it.`;
-      return { text, data: { missing: m, sent } };
-    },
-  });
-  registry.register({
-    name: "form fields", title: "List form fields", provider: "form", description: "List the fields a form has now, with their type and value",
-    input: ONE, positional: ["form"], annotations: { readOnly: true }, suggest,
-    output: { type: "object", properties: { fields: { type: "array", items: { type: "object", properties: { field: { type: "string" }, label: { type: "string" }, type: { type: "string" }, required: { type: "boolean" }, value: {} } } } } },
-    view: { columns: ["field", "label", "type", "required", "value"] },
-    seeAlso: ["form set"],
-    run: ({ form }) => { find(form, "fields"); return { data: { fields: visible().map(describe) } }; },
-  });
-  registry.register({
-    name: "form get", title: "Show a form field", provider: "form", description: "Show one field, with its allowed values or format",
-    input: { type: "object", properties: { form: formInput, field: fieldInput }, required: ["form", "field"] },
-    positional: ["form", "field"], annotations: { readOnly: true }, suggest,
-    run: ({ form, field: key }) => { find(form, "get"); return { data: describe(field(key, "get")) }; },
-  });
-  registry.register({
-    name: "form set", title: "Change a form field", provider: "form",
-    description: "Change one field. Answers can add fields to the form: the result names them",
-    input: { type: "object", properties: { form: formInput, field: fieldInput, value: { type: "string", description: "The new value. Yes/no fields take true or false; choices take a key or its label." } }, required: ["form", "field", "value"] },
-    positional: ["form", "field", "value"], annotations: {}, suggest,
-    output: { type: "object", properties: { field: { type: "string" }, to: {}, added: { type: "array", items: { type: "string" } }, removed: { type: "array", items: { type: "string" } } } },
-    examples: ["form set request topic billing", 'form set request summary "Charged twice in May"', "form set request callback true"],
-    seeAlso: ["form fields", "form submit"],
-    run: ({ form, field: key, value }) => {
-      find(form, "set");
-      field(key, "set");
-      const before = visible();
-      values[key] = coerce(key, value);
-      const after = visible();
-      const added = after.filter((k) => !before.includes(k));
-      const removed = before.filter((k) => !after.includes(k));
-      let text = `${key} set.`;
-      if (added.length) text += ` The form now also asks for: ${added.join(", ")}.`;
-      if (removed.length) text += ` No longer asked: ${removed.join(", ")}.`;
+  // --- Sutram: the forms kit, with this page as its adapter -----------------
+  // The kit registers the form commands once and asks for the form each time
+  // one runs, so fields that appear as you answer are there without
+  // registering anything again. It converts the basic types; the pattern
+  // type below is this app's own.
+  const LOADED = { callback: false };
+  forms({
+    forms: () => [{
+      id: "request",
+      label: "Support request",
+      fields: visible().map((key) => {
+        const f = FIELDS[key];
+        return {
+          field: key, label: f.label, type: f.type, required: !!f.required,
+          value: LOADED[key] ?? "",
+          ...(f.options ? { options: f.options } : {}),
+          ...(f.pattern ? { handler: "pattern", pattern: f.pattern, format: f.hint } : {}),
+        };
+      }),
+    }],
+    read: (form, field) => values[field.field] ?? (field.type === "boolean" ? false : ""),
+    write: (form, field, value) => {
+      values[field.field] = value;
+      sent = false;
+      document.getElementById("sent").hidden = true;
       render();
-      return { text, data: { field: key, to: values[key], added, removed } };
     },
-  });
-  registry.register({
-    name: "form submit", title: "Send a form", provider: "form", description: "Send a form",
-    input: ONE, positional: ["form"], annotations: { consequential: true }, suggest,
-    confirm: () => `Send the ${values.topic || ""} request from ${values.email || "?"}?`,
-    run: ({ form }) => {
-      find(form, "submit");
-      const m = missing();
-      if (m.length) throw new CommandError(`form submit: ${m.join(", ")} ${m.length === 1 ? "is" : "are"} required. For example: form set ${form} ${m[0]} …`, EXIT.FAILED);
+    submit() {
       sent = true;
       const el = document.getElementById("sent");
       el.hidden = false;
       el.textContent = `Sent: ${JSON.stringify(Object.fromEntries(visible().map((k) => [k, values[k]])))}`;
-      return { text: "Sent. Thank you.", data: { sent: true } };
+      return { text: "Sent. Thank you." };
     },
-  });
-  registry.register({
-    name: "form discard", title: "Clear a form", provider: "form", description: "Clear a form",
-    input: ONE, positional: ["form"], annotations: { consequential: true }, suggest,
-    confirm: () => "Clear every field?",
-    run: ({ form }) => {
-      find(form, "discard");
-      for (const k of Object.keys(values)) delete values[k];
-      values.callback = false;
-      sent = false;
-      document.getElementById("sent").hidden = true;
-      render();
-      return { text: "Cleared." };
+    reloads: false,
+    types: {
+      // A string with a pattern: the message says what a valid one looks like.
+      pattern: {
+        coerce(field, raw) {
+          const s = String(raw).trim();
+          if (s !== "" && !field.pattern.test(s)) throw new CommandError(`form set: "${s}" is not a valid ${field.label.toLowerCase()}. Use ${field.format}.`, EXIT.USAGE);
+          return s;
+        },
+      },
     },
+    notes: { submit: () => `It goes to the support team${values.email ? ` from ${values.email}` : ""}.` },
   });
 
   let sent = false;
