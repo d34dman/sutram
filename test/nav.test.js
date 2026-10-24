@@ -70,8 +70,8 @@ test("leaves nothing registered when a name is already taken", () => {
 });
 
 test("reloads picks the annotation of nav go: navigates or reinitializes", () => {
-  assert.deepEqual(setup().r.get("nav go").annotations, { navigates: true });
-  assert.deepEqual(setup({ reloads: false }).r.get("nav go").annotations, { reinitializes: true });
+  assert.deepEqual(setup().r.get("nav go").annotations, { navigates: true, untrustedContent: true });
+  assert.deepEqual(setup({ reloads: false }).r.get("nav go").annotations, { reinitializes: true, untrustedContent: true });
 });
 
 test("asks the adapter for the menus every time a command runs", async () => {
@@ -214,10 +214,9 @@ test("nav go refuses a path that the URL parser reads as another site", async ()
   assert.equal((await r.run("nav go", { target: "http://localhost/admin/people" })).data.url, "/admin/people");
 });
 
-test("nav menu and nav search mark their output as untrusted content", () => {
+test("nav status, menu and search mark their output as untrusted content", () => {
   const { r } = setup();
-  for (const name of ["nav menu", "nav search"]) assert.deepEqual(r.get(name).annotations, { readOnly: true, untrustedContent: true });
-  assert.deepEqual(r.get("nav status").annotations, { readOnly: true });
+  for (const name of ["nav status", "nav menu", "nav search"]) assert.deepEqual(r.get(name).annotations, { readOnly: true, untrustedContent: true });
 });
 
 test("a link reachable twice is not ambiguous", async () => {

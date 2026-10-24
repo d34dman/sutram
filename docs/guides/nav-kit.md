@@ -85,9 +85,9 @@ the page:
   Sutram starts again on the new one.
 - **`reloads: false`**: `nav go` is marked `reinitializes`. Your router shows
   the new route, and then your app calls `Sutram.initialized()` (or
-  `registry.initialized()`). Until then, runs wait, so no command acts on the
-  route that was left. Call it even when `go()` is asked for the route that is
-  already showing:
+  `registry.initialized()`). Until then, runs are refused with exit 130, so no
+  command acts on the route that was left. Call it even when `go()` is asked
+  for the route that is already showing:
 
 ```js
 const here = () => location.hash.slice(1) || "/";
@@ -116,6 +116,14 @@ In this order:
 
 If a title matches links with different paths, `nav go` fails and lists
 them, so the caller can pick the breadcrumb.
+
+`nav go` is not consequential: it does what following a link does. So any
+same-site URL that changes something when it is opened (a GET logout link
+without a confirmation form, a "delete" link, a one-click action) can be
+reached through it without asking, even where the command for it, such as
+`user logout`, is consequential. Keep such actions behind a form or a POST,
+as the web expects. (`go()` cannot refuse them: it runs after `nav go` has
+answered.)
 
 ## Without a bundler
 

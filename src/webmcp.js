@@ -106,7 +106,14 @@ function noSuchTool(registry, name, prefix = "") {
  * native dialogs cut long text, so a long value must not hide the rest.
  */
 function question(steps) {
-  if (steps.length === 1) return ownQuestion(steps[0].def, steps[0].input) || genericQuestion(steps[0].def);
+  if (steps.length === 1) {
+    const [{ def, input }] = steps;
+    // A command's own question says what it does; the generic one gets the line, so the values show.
+    const own = ownQuestion(def, input);
+    if (own) return own;
+    const line = approvalLine(def, input);
+    return line === def.name ? genericQuestion(def) : `${genericQuestion(def)}\n${line}`;
+  }
   const consequential = [...new Set(steps.filter((s) => s.def.annotations.consequential).map((s) => s.def.name))];
   const warning = consequential.length ? ` ${consequential.join(", ")} cannot easily be undone.` : "";
   return `Run these ${steps.length} commands?${warning}\n${steps.map((s) => approvalLine(s.def, s.input)).join("\n")}`;

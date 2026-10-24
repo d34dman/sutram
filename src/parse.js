@@ -186,7 +186,7 @@ function parseArguments(def, rest) {
         input[negated] = false;
         continue;
       }
-      if (!own(props, key)) throw new CommandError(`${name}: unknown option --${key}. See ${name} -h`, EXIT.USAGE);
+      if (!own(props, key)) throw new CommandError(`${name}: unknown option --${key}. Try ${name} -h.`, EXIT.USAGE);
       if (val === undefined) {
         if (isFlag(props[key])) {
           const next = rest[i + 1];
@@ -202,13 +202,13 @@ function parseArguments(def, rest) {
       input[key] = val;
       continue;
     }
-    if (option && /^-[a-z]/i.test(raw)) throw new CommandError(`${name}: unknown option ${raw}. See ${name} -h`, EXIT.USAGE);
+    if (option && /^-[a-z]/i.test(raw)) throw new CommandError(`${name}: unknown option ${raw}. Try ${name} -h.`, EXIT.USAGE);
     positional.push(raw);
   }
 
   const order = def.positional || [];
   if (positional.length && !order.length) {
-    throw new CommandError(`${name}: takes no positional arguments. See ${name} -h`, EXIT.USAGE);
+    throw new CommandError(`${name}: takes no positional arguments. Try ${name} -h.`, EXIT.USAGE);
   }
   // Positional words fill the positional keys not given as options, in order.
   // The last positional key takes the rest of the line, so `nav search pour over`
@@ -221,7 +221,7 @@ function parseArguments(def, rest) {
   });
   const taken = free.length && free[free.length - 1] === last ? positional.length : free.length;
   if (positional.length > taken) {
-    throw new CommandError(`${name}: unexpected argument "${positional[taken]}". See ${name} -h`, EXIT.USAGE);
+    throw new CommandError(`${name}: unexpected argument "${positional[taken]}". Try ${name} -h.`, EXIT.USAGE);
   }
   return { def, input, help, json, wide, fields };
 }

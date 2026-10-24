@@ -225,7 +225,9 @@ async function fromUrl(source, { name, type }, { signal, verb }) {
   if (!res.ok) throw new CommandError(`${verb}: ${url.href} answered HTTP ${res.status}.`, EXIT.FAILED);
   const blob = await res.blob();
   const last = url.protocol === "data:" ? "" : url.pathname.split("/").pop();
-  const filename = name || (last ? decodeURIComponent(last) : "");
+  // A file name with a stray % is kept as written.
+  const decoded = (() => { try { return decodeURIComponent(last); } catch { return last; } })();
+  const filename = name || decoded;
   if (!filename) throw new CommandError(`${verb}: ${url.protocol === "data:" ? "a data: URL" : url.href} has no file name: give one with --name, such as --name=photo.jpg.`, EXIT.USAGE);
   return new File([blob], filename, { type: type || (blob.type || "").split(";")[0] });
 }
@@ -664,7 +666,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
       input: ONE,
       positional: ["form"],
       output: { type: "object", required: ["form", "submitted"], properties: { form: { type: "string" }, submitted: { type: "boolean" } } },
-      annotations: adapter.reloads ? { consequential: true, navigates: true } : { consequential: true },
+      annotations: adapter.reloads ? { consequential: true, navigates: true, untrustedContent: true } : { consequential: true, untrustedContent: true },
       // The person sees the values that are sent: an agent sets fields without asking.
       confirm({ form: id }) {
         return orElse(`Submit ${id}?`, () => {
@@ -809,7 +811,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
       },
       positional: ["form", "target"],
       output: { type: "object", required: ["removed"], properties: { removed: { type: "string" }, items: { type: "integer", description: "Items the field has now" } } },
-      annotations: { consequential: true },
+      annotations: { consequential: true, untrustedContent: true },
       confirm({ form: id, target }) {
         return orElse(`Remove ${target} from ${id}?`, () => {
           const f = findNow(id);
@@ -935,7 +937,7 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
         },
       },
       view: { columns: ["field", "filename", "size", "paths"] },
-      annotations: { consequential: true },
+      annotations: { consequential: true, untrustedContent: true },
       confirm(input) {
         const { form: id, field, source, name, text: t, base64 } = input;
         // With a URL, always say where it is fetched from: the fetch happens once approved.

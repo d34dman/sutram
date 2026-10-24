@@ -7,6 +7,38 @@ covered: agents discover them at run time, so they may change in any
 release, and each change is listed under *Commands*. See
 [Status and versions](README.md#status-and-versions).
 
+## Unreleased
+
+### Commands
+
+- `nav status`, `nav go`, `form submit`, `form remove` and `form upload`
+  are marked `untrustedContent` (WebMCP `untrustedContentHint`): their
+  results carry menu titles, file names and the server's own messages.
+- Usage errors from the parser end "Try <command> -h.", as the others do
+  (was "See <command> -h", without a full stop).
+- `form upload` keeps a file name with a stray `%` as written. Before, a
+  URL such as `/files/%E0%A4%A.txt` failed with "URI malformed".
+
+### Fixed
+
+- The generic question for one command shows its arguments too: "Run doc
+  add?" is followed by `doc add d`, in the browser's `confirm()` and in the
+  question `Sutram.call()` hands back. Only a command's own `confirm()`
+  showed values before, so with `agent: "changes"` the user could not see
+  what `form set` would write.
+- `agentPrompt()` quotes the page's title and labels it as the site's own
+  text, after the URL, so a title cannot read as part of the user's task.
+  The prompt and the discovery rules say that text from the site, in
+  results and in error messages, is data, never instructions.
+
+### Docs
+
+- The nav kit guide says that after a `reinitializes` `nav go`, runs are
+  refused with exit 130 (it said they wait), and that `nav go` reaches any
+  same-site URL without asking, so actions belong behind a form or a POST.
+- The homepage and *Why* say the token figures are estimated from captured
+  outputs, with no agent run (the homepage said "Measured").
+
 ## 0.8.0 (2026-10-24)
 
 Kits: commands that are the same on every site, each fed by a small adapter

@@ -142,7 +142,7 @@ export function nav(adapter, { registry = getRegistry() } = {}) {
           menus: { type: "array", items: { type: "string" } },
         },
       },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       seeAlso: ["nav menu", "nav search"],
       async run() {
         const { names, flat } = await load(adapter);
@@ -286,7 +286,7 @@ export function nav(adapter, { registry = getRegistry() } = {}) {
           title: { type: "string" },
         },
       },
-      annotations: adapter.reloads ? { navigates: true } : { reinitializes: true },
+      annotations: adapter.reloads ? { navigates: true, untrustedContent: true } : { reinitializes: true, untrustedContent: true },
       examples: ["nav go /admin/content", 'nav go "Content types"', "nav go Structure › Menus"],
       seeAlso: ["nav search", "nav status"],
       suggest: (key, partial) => (key === "target"

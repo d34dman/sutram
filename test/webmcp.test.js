@@ -124,7 +124,9 @@ test("the policy decides which agent calls need the user, and WebMCP asks throug
 
   // Sutram.call cannot ask; it says to.
   const refused = await callTool("doc_add", { item: "d" }, { registry: r });
-  assert.match(refused.message, /needs the user's approval.*confirmed: true/);
+  assert.match(refused.message, /needs the user's approval[\s\S]*confirmed: true/);
+  // The generic question shows the arguments.
+  assert.match(refused.message, /"Run doc add\?\ndoc add d"/);
   assert.equal((await callTool("doc_add", { item: "d" }, { registry: r, confirmed: true })).code, 0);
 });
 

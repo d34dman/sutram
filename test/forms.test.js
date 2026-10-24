@@ -64,15 +64,15 @@ test("registers the core seven with titles; the optional four only with the adap
   const core = ["form list", "form status", "form fields", "form get", "form set", "form submit", "form discard"];
   for (const name of core) assert.ok(r.get(name).title, name);
   for (const name of ["form add", "form remove", "form search", "form upload"]) assert.equal(r.get(name), undefined, name);
-  assert.deepEqual(r.get("form submit").annotations, { consequential: true });
+  assert.deepEqual(r.get("form submit").annotations, { consequential: true, untrustedContent: true });
   off();
   assert.equal(r.get("form set"), undefined);
 
   const all = setup({ reloads: true, add() {}, remove() {}, search() {}, upload() {} }).r;
   for (const name of ["form add", "form remove", "form search", "form upload"]) assert.ok(all.get(name), name);
-  assert.deepEqual(all.get("form submit").annotations, { consequential: true, navigates: true });
-  assert.deepEqual(all.get("form remove").annotations, { consequential: true });
-  assert.deepEqual(all.get("form upload").annotations, { consequential: true });
+  assert.deepEqual(all.get("form submit").annotations, { consequential: true, navigates: true, untrustedContent: true });
+  assert.deepEqual(all.get("form remove").annotations, { consequential: true, untrustedContent: true });
+  assert.deepEqual(all.get("form upload").annotations, { consequential: true, untrustedContent: true });
   assert.deepEqual(all.get("form search").annotations, { readOnly: true, untrustedContent: true });
   // What the site wrote comes back: values, labels, errors, candidates.
   for (const name of ["form list", "form status", "form fields", "form get"]) assert.deepEqual(all.get(name).annotations, { readOnly: true, untrustedContent: true }, name);
@@ -250,6 +250,14 @@ test("form add, remove, search and upload go to the adapter, with the kit's text
   assert.match((await line(r, "form upload contact files --base64=@@@ --name=a.bin")).message, /not valid base64/);
   const data = await line(r, "form upload contact files data:text/plain;base64,SGk= --name=hi.txt");
   assert.deepEqual(data.data.uploaded[0], { field: "files.0", filename: "hi.txt", size: 2, fid: 9 });
+  // A file name with a stray % is kept as written, instead of failing with "URI malformed".
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response("x");
+  try {
+    const odd = await line(r, "form upload contact files https://example.com/files/%E0%A4%A.txt");
+    assert.equal(odd.code, 0, odd.message);
+    assert.equal(odd.data.uploaded[0].filename, "%E0%A4%A.txt");
+  } finally { globalThis.fetch = realFetch; }
 });
 
 test("form upload asks with where a URL is fetched from, even with --name", () => {
