@@ -7,6 +7,7 @@ import { createEvents } from "@d34dman/sutram/events";
 import { callTool, listTools, connectWebMCP } from "@d34dman/sutram/webmcp";
 import { mountConsole, MESSAGES } from "@d34dman/sutram/console";
 import Sutram from "@d34dman/sutram/dist/sutram.js";
+import { nav, type NavMenus } from "@d34dman/sutram/nav";
 
 const registry = getRegistry();
 const off = registry.register({
@@ -42,3 +43,9 @@ async function main() {
 }
 void main;
 off();
+
+// The nav kit with a static adapter; Sutram.kits.nav is the same function from dist/nav.js.
+const menus: NavMenus = { main: { label: "Main", items: [{ title: "Docs", url: "/docs", children: [{ title: "Install", url: "/docs/install" }] }] } };
+const offNav: () => void = nav({ menus: () => menus, go: (url) => { location.assign(url); }, reloads: true });
+offNav();
+Sutram.kits.nav?.({ menus: async () => menus, go: () => {}, reloads: false, here: () => "/docs" });

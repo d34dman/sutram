@@ -72,6 +72,8 @@ special cases.
 | `@d34dman/sutram/client` | For a client of your own: parse and complete command lines, check input, run status, format results | no |
 | `@d34dman/sutram/browser` | `globalThis.Sutram`: the registry and its helpers, with `/client` as `Sutram.client` | yes |
 | `@d34dman/sutram/dist/sutram.js` | The same as `browser`, bundled into one file; `sutram.min.js` stripped | yes |
+| `@d34dman/sutram/nav` | The [nav kit](guides/nav-kit.md): `nav status`, `menu`, `search` and `go` over menus your adapter supplies | no |
+| `@d34dman/sutram/dist/nav.js` | The nav kit as a file of its own, for pages that load `dist/sutram.js`; adds `Sutram.kits.nav` | yes |
 | `@d34dman/sutram/internals` | Helpers Sutram uses itself. No semver promise | no |
 
 ### Several copies on one page

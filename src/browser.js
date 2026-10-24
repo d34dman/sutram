@@ -3,7 +3,8 @@
 // the shared API as globalThis.Sutram. Headless browsers and tests use
 // Sutram.tools() and Sutram.call() from there, and Sutram.agentPrompt()
 // hands a task to an agent that drives a browser. Sutram.client is @d34dman/sutram/client, for pages
-// that build a client of their own.
+// that build a client of their own. Kits loaded as their own files, such as
+// dist/nav.js, add themselves to Sutram.kits.
 //
 //   <script type="module" src=".../sutram/src/browser.js"></script>
 //   <script type="module">
@@ -52,6 +53,9 @@ if (!globalThis.Sutram) {
     mountConsole,
     connectWebMCP: () => connectWebMCP(registry, findModelContext()),
     client: Object.freeze({ ...client }),
+    // Kits loaded as their own file (dist/nav.js) add themselves here:
+    // Sutram.kits.nav(adapter).
+    kits: {},
   });
   connectWebMCP(registry, findModelContext());
 }

@@ -25,7 +25,9 @@ module (`lib/sutram`); nothing is loaded from a CDN.
 They are demos, not a stable API: try them, or copy them as a starting point.
 
 - **`sutram_demo_nav`**: `nav status`, `nav menu`, `nav search` and `nav go`
-  over the menus you choose. Each user sees only the links they may open.
+  over the menus you choose. Each user sees only the links they may open. The
+  commands come from the [nav kit](guides/nav-kit.md) (the library
+  `sutram/nav`); the submodule is only its adapter.
 - **`sutram_demo_page`**: `page status`, the page's title, route and entity.
 - **`sutram_demo_form`**: fill in and save content forms. See below.
 - **`sutram_demo_canvas`**: build pages in the

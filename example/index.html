@@ -21,11 +21,48 @@
   <li><code>todo add "Buy beans</code>, <kbd>Enter</kbd> inside the quotes starts a new line of the title</li>
   <li>Paste <code>todo add a</code>, <code>todo add b</code>, <code>todo done 99</code> as three lines: the batch fails and undoes the first two</li>
 </ul>
+<p>The nav kit, over two static menus and a router that changes only the address's <code>#</code>: <code>nav menu</code>, <code>nav search install</code>, <code>nav go Docs › Kits</code>, <code>nav status</code>.</p>
+<p>Page: <b id="page"></b> · <a href="#/">Home</a> · <a href="#/docs">Docs</a> · <a href="#/about">About</a></p>
 <p><a href="?inline">Show the console inline</a>, the way an app places it in its own panel.</p>
 <ul id="todos"></ul>
 <div id="panel" hidden style="height: 260px; border-radius: 8px; overflow: hidden;"></div>
 
 <script type="module" src="../src/browser.js"></script>
+<script type="module">
+  // The nav kit with a second adapter: static menus and a client-side router.
+  // Going does not load a new page (reloads: false), so nav go is marked
+  // reinitializes, and the router calls Sutram.initialized() once the new
+  // route is shown. Without a bundler, dist/nav.js gives Sutram.kits.nav.
+  import { nav } from "../src/nav.js";
+  const menus = {
+    main: {
+      label: "Main",
+      items: [
+        { title: "Home", url: "/" },
+        {
+          title: "Docs", url: "/docs", description: "How to use Sutram",
+          children: [
+            { title: "Install", url: "/docs/install", description: "Add Sutram to a page" },
+            { title: "Kits", url: "/docs/kits", description: "Ready-made commands, fed by an adapter" },
+          ],
+        },
+        { title: "About", url: "/about" },
+      ],
+    },
+    footer: { label: "Footer", items: [{ title: "About", url: "/about" }, { title: "Contact", url: "/contact", description: "Write to us" }] },
+  };
+  const here = () => location.hash.slice(1) || "/";
+  const show = () => { document.getElementById("page").textContent = here(); };
+  addEventListener("hashchange", () => { show(); Sutram.initialized(); });
+  show();
+  nav({
+    menus: () => menus,
+    // Going to the page you are on changes nothing, so no hashchange comes.
+    go: (url) => { if (url === here()) Sutram.initialized(); else location.hash = url; },
+    reloads: false,
+    here,
+  });
+</script>
 <script type="module">
   const { register, events, mountConsole, CommandError } = globalThis.Sutram;
   const todos = [];

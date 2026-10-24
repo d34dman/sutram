@@ -3,6 +3,25 @@
 Sutram follows [semantic versioning](https://semver.org/). Before 1.0,
 breaking changes bump the minor version.
 
+## Unreleased
+
+The first kit: nav commands, the same on every site, fed by an adapter.
+
+### Added
+
+- `@d34dman/sutram/nav`: the nav kit. `nav({ menus, go, reloads, here? })`
+  registers `nav status`, `nav menu`, `nav search` and `nav go`. The kit asks
+  the adapter for the menus each time a command runs, matches targets by
+  path, id, title or breadcrumb, and completes menu names and link titles.
+  `reloads: true` marks `nav go` as `navigates`; `reloads: false`, for a
+  client-side router, marks it `reinitializes`. See the
+  [nav kit guide](docs/guides/nav-kit.md).
+- `dist/nav.js` (and `nav.min.js`): the kit as a file of its own for pages
+  without a bundler. It uses the `globalThis.Sutram` that `dist/sutram.js`
+  defined and adds itself as `Sutram.kits.nav`.
+- `Sutram.kits`: where kits loaded as their own files add themselves.
+- The example page has a second nav adapter: static menus and a hash router.
+
 ## 0.7.0 (2026-10-24)
 
 Tools get titles people can read, and commands one naming style.

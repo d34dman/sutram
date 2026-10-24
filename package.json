@@ -32,6 +32,10 @@
       "types": "./types/browser.d.ts",
       "default": "./src/browser.js"
     },
+    "./nav": {
+      "types": "./types/nav.d.ts",
+      "default": "./src/nav.js"
+    },
     "./package.json": "./package.json",
     "./dist/sutram.js": {
       "types": "./types/dist.d.ts",
@@ -40,6 +44,10 @@
     "./dist/sutram.min.js": {
       "types": "./types/dist.d.ts",
       "default": "./dist/sutram.min.js"
+    },
+    "./dist/nav.js": {
+      "types": "./types/nav.d.ts",
+      "default": "./dist/nav.js"
     },
     "./skins/*": "./skins/*"
   },
@@ -60,7 +68,9 @@
   "sideEffects": [
     "./src/browser.js",
     "./dist/sutram.js",
-    "./dist/sutram.min.js"
+    "./dist/sutram.min.js",
+    "./dist/nav.js",
+    "./dist/nav.min.js"
   ],
   "scripts": {
     "test": "node --test",

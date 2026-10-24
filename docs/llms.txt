@@ -18,6 +18,7 @@ Agents using a page: start with `status` (or the `sutram_status` tool), then `he
 ## Build commands
 
 - [Write a provider](https://d34dman.github.io/sutram/docs/guides/write-a-provider.md): Build a small set of commands step by step, the way the coffee shop on the website does.
+- [Nav kit](https://d34dman.github.io/sutram/docs/guides/nav-kit.md): Ready-made nav commands for any app. You write a small adapter that supplies the menus and goes to a URL.
 - [Commands and providers](https://d34dman.github.io/sutram/docs/concepts/commands.md): What a command definition holds, who owns it, and when to register and remove it.
 - [Write descriptions agents can use](https://d34dman.github.io/sutram/docs/guides/descriptions.md): The documentation agents read is your command definitions. How to write them.
 - [Errors that help agents](https://d34dman.github.io/sutram/docs/guides/errors.md): How to word failures so an agent fixes one thing instead of starting over.

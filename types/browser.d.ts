@@ -3,6 +3,7 @@ import type * as client from "./client.js";
 import type { Events } from "./events.js";
 import type { mountConsole } from "./console.js";
 import type { Tool, callTool } from "./webmcp.js";
+import type { nav } from "./nav.js";
 
 export type SutramGlobal = {
   EXIT: typeof core.EXIT;
@@ -24,6 +25,8 @@ export type SutramGlobal = {
   connectWebMCP(): () => void;
   /** @d34dman/sutram/client, for pages that build a client of their own. */
   client: typeof client;
+  /** Kits loaded as their own files: dist/nav.js adds nav. */
+  kits: { nav?: typeof nav };
 };
 
 declare global {

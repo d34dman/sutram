@@ -77,10 +77,32 @@ test("the minifier keeps regular expressions after keywords and with escaped sla
   assert.equal(strip("if (a)  {\n    b();   // c\n}\n"), "if (a) {\nb();\n}\n");
 });
 
+test("dist/nav.js uses the page's Sutram and adds itself to Sutram.kits", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sutram-kit-"));
+  for (const part of ["src", "scripts", "package.json"]) cpSync(part, join(dir, part), { recursive: true });
+  execFileSync(process.execPath, [join(dir, "scripts/build.mjs")]);
+  // The kit file alone refuses to load; after sutram.js it registers on the page's registry.
+  const run = (code) => execFileSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8" });
+  for (const file of ["nav.js", "nav.min.js"]) {
+    const kit = JSON.stringify(join(dir, "dist", file));
+    assert.throws(() => run(`await import(${kit});`), /load dist\/sutram\.js \d+\.\d+\.\d+ before the nav kit/, file);
+    const out = JSON.parse(run(`
+      const { default: Sutram } = await import(${JSON.stringify(join(dir, "dist/sutram.js"))});
+      const { nav } = await import(${kit});
+      Sutram.kits.nav({ menus: () => ({ main: { label: "Main", items: [{ title: "Docs", url: "/docs" }] } }), go: () => {}, reloads: true, here: () => "/docs" });
+      const res = await Sutram.registry.run("nav status");
+      console.log(JSON.stringify({ same: nav === Sutram.kits.nav, tools: Sutram.tools().map((t) => t.name), trail: res.data.trail }));
+    `));
+    assert.equal(out.same, true, file);
+    assert.equal(out.trail, "Docs", file);
+    for (const tool of ["nav_status", "nav_menu", "nav_search", "nav_go"]) assert.ok(out.tools.includes(tool), `${file}: ${tool}`);
+  }
+});
+
 test("package.json: side effects bundlers must keep, and the changelog ships", async () => {
   const { readFileSync } = await import("node:fs");
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  assert.deepEqual(pkg.sideEffects, ["./src/browser.js", "./dist/sutram.js", "./dist/sutram.min.js"]);
+  assert.deepEqual(pkg.sideEffects, ["./src/browser.js", "./dist/sutram.js", "./dist/sutram.min.js", "./dist/nav.js", "./dist/nav.min.js"]);
   assert.ok(pkg.files.includes("CHANGELOG.md"), "the changelog ships");
 });
 

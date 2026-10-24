@@ -74,3 +74,35 @@ writeFileSync(resolve(dist, "sutram.js"), out);
 writeFileSync(resolve(dist, "sutram.min.js"), min);
 const size = (s) => `${(s.length / 1024).toFixed(1)} kB, ${(gzipSync(s).length / 1024).toFixed(1)} kB gzipped`;
 console.log(`build: wrote dist/sutram.js (${order.map((m) => m.name).join(", ")}; ${size(out)}) and dist/sutram.min.js (${size(min)})`);
+
+// Kits: one file each, for hosts that load only the kits a page uses (a
+// Drupal library per kit). A kit file has no copy of Sutram: it takes what
+// it imports from the globalThis.Sutram that dist/sutram.js defined, so it
+// uses the page's one registry, and adds itself to Sutram.kits.
+const KIT_IMPORTS = { CommandError: "Sutram.CommandError", EXIT: "Sutram.EXIT", getRegistry: "() => Sutram.registry" };
+for (const kit of ["nav"]) {
+  const text = readFileSync(resolve(root, "src", `${kit}.js`), "utf8");
+  const s = text
+    .replace(/^import\s*\{([^}]*)\}\s*from\s*"\.\/core\.js";/gm, (_, list) => list.split(",").map((n) => n.trim()).filter(Boolean).map((n) => {
+      if (!KIT_IMPORTS[n]) throw new Error(`build: src/${kit}.js imports ${n}, which dist/sutram.js does not expose on globalThis.Sutram`);
+      return `const ${n} = ${KIT_IMPORTS[n]};`;
+    }).join("\n"))
+    .replace(new RegExp(`^export\\s+function\\s+${kit}\\b`, "m"), `function ${kit}`);
+  const left = s.match(/^\s*(import|export)\b.*$/m);
+  if (left) throw new Error(`build: src/${kit}.js: cannot bundle "${left[0].trim()}"`);
+  const kitBanner = [
+    `// ${pkg.name} ${pkg.version}: the ${kit} kit (src/${kit}.js) for pages that load dist/sutram.js. Do not edit; run npm run build.`,
+    `// ${pkg.homepage.replace(/#.*$/, "")} · ${pkg.license}`,
+  ].join("\n");
+  const kitBody = [
+    `const Sutram = globalThis.Sutram;`,
+    `if (!Sutram || !Sutram.kits) throw new Error("sutram: load dist/sutram.js ${pkg.version} before the ${kit} kit");`,
+    s.trim(),
+    `Sutram.kits.${kit} = ${kit};`,
+    `export { ${kit} };`,
+    "",
+  ].join("\n\n");
+  writeFileSync(resolve(dist, `${kit}.js`), `${kitBanner}\n\n${kitBody}`);
+  writeFileSync(resolve(dist, `${kit}.min.js`), `${kitBanner}\n${strip(kitBody)}`);
+  console.log(`build: wrote dist/${kit}.js (${size(kitBody)}) and dist/${kit}.min.js`);
+}
