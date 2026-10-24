@@ -52,6 +52,10 @@
       "types": "./types/lists.d.ts",
       "default": "./src/lists.js"
     },
+    "./forms": {
+      "types": "./types/forms.d.ts",
+      "default": "./src/forms.js"
+    },
     "./package.json": "./package.json",
     "./dist/sutram.js": {
       "types": "./types/dist.d.ts",
@@ -80,6 +84,10 @@
     "./dist/lists.js": {
       "types": "./types/lists.d.ts",
       "default": "./dist/lists.js"
+    },
+    "./dist/forms.js": {
+      "types": "./types/forms.d.ts",
+      "default": "./dist/forms.js"
     },
     "./skins/*": "./skins/*"
   },
@@ -110,7 +118,9 @@
     "./dist/messages.js",
     "./dist/messages.min.js",
     "./dist/lists.js",
-    "./dist/lists.min.js"
+    "./dist/lists.min.js",
+    "./dist/forms.js",
+    "./dist/forms.min.js"
   ],
   "scripts": {
     "test": "node --test",

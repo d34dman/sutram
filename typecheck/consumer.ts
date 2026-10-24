@@ -12,6 +12,7 @@ import { page } from "@d34dman/sutram/page";
 import { user } from "@d34dman/sutram/user";
 import { messages, type Message } from "@d34dman/sutram/messages";
 import { lists, type ListState } from "@d34dman/sutram/lists";
+import { forms, type FormField } from "@d34dman/sutram/forms";
 
 const registry = getRegistry();
 const off = registry.register({
@@ -68,3 +69,16 @@ lists({
   reloads: true,
 })();
 Sutram.kits.lists?.({ lists: async () => ({}), go() {}, reloads: false });
+
+// The forms kit.
+const values: Record<string, unknown> = {};
+forms({
+  forms: () => [{ id: "contact", label: "Contact", fields: [{ field: "email", type: "string", required: true, value: "" }] }],
+  read: (form, field: FormField) => values[field.field] ?? "",
+  write: (form, field, value) => { values[field.field] = value; },
+  submit: () => ({ text: "Sent." }),
+  reloads: false,
+  types: { date: { coerce: (field, raw) => raw, format: "YYYY-MM-DD" } },
+  upload: async (form, field, files) => ({ data: { uploaded: (files || []).map((f) => ({ field, filename: f.name })) } }),
+})();
+Sutram.kits.forms?.({ forms: async () => [], read() {}, write() {}, submit() {}, reloads: true });

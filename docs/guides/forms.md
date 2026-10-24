@@ -21,8 +21,12 @@ so an agent that has filled one knows them all:
 | `form fields <form>` | Every field the form has now: name, label, type, required, value | read-only |
 | `form get <form> <field>` | One field in full, with its allowed values or format | read-only |
 | `form set <form> <field> <value>` | Change one field. Nothing is saved yet | |
-| `form save <form>` (or `submit`) | Send it, the same as the form's button | consequential |
+| `form submit <form>` | Send it, the same as the form's button | consequential |
 | `form discard <form>` | Undo the unsaved changes | consequential |
+
+The [forms kit](forms-kit.md) registers exactly these, with `form add`,
+`remove`, `search` and `upload` where your app has them; give it an adapter
+instead of writing them yourself. The rest of this guide is how they behave.
 
 Register these once, when your script loads, and look the form up each time a
 command runs. Forms come and go (a dialog opens, a step loads, a form is
@@ -110,7 +114,7 @@ example of the next command:
 form submit: email, summary, product, phone are required. For example: form set request email …
 ```
 
-Errors the server finds after `save` belong in `form status <form>`, by field.
+Errors the server finds after `submit` belong in `form status <form>`, by field.
 See [Drafts and saving](drafts-and-saving.md).
 
 ## What the agent does

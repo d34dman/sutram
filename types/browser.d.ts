@@ -8,6 +8,7 @@ import type { page } from "./page.js";
 import type { user } from "./user.js";
 import type { messages } from "./messages.js";
 import type { lists } from "./lists.js";
+import type { forms } from "./forms.js";
 
 export type SutramGlobal = {
   EXIT: typeof core.EXIT;
@@ -30,7 +31,7 @@ export type SutramGlobal = {
   /** @d34dman/sutram/client, for pages that build a client of their own. */
   client: typeof client;
   /** Kits loaded as their own files: dist/nav.js adds nav, dist/page.js page, and so on. */
-  kits: { nav?: typeof nav; page?: typeof page; user?: typeof user; messages?: typeof messages; lists?: typeof lists };
+  kits: { nav?: typeof nav; page?: typeof page; user?: typeof user; messages?: typeof messages; lists?: typeof lists; forms?: typeof forms };
 };
 
 declare global {

@@ -6,7 +6,7 @@ breaking changes bump the minor version.
 ## Unreleased
 
 Kits: commands that are the same on every site, each fed by a small adapter
-in the app: nav, page, user, messages and lists.
+in the app: nav, page, user, messages, lists and forms.
 
 ### Added
 
@@ -38,15 +38,26 @@ in the app: nav, page, user, messages and lists.
   changes page, sort and filters in one go and hands the adapter the complete
   state; the kit checks sorts and filters against what the list offers. See
   the [lists kit guide](docs/guides/lists-kit.md).
-- `dist/page.js`, `dist/user.js`, `dist/messages.js` and `dist/lists.js` (and
-  their `.min.js`), adding `Sutram.kits.page`, `.user`, `.messages` and
-  `.lists`.
+- `@d34dman/sutram/forms`: the forms kit. `forms({ forms, read, write,
+  submit, reloads })` registers `form list`, `form status`, `form fields`,
+  `form get`, `form set`, `form submit` and `form discard`, and `form add`,
+  `form remove`, `form search` and `form upload` when the adapter supplies
+  them. The kit converts string, text, html, number, boolean, choice and
+  choices values; the adapter adds its own types. `form status` lists the
+  required fields still empty; `form set` names the fields an answer adds or
+  removes; `form discard` puts back the values the form loaded with. See the
+  [forms kit guide](docs/guides/forms-kit.md).
+- `dist/page.js`, `dist/user.js`, `dist/messages.js`, `dist/lists.js` and
+  `dist/forms.js` (and their `.min.js`), adding `Sutram.kits.page`, `.user`,
+  `.messages`, `.lists` and `.forms`.
 - The example page has adapters for every kit: static menus with a hash
   router, the route's title, a pretend login, the todo commands' messages and
   a list of the docs that pages, sorts and filters in place.
 
 ### Changed
 
+- The forms guide's send command is `form submit` (it said `form save` or
+  `submit`): one name on every site.
 - The note after a run that started Sutram again, and the agent prompt's
   rules, say to look at `messages` where the page has it.
 - Completion adds no space after a value that ends in `=`, such as the
