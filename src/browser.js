@@ -17,6 +17,7 @@ import * as client from "./client.js";
 import { getEvents } from "./events.js";
 import { connectWebMCP, findModelContext, listTools, callTool, execLines } from "./webmcp.js";
 import { defineConsole, mountConsole } from "./console.js";
+import { promptFor } from "./prompt.js";
 import { watchNavigation } from "./leave.js";
 
 const registry = core.getRegistry();
@@ -54,8 +55,10 @@ if (!globalThis.Sutram) {
     call: (name, input, options) => callTool(name, input, { ...options, registry }),
     // Command lines, as pasted into the console: one call for several commands.
     exec: (text, options) => execLines(text, { ...options, registry }),
-    // The prompt that hands a task on this page to an agent that drives a browser.
-    agentPrompt: (task, page = { title: document.title, url: location.href }) => core.agentPrompt(task, page),
+    // The prompt that hands a task on this page to an agent that drives a
+    // browser, with the page's commands in it; a site can ship its own.
+    agentPrompt: (task, page = { title: document.title, url: location.href }) => promptFor(registry, task, page),
+    defineAgentPrompt: (make) => core.defineAgentPrompt(make, { registry }),
     mountConsole,
     connectWebMCP: () => connectWebMCP(registry, findModelContext()),
     client: Object.freeze({ ...client }),

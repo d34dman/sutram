@@ -8,4 +8,4 @@ export { EXIT, CommandError, ANNOTATIONS, createRegistry, getRegistry } from "./
 export { createFormats, getFormats, STANDARD_FORMATS } from "./formats.js";
 export { createPolicy, LEVELS } from "./policy.js";
 export { commandLine } from "./format.js";
-export { agentPrompt } from "./prompt.js";
+export { agentPrompt, defineAgentPrompt } from "./prompt.js";

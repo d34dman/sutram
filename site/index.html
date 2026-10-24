@@ -521,7 +521,7 @@ invoice set.</pre>
             </div>
             <details><summary>See the prompt</summary><pre class="code" id="prompt"></pre></details>
           </div>
-          <p class="note">Paste it into an agent with a browser it can drive: Claude Code or Codex with Playwright MCP, Claude Desktop, Claude in Chrome. The agent opens this page, types into the console, and learns the page with <code>help</code> and <code>status</code>. You watch every command run. <a href="./docs/guides/agent-prompt.html">How it works</a></p>
+          <p class="note">Paste it into an agent with a browser it can drive: Claude Code or Codex with Playwright MCP, Claude Desktop, Claude in Chrome. It lists this page's commands. The agent opens the page and uses its tools, <code>Sutram.exec()</code> or the console, and you watch every command it runs in the console. <a href="./docs/guides/agent-prompt.html">How it works</a></p>
         </div>
       </div>
     </div>
@@ -534,7 +534,7 @@ invoice set.</pre>
       <p class="sub">You don't wait for browsers to catch up. However an agent reaches the page, it gets the same commands, the same checks and the same function behind them.</p>
       <div class="features">
         <div class="feature"><span class="ico"><svg class="i"><use href="#i-code"/></svg></span><h3>Browser agents and tests</h3><p>Playwright, Puppeteer and browser agents call <code>Sutram.call()</code> in the page and get data back, instead of clicking through it.</p><span class="meta">Sutram.call()</span></div>
-        <div class="feature"><span class="ico"><svg class="i"><use href="#i-chat"/></svg></span><h3>Claude, Codex and other agents</h3><p>Hand any agent with a browser one generic prompt. With a browser it can drive, it opens the page, types into the console, and you watch every command run.</p><span class="meta">agentPrompt()</span></div>
+        <div class="feature"><span class="ico"><svg class="i"><use href="#i-chat"/></svg></span><h3>Claude, Codex and other agents</h3><p>Hand any agent with a browser one prompt, with the page's commands in it, or ship your own. It opens the page and uses its tools or the console, and you watch every command it runs.</p><span class="meta">agentPrompt()</span></div>
         <div class="feature"><span class="ico"><svg class="i"><use href="#i-agent"/></svg></span><h3>WebMCP tools</h3><p>In browsers with WebMCP, every command is a native tool with its schema and hints, and the list follows the page.</p><span class="meta">WebMCP</span></div>
         <div class="feature"><span class="ico"><svg class="i"><use href="#i-term"/></svg></span><h3>A console for people</h3><p>A terminal in the page, with help, manual pages and Tab completion, all generated from your definitions.</p><span class="meta">help · man · --json</span></div>
         <div class="feature"><span class="ico"><svg class="i"><use href="#i-shield"/></svg></span><h3>Asks before it matters</h3><p>Mark an action consequential, and the person is asked before an agent runs it. The page decides, not the agent.</p><span class="meta">readOnly · consequential</span></div>

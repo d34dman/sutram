@@ -190,3 +190,42 @@ test("a typed command whose question changed while the person was asked does not
   assert.equal(await c.submit("cart buy"), 0);
   assert.deepEqual(ran, [2]);
 });
+
+// A stand-in that records what the console prints for agents' runs.
+const watcher = (registry, { asks = true } = {}) => {
+  const printed = [];
+  const c = Object.assign(Object.create(SutramConsole.prototype), {
+    registry,
+    offAsker: asks ? () => {} : null,
+    echo: (line, kind) => printed.push([kind, line]),
+    fail: (text, code) => printed.push(["error", `${text} (exit ${code})`]),
+    printResult: (result) => printed.push(["result", result.text]),
+  });
+  registry.onResult((run) => c.showAgentRun(run));
+  return printed;
+};
+
+test("the console shows the commands agents run through tools, and their results", async () => {
+  const registry = createRegistry();
+  registry.register({ name: "cart add", provider: "cart", description: "Add", annotations: {}, input: { type: "object", properties: { item: { type: "string" } } }, positional: ["item"], run: ({ item }) => `Added ${item}.` });
+  registry.register({ name: "cart fail", provider: "cart", description: "Fail", annotations: {}, run: () => { throw new Error("no cart"); } });
+  const printed = watcher(registry);
+  await execLines("cart add V60\ncart fail", { registry });
+  assert.deepEqual(printed, [
+    ["input agent", "cart add V60"], ["result", "Added V60."],
+    ["input agent", "cart fail"], ["error", "no cart (exit 1)"],
+  ]);
+  // A person's own lines and app code are not repeated.
+  printed.length = 0;
+  await registry.run("cart add", { item: "filter" }, { caller: "console" });
+  await registry.run("cart add", { item: "filter" });
+  assert.deepEqual(printed, []);
+});
+
+test("only the console that asks for agents shows their runs", async () => {
+  const registry = createRegistry();
+  registry.register({ name: "cart add", provider: "cart", description: "Add", annotations: {}, run: () => "Added." });
+  const printed = watcher(registry, { asks: false });
+  await execLines("cart add", { registry });
+  assert.deepEqual(printed, []);
+});

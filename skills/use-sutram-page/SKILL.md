@@ -11,21 +11,25 @@ Sutram pages expose what they can do as commands. Use them instead of
 clicking and reading screenshots: they are exact, they say what went wrong,
 and they ask the person before anything consequential.
 
-## Three ways in, console first
+## Three ways in, tools first
 
-- **Type into the page's console.** This is the way to use: the person sees
-  every command as it runs. The console is the `<sutram-console>` element;
-  open it with the key left of 1, or Ctrl with it. Type a command and press
-  Enter, or paste several lines to run them as one batch.
-- **WebMCP tools**, if you cannot type into the console and your browser
-  gives you the page's tools. Call `sutram_status` first. Tool names are
-  command names with underscores: `cart add` is `cart_add`.
-- **JavaScript in the page**, if neither works and you can evaluate code:
-  `Sutram.tools()` lists the tools (the same list WebMCP gets), and
-  `await Sutram.call("cart_add", { sku: "V60-02" })` calls one. `call()` takes
-  the command name too: `Sutram.call("cart add", …)`. To run a command line,
-  `const { def, input } = Sutram.client.parse(Sutram.registry, "cart add V60-02")`,
-  then `Sutram.call(def.name, input)`.
+Use the first one you have. Tools answer as text, while the console has to
+be read off the screen. The person sees the commands you run in the
+console whichever way you use.
+
+- **WebMCP tools**, if your browser gives you the page's tools. Call
+  `sutram_status` first. Tool names are command names with underscores:
+  `cart add` is `cart_add`.
+- **JavaScript in the page**, if you can evaluate code:
+  `await Sutram.exec("cart add V60-02")` runs command lines as the console
+  would and answers with its text; send several lines in one call to run
+  them as one batch. `Sutram.tools()` lists the tools (the same list WebMCP
+  gets), and `await Sutram.call("cart_add", { sku: "V60-02" })` calls one
+  and answers with its data.
+- **Type into the page's console** otherwise. The console is the
+  `<sutram-console>` element; open it with the key left of 1, or Ctrl with
+  it. Type a command and press Enter, or paste several lines to run them as
+  one batch.
 
 ## Rules
 

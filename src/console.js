@@ -9,7 +9,7 @@ import { complete, highlight, openQuote, splitLines } from "./parse.js";
 import { formatResult, formatUsage, annotationLabel, approvalLine } from "./format.js";
 import { LINE_TEXT, clientWord, readBatch, readLine, readLines, runSteps } from "./lines.js";
 import { genericQuestion, ownQuestion } from "./policy.js";
-import { agentPrompt } from "./prompt.js";
+import { promptFor } from "./prompt.js";
 
 /**
  * Every text the console shows of its own. Set `console.messages = { … }`
@@ -233,7 +233,7 @@ export class SutramConsole extends Base {
     });
     copyButton(".copy", () => this.transcript(), "copy");
     // With no task it asks "Show me what this page can do."; the person pastes it and changes that line.
-    copyButton(".agent-prompt", () => agentPrompt("", { title: document.title, url: location.href }), "prompt");
+    copyButton(".agent-prompt", () => promptFor(this.registry, "", { title: document.title, url: location.href }), "prompt");
     this.input.addEventListener("paste", (e) => {
       const text = e.clipboardData && e.clipboardData.getData("text");
       if (!text || !/\n./.test(text.trim())) return;
@@ -358,6 +358,7 @@ export class SutramConsole extends Base {
     if (this.inline) this.panel.removeAttribute("aria-modal");
     else this.panel.setAttribute("aria-modal", "true");
     this.offChange = this.registry.onChange(() => { this.updateCount(); this.renderInput(); });
+    this.offResult = this.registry.onResult((run) => this.showAgentRun(run));
     connected.add(this);
     // The first console on the page asks the user when an agent needs approval.
     this.takeAsker();
@@ -371,6 +372,7 @@ export class SutramConsole extends Base {
     for (const type of ["keydown", "keyup", "pointerdown", "blur"]) window.removeEventListener(type, this.onPeekEvent, true);
     this.stopPeek();
     if (this.offChange) this.offChange();
+    if (this.offResult) this.offResult();
     // Nobody can answer here any more: open and queued questions are answered no.
     for (const show of this.askQueue.splice(0)) show.cancel();
     if (this.pendingAsk) this.pendingAsk(false);
@@ -837,6 +839,20 @@ export class SutramConsole extends Base {
     const question = steps.length === 1 ? (ownQuestion(steps[0].def, steps[0].input) || m.run(steps[0].def.name, steps[0].def.title))
       : consequential.length ? m.agentBatchConsequential(steps.length, consequential) : m.agentBatch(steps.length);
     return this.ask(question, { lead, signal });
+  }
+
+  /**
+   * Prints a command an agent ran through a tool (WebMCP, Sutram.call(),
+   * Sutram.exec()) and its result, so the person sees what agents do, not
+   * only what they are asked about. The console that asks for agents
+   * prints them, so a page with two consoles shows each run once.
+   */
+  showAgentRun({ name, input, caller, result }) {
+    if (caller !== "agent" || !this.offAsker) return;
+    const def = this.registry.get(name);
+    this.echo(def ? approvalLine(def, input) : name, "input agent");
+    if (result.code !== EXIT.OK) this.fail(result.message, result.code);
+    else if (def) this.printResult(result, { def });
   }
 
   // ---- running -----------------------------------------------------------

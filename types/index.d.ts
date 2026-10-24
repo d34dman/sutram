@@ -259,8 +259,19 @@ export interface FormatOptions { locale?: string; formats?: Formats; json?: bool
 export declare function commandLine(def: CommandDefinition, input?: Record<string, unknown>): string;
 
 /**
- * A prompt that hands a task to an agent that drives a browser. Generic: it
- * lists no commands. The agent opens the page, types into its console, and
- * finds the commands with help, man and status.
+ * The default prompt that hands a task to an agent that drives a browser.
+ * It sends the agent to the page's WebMCP tools, Sutram.exec() or the
+ * console, in that order. `commands` is the page's help text; without it,
+ * the agent starts with help.
  */
-export declare function agentPrompt(task?: string, page?: { title?: string; url?: string }): string;
+export declare function agentPrompt(task?: string, page?: { title?: string; url?: string; commands?: string }): string;
+
+/** What a site's prompt function gets: the page, and the default prompt to wrap or replace. */
+export interface AgentPromptPage { title?: string; url?: string; commands: string; prompt: string }
+
+/**
+ * Ships a site's own agent prompt: the console's prompt button and
+ * Sutram.agentPrompt() use it. Returns a function that brings back the
+ * default. A function that throws or returns no text falls back to it.
+ */
+export declare function defineAgentPrompt(make: (task: string, page: AgentPromptPage) => string, options?: { registry?: Registry }): () => void;

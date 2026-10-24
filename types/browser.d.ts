@@ -26,8 +26,10 @@ export type SutramGlobal = {
   call(name: string, input?: Record<string, unknown>, options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal }): ReturnType<typeof callTool>;
   /** Command lines as pasted into the console: several as one batch. Answers with the console's text. */
   exec(text: string, options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal }): ReturnType<typeof execLines>;
-  /** core.agentPrompt for this page: page defaults to document.title and location.href. */
+  /** The agent prompt for this page, with its commands: the site's own (defineAgentPrompt) or the default. page defaults to document.title and location.href. */
   agentPrompt(task?: string, page?: { title?: string; url?: string }): string;
+  /** core.defineAgentPrompt for this page's registry. */
+  defineAgentPrompt(make: (task: string, page: core.AgentPromptPage) => string): () => void;
   mountConsole: typeof mountConsole;
   connectWebMCP(): () => void;
   /** @d34dman/sutram/client, for pages that build a client of their own. */

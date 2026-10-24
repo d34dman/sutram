@@ -17,19 +17,43 @@ browser tool cannot use the page.
 const prompt = Sutram.agentPrompt("Buy two V60 drippers, then check out.");
 ```
 
-The prompt is generic, like a skill: it lists no commands. It tells the
-agent to:
+The prompt tells the agent to:
 
-- open the page and type into its console, so the person sees every command
-  run (WebMCP tools, `Sutram.exec()` and `Sutram.call()` are the fallback);
-- start with `help` and `status` instead of guessing, and ask the console
-  (`man <command>`, `<command> -h`) whenever it is unsure;
-- leave hard-to-undo commands to the person, who is asked to confirm them.
+- open the page and use the first of these it has: the page's WebMCP
+  tools, `Sutram.exec()` with command lines, or the console. Tools answer
+  as text; the console has to be read off the screen, which costs an agent
+  far more. The person sees the commands it runs in the console either way;
+- use the page's commands, which the prompt lists as `help` prints them, run
+  `status` for the page's state, and ask (`man <command>`, `<command> -h`)
+  whenever it is unsure;
+- leave hard-to-undo commands to the person: the console asks them, or the
+  answer tells the agent to ask first.
 
 In the browser, `Sutram.agentPrompt(task)` names the page with
-`document.title` and `location.href`. Pass `{ title, url }` as the second
-argument to name it yourself, or import `agentPrompt` from
-`@d34dman/sutram`, which has no DOM.
+`document.title` and `location.href` and lists the page's commands. Pass
+`{ title, url }` as the second argument to name it yourself. `agentPrompt`
+from `@d34dman/sutram` has no DOM: pass `{ title, url, commands }`, where
+`commands` is the page's help text, or leave it out and the prompt tells
+the agent to start with `help`.
+
+## Your own prompt
+
+A site can ship its own prompt. `Sutram.defineAgentPrompt()` takes a
+function of the task and the page, and gets the default prompt as
+`page.prompt`, to wrap or to replace:
+
+```js
+Sutram.defineAgentPrompt((task, page) =>
+  `${page.prompt}\n\nHouse rules: never order more than 100 € without asking me.`);
+
+// or a prompt of its own
+Sutram.defineAgentPrompt((task, { url, commands }) =>
+  `Open ${url} and use its commands:\n${commands}\n\nTask: ${task}`);
+```
+
+The console's prompt button and `Sutram.agentPrompt()` both use it. It
+returns a function that brings back the default; a function that throws or
+returns no text falls back to the default too.
 
 ## From the console
 
@@ -39,13 +63,15 @@ me what this page can do." The person pastes it into their agent and
 changes the task. No code is needed; hide the button with
 `sutram-console::part(agent-prompt) { display: none; }`.
 
-## Why the prompt is short
+## Why the prompt lists the commands
 
-The prompt only says the console exists and to ask it for help. `help`
-prints every command and, under them, how to write a line: options,
-quoting, multi-line text, what the annotations mean. `man` and the
-console's errors cover the rest. So the same prompt works on any page and
-does not change when the console does.
+An evaluation on the Drupal demo (October 2026) found that
+agents given only "start with help" spent several calls learning the
+console before their first change, and that an agent typing into the
+console through a browser used more tokens than one that never heard of
+Sutram. The prompt now carries the page's `help` (every command with its
+usage, and how to write a line) and sends the agent to tools first. `man`
+and the errors cover the rest.
 
 ## Agents that already know Sutram
 

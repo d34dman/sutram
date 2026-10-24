@@ -7,6 +7,33 @@ covered: agents discover them at run time, so they may change in any
 release, and each change is listed under *Commands*. See
 [Status and versions](README.md#status-and-versions).
 
+## Unreleased
+
+Agents are sent to the page's tools first, and the person sees what they
+run there.
+
+### Added
+
+- `defineAgentPrompt(fn)` (and `Sutram.defineAgentPrompt(fn)`): a site
+  ships its own agent prompt. The function gets the task and
+  `{ title, url, commands, prompt }`, where `prompt` is the default text to
+  wrap or replace. The console's prompt button and `Sutram.agentPrompt()`
+  use it.
+- The console prints each command an agent runs through a tool (WebMCP,
+  `Sutram.call()`, `Sutram.exec()`) and its result, not only the ones it
+  asks about. The console that asks for agents prints them.
+
+### Changed
+
+- `agentPrompt()` sends agents to the page's WebMCP tools first, then
+  `Sutram.exec()`, then the console, which was first before. Tools answer
+  as text; an agent reading the console off the screen used more tokens
+  than one without Sutram in an evaluation on the Drupal demo.
+  `agentPrompt()` takes `commands`, the page's help text, and
+  `Sutram.agentPrompt()` and the console's prompt button fill it in, so
+  agents skip `help` before their first change. The "use a Sutram page"
+  skill says tools first too.
+
 ## 0.8.1 (2026-10-24)
 
 Agents see more of what they are asked to approve, and are told that the
