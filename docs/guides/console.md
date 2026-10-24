@@ -130,7 +130,7 @@ after Sutram:
 - `skins/system.css`: dark or light, following the system setting.
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.7/skins/system.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.8/skins/system.css">
 ```
 
 With a bundler: `import "@d34dman/sutram/skins/light.css";`.

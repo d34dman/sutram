@@ -14,7 +14,7 @@ everything as `globalThis.Sutram`. Mount the console where you want it:
 ```html
 <script type="module">
   import Sutram from
-    "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.7/dist/sutram.js";
+    "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.8/dist/sutram.js";
 
   Sutram.register({ /* a command */ });
   Sutram.mountConsole();

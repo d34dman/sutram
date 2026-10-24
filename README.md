@@ -42,7 +42,7 @@ Place an order for 2 items, €48.00? [Yes] [No]
   [the console](docs/guides/console.md).)
 - **Feels like a terminal.** `help`, `man`, Tab completion, history and
   "did you mean". You write no help pages.
-- **Small.** No dependencies, about 34 kB minified and gzipped, TypeScript types
+- **Small.** No dependencies, about 37 kB minified and gzipped, TypeScript types
   included.
 
 ## Quick start
@@ -57,7 +57,7 @@ Save this as an HTML file, open it in a browser and press <kbd>`</kbd>
 <p>Press <kbd>`</kbd> and type <code>help</code>.</p>
 
 <script type="module">
-  import Sutram from "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.7/dist/sutram.js";
+  import Sutram from "https://cdn.jsdelivr.net/npm/@d34dman/sutram@0.8/dist/sutram.js";
 
   Sutram.register({
     name: "hello world",
@@ -205,11 +205,11 @@ one short line in place of clicks and screenshots.
 
 ## Status and versions
 
-Version 0.7, early. Sutram follows [semantic versioning](https://semver.org/)
+Version 0.8, early. Sutram follows [semantic versioning](https://semver.org/)
 for its JavaScript API: `register()` and command definitions, the kits'
 adapters, annotations, the policy, exit codes, the result envelope
 (`{ code, text, data }` or `{ code, message }`), the entry points and their
-types. Until 1.0, a breaking change there bumps the minor version (0.7 → 0.8).
+types. Until 1.0, a breaking change there bumps the minor version (0.8 → 0.9).
 
 The commands themselves are not part of that promise: the kits' command
 names, their parameters, what they print and return in `data`, and the

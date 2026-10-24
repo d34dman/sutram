@@ -7,7 +7,7 @@ covered: agents discover them at run time, so they may change in any
 release, and each change is listed under *Commands*. See
 [Status and versions](README.md#status-and-versions).
 
-## Unreleased
+## 0.8.0 (2026-10-24)
 
 Kits: commands that are the same on every site, each fed by a small adapter
 in the app: nav, page, user, messages, lists and forms.
@@ -17,6 +17,11 @@ in the app: nav, page, user, messages, lists and forms.
 - `help -h`, `man -h`, `status -h` and `clear -h` show their usage; any
   other option after them is a usage error (exit 2). Before, the console
   answered `status -h` with "command not found".
+- `form status` takes no form, too: then it sums up every form on the
+  page in one line ("1 form: Contact (contact): 1 unsaved change"), with
+  `{ forms }` as `form list` has them. Before, `status` and
+  `sutram_status` showed "form status: form is required" on every page
+  with the forms kit.
 
 ### Removed
 
