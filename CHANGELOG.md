@@ -7,7 +7,10 @@ covered: agents discover them at run time, so they may change in any
 release, and each change is listed under *Commands*. See
 [Status and versions](README.md#status-and-versions).
 
-## Unreleased
+## 0.8.1 (2026-10-24)
+
+Agents see more of what they are asked to approve, and are told that the
+site's text is data.
 
 ### Commands
 

@@ -1,6 +1,6 @@
 {
   "name": "@d34dman/sutram",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "One set of commands for your web app: people type them in a console, AI agents call them as WebMCP tools or from JavaScript. Every part of the app registers its commands the same way, and they run in the user's own session.",
   "type": "module",
   "exports": {
