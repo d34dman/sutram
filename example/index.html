@@ -22,7 +22,9 @@
   <li>Paste <code>todo add a</code>, <code>todo add b</code>, <code>todo done 99</code> as three lines: the batch fails and undoes the first two</li>
 </ul>
 <p>The nav kit, over two static menus and a router that changes only the address's <code>#</code>: <code>nav menu</code>, <code>nav search install</code>, <code>nav go Docs › Kits</code>, <code>nav status</code>.</p>
-<p>Page: <b id="page"></b> · <a href="#/">Home</a> · <a href="#/docs">Docs</a> · <a href="#/about">About</a></p>
+<p>The page, user and messages kits, with adapters of their own: <code>page status</code>, <code>user login</code>, <code>user status</code>, and after <code>todo add x</code>, <code>messages</code> or <code>events recent</code>.</p>
+<p>Page: <b id="page"></b> · <a href="#/">Home</a> · <a href="#/docs">Docs</a> · <a href="#/about">About</a> · User: <b id="user"></b></p>
+<p id="messages" role="status"></p>
 <p><a href="?inline">Show the console inline</a>, the way an app places it in its own panel.</p>
 <ul id="todos"></ul>
 <div id="panel" hidden style="height: 260px; border-radius: 8px; overflow: hidden;"></div>
@@ -34,6 +36,9 @@
   // reinitializes, and the router calls Sutram.initialized() once the new
   // route is shown. Without a bundler, dist/nav.js gives Sutram.kits.nav.
   import { nav } from "../src/nav.js";
+  import { page } from "../src/page.js";
+  import { user } from "../src/user.js";
+  import { messages } from "../src/messages.js";
   const menus = {
     main: {
       label: "Main",
@@ -62,6 +67,36 @@
     reloads: false,
     here,
   });
+
+  // The page kit: the title of the route that is showing.
+  const titles = { "/": "Home", "/docs": "Docs", "/docs/install": "Install", "/docs/kits": "Kits", "/about": "About", "/contact": "Contact" };
+  page({ page: () => ({ title: titles[here()] || "Not found", route: here() }), here });
+
+  // The user kit, over a pretend login that stays on the page (reloads:
+  // false). A real app's login() opens its login form, where the person
+  // types the password.
+  let who = null;
+  const showUser = () => { document.getElementById("user").textContent = who ? who.name : "nobody"; };
+  showUser();
+  user({
+    user: () => (who ? { authenticated: true, ...who } : { authenticated: false }),
+    login: () => { who = { id: "1", name: "ada", roles: [{ id: "editor", label: "Editor" }] }; showUser(); Sutram.initialized(); },
+    logout: () => { who = null; showUser(); Sutram.initialized(); },
+    reloads: false,
+  });
+
+  // The messages kit: the todo commands below show a message on the page
+  // (example.say), and the kit hears of it through watch.
+  const shown = [];
+  let changed = () => {};
+  messages({ messages: () => shown, watch: (fn) => { changed = fn; } });
+  globalThis.example = {
+    say(type, text) {
+      shown.push({ type, text });
+      document.getElementById("messages").textContent = text;
+      changed();
+    },
+  };
 </script>
 <script type="module">
   const { register, events, mountConsole, CommandError } = globalThis.Sutram;
@@ -104,6 +139,7 @@
       const t = { id: nextId++, title, done: false };
       todos.push(t);
       changed(ctx.caller);
+      example.say("status", `Added #${t.id}: ${title}.`);
       return { text: `Added #${t.id}.`, data: t };
     },
   });
@@ -119,6 +155,7 @@
       if (!t) throw new CommandError(`todo done: no todo #${id}. See todo list.`);
       t.done = true;
       changed(ctx.caller);
+      example.say("status", `Done: ${t.title}.`);
       return { text: `Done: ${t.title}.`, data: t };
     },
   });
@@ -126,7 +163,7 @@
     name: "todo clear", title: "Remove every todo", provider: "todo", description: "Remove every todo",
     input: { type: "object", properties: {} }, annotations: { consequential: true },
     confirm: () => `Remove all ${todos.length} todos?`,
-    run: (_, ctx) => { todos.length = 0; changed(ctx.caller); return { text: "All todos removed." }; },
+    run: (_, ctx) => { todos.length = 0; changed(ctx.caller); example.say("warning", "All todos removed."); return { text: "All todos removed." }; },
   });
 
   // A pasted batch is one change: if a line fails, the earlier lines are undone.

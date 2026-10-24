@@ -5,7 +5,8 @@ breaking changes bump the minor version.
 
 ## Unreleased
 
-The first kit: nav commands, the same on every site, fed by an adapter.
+Kits: commands that are the same on every site, each fed by a small adapter
+in the app. Nav, page, user and messages so far.
 
 ### Added
 
@@ -20,7 +21,27 @@ The first kit: nav commands, the same on every site, fed by an adapter.
   without a bundler. It uses the `globalThis.Sutram` that `dist/sutram.js`
   defined and adds itself as `Sutram.kits.nav`.
 - `Sutram.kits`: where kits loaded as their own files add themselves.
-- The example page has a second nav adapter: static menus and a hash router.
+- `@d34dman/sutram/page`: the page kit. `page({ page, here? })` registers
+  `page status`: the page's title, path, route and the thing it shows. See the
+  [page kit guide](docs/guides/page-kit.md).
+- `@d34dman/sutram/user`: the user kit. `user({ user, login, logout, reloads })`
+  registers `user status`, `user login` and `user logout`. The kit calls
+  `login()` and `logout()` after the command has answered; `reloads` picks
+  `navigates` or `reinitializes`, and `user logout` is consequential. See the
+  [user kit guide](docs/guides/user-kit.md).
+- `@d34dman/sutram/messages`: the messages kit. `messages({ messages, watch? })`
+  registers the `messages` command and emits a `message.shown` event for each
+  message, at the start and after the adapter's `changed()`. See the
+  [messages kit guide](docs/guides/messages-kit.md).
+- `dist/page.js`, `dist/user.js` and `dist/messages.js` (and their `.min.js`),
+  adding `Sutram.kits.page`, `.user` and `.messages`.
+- The example page has adapters for every kit: static menus with a hash
+  router, the route's title, a pretend login and the todo commands' messages.
+
+### Changed
+
+- The note after a run that started Sutram again, and the agent prompt's
+  rules, say to look at `messages` where the page has it.
 
 ## 0.7.0 (2026-10-24)
 

@@ -29,7 +29,7 @@ const read = (p) => readFileSync(resolve(root, p), "utf8");
 
 const NAV = [
   { title: "Get started", pages: ["index", "quick-start", "install", "drupal"] },
-  { title: "Build commands", pages: ["guides/write-a-provider", "guides/nav-kit", "concepts/commands", "guides/descriptions", "guides/errors", "concepts/annotations-and-policy", "guides/testing"] },
+  { title: "Build commands", pages: ["guides/write-a-provider", "guides/nav-kit", "guides/page-kit", "guides/user-kit", "guides/messages-kit", "concepts/commands", "guides/descriptions", "guides/errors", "concepts/annotations-and-policy", "guides/testing"] },
   { title: "How agents reach them", pages: ["guides/webmcp", "guides/console", "guides/agent-prompt", "concepts/discovery"] },
   { title: "Going further", pages: ["guides/forms", "guides/drafts-and-saving", "concepts/batches", "concepts/results", "concepts/formats", "concepts/events"] },
   { title: "Reference", pages: ["reference/api", "reference/command-line"] },

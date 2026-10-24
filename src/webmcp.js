@@ -131,7 +131,7 @@ async function approve(registry, steps, { confirmed = false, interactive = false
  * Added to the result of a run that started Sutram again (reinitializes()):
  * the agent has to wait and look at the page afresh.
  */
-export const REINITIALIZED_NOTE = "Sutram is starting again, as after a page change. Wait until it is ready (its tools appear again; with JavaScript, await Sutram.ready), then look again: the tools may differ, and nothing from before carries over.";
+export const REINITIALIZED_NOTE = "Sutram is starting again, as after a page change. Wait until it is ready (its tools appear again; with JavaScript, await Sutram.ready), then look again: the tools may differ, and nothing from before carries over. Where the page has a messages tool, it says what the page showed, such as Saved or an error.";
 
 async function runForAgent(registry, def, input, options) {
   const { errors, value } = checkInput(def.input, input, registry.formats, { strict: options.strict });

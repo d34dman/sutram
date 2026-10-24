@@ -99,10 +99,38 @@ test("dist/nav.js uses the page's Sutram and adds itself to Sutram.kits", () => 
   }
 });
 
+test("dist/page.js, user.js and messages.js register on the page's Sutram", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sutram-kits-"));
+  for (const part of ["src", "scripts", "package.json"]) cpSync(part, join(dir, part), { recursive: true });
+  execFileSync(process.execPath, [join(dir, "scripts/build.mjs")]);
+  const run = (code) => execFileSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8" });
+  for (const min of ["", ".min"]) {
+    const kit = (name) => JSON.stringify(join(dir, "dist", `${name}${min}.js`));
+    const out = JSON.parse(run(`
+      const { default: Sutram } = await import(${JSON.stringify(join(dir, "dist/sutram.js"))});
+      await import(${kit("page")}); await import(${kit("user")}); await import(${kit("messages")});
+      Sutram.kits.page({ page: () => ({ title: "Docs" }), here: () => "/docs" });
+      Sutram.kits.user({ user: () => ({ authenticated: true, name: "ada" }), login() {}, logout() {}, reloads: true });
+      Sutram.kits.messages({ messages: () => [{ type: "status", text: "Saved." }] });
+      Sutram.initialized();
+      const page = await Sutram.registry.run("page status");
+      const user = await Sutram.registry.run("user status");
+      const messages = await Sutram.registry.run("messages");
+      const events = await Sutram.registry.run("events recent");
+      console.log(JSON.stringify({ page: page.text, user: user.text, messages: messages.data.messages, events: events.data.events.map((e) => e.name) }));
+    `));
+    assert.equal(out.page, '"Docs".', min);
+    assert.equal(out.user, "Logged in as ada.", min);
+    assert.deepEqual(out.messages, [{ type: "status", text: "Saved." }], min);
+    assert.deepEqual(out.events, ["message.shown"], min);
+  }
+});
+
 test("package.json: side effects bundlers must keep, and the changelog ships", async () => {
   const { readFileSync } = await import("node:fs");
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  assert.deepEqual(pkg.sideEffects, ["./src/browser.js", "./dist/sutram.js", "./dist/sutram.min.js", "./dist/nav.js", "./dist/nav.min.js"]);
+  const kits = ["nav", "page", "user", "messages"].flatMap((k) => [`./dist/${k}.js`, `./dist/${k}.min.js`]);
+  assert.deepEqual(pkg.sideEffects, ["./src/browser.js", "./dist/sutram.js", "./dist/sutram.min.js", ...kits]);
   assert.ok(pkg.files.includes("CHANGELOG.md"), "the changelog ships");
 });
 

@@ -36,6 +36,18 @@
       "types": "./types/nav.d.ts",
       "default": "./src/nav.js"
     },
+    "./page": {
+      "types": "./types/page.d.ts",
+      "default": "./src/page.js"
+    },
+    "./user": {
+      "types": "./types/user.d.ts",
+      "default": "./src/user.js"
+    },
+    "./messages": {
+      "types": "./types/messages.d.ts",
+      "default": "./src/messages.js"
+    },
     "./package.json": "./package.json",
     "./dist/sutram.js": {
       "types": "./types/dist.d.ts",
@@ -48,6 +60,18 @@
     "./dist/nav.js": {
       "types": "./types/nav.d.ts",
       "default": "./dist/nav.js"
+    },
+    "./dist/page.js": {
+      "types": "./types/page.d.ts",
+      "default": "./dist/page.js"
+    },
+    "./dist/user.js": {
+      "types": "./types/user.d.ts",
+      "default": "./dist/user.js"
+    },
+    "./dist/messages.js": {
+      "types": "./types/messages.d.ts",
+      "default": "./dist/messages.js"
     },
     "./skins/*": "./skins/*"
   },
@@ -70,7 +94,13 @@
     "./dist/sutram.js",
     "./dist/sutram.min.js",
     "./dist/nav.js",
-    "./dist/nav.min.js"
+    "./dist/nav.min.js",
+    "./dist/page.js",
+    "./dist/page.min.js",
+    "./dist/user.js",
+    "./dist/user.min.js",
+    "./dist/messages.js",
+    "./dist/messages.min.js"
   ],
   "scripts": {
     "test": "node --test",

@@ -8,6 +8,9 @@ import { callTool, listTools, connectWebMCP } from "@d34dman/sutram/webmcp";
 import { mountConsole, MESSAGES } from "@d34dman/sutram/console";
 import Sutram from "@d34dman/sutram/dist/sutram.js";
 import { nav, type NavMenus } from "@d34dman/sutram/nav";
+import { page } from "@d34dman/sutram/page";
+import { user } from "@d34dman/sutram/user";
+import { messages, type Message } from "@d34dman/sutram/messages";
 
 const registry = getRegistry();
 const off = registry.register({
@@ -49,3 +52,10 @@ const menus: NavMenus = { main: { label: "Main", items: [{ title: "Docs", url: "
 const offNav: () => void = nav({ menus: () => menus, go: (url) => { location.assign(url); }, reloads: true });
 offNav();
 Sutram.kits.nav?.({ menus: async () => menus, go: () => {}, reloads: false, here: () => "/docs" });
+
+// The page, user and messages kits.
+page({ page: () => ({ title: "Hello", route: "article", entity: { type: "node", id: 5, label: "Hello" } }) })();
+user({ user: async () => ({ authenticated: true, id: 7, name: "ada", roles: ["editor", { id: "admin", label: "Admin" }] }), login() {}, logout() {}, reloads: true })();
+const shown: Message[] = [{ type: "status", text: "Saved." }];
+messages({ messages: () => shown, watch: (changed) => { addEventListener("message", changed); return () => removeEventListener("message", changed); } })();
+Sutram.kits.messages?.({ messages: async () => shown });

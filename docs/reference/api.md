@@ -727,8 +727,13 @@ export type SutramGlobal = {
   connectWebMCP(): () => void;
   /** @d34dman/sutram/client, for pages that build a client of their own. */
   client: typeof client;
-  /** Kits loaded as their own files: dist/nav.js adds nav. */
-  kits: { nav?: typeof nav };
+  /** Kits loaded as their own files: dist/nav.js adds nav, dist/page.js page, and so on. */
+  kits: {
+    nav?: typeof nav;
+    page?: typeof page;
+    user?: typeof user;
+    messages?: typeof messages;
+  };
 };
 
 declare global {

@@ -15,12 +15,10 @@
 // Sutram.kits.nav(adapter).
 
 import { CommandError, EXIT, getRegistry } from "./core.js";
+import { checkAdapter, currentPath, registerAll } from "./kit.js";
 
 const NONE = { type: "object", properties: {} };
 const SEP = " › ";
-
-/** The current path, for adapters that do not say: path and query, no host. */
-const currentPath = () => (globalThis.location ? globalThis.location.pathname + globalThis.location.search : "/");
 
 /**
  * Checks an adapter's menus and lists every link with its breadcrumb inside
@@ -103,10 +101,7 @@ const ITEM = {
  * removes the commands again.
  */
 export function nav(adapter, { registry = getRegistry() } = {}) {
-  if (!adapter || typeof adapter.menus !== "function") throw new TypeError("nav: the adapter needs a menus() function");
-  if (typeof adapter.go !== "function") throw new TypeError("nav: the adapter needs a go(url) function");
-  if (typeof adapter.reloads !== "boolean") throw new TypeError("nav: the adapter must say whether going reloads the page: reloads: true or false");
-  if (adapter.here !== undefined && typeof adapter.here !== "function") throw new TypeError("nav: the adapter's here must be a function");
+  checkAdapter("nav", adapter, { "menus()": "function", "go(url)": "function", reloads: "boolean", "here()": "function?" });
   const here = () => (adapter.here ? adapter.here() : currentPath());
 
   // Completion for menu names and link targets. A failing adapter offers nothing.
@@ -309,12 +304,5 @@ export function nav(adapter, { registry = getRegistry() } = {}) {
     },
   ];
 
-  const offs = [];
-  try {
-    for (const def of defs) offs.push(registry.register(def));
-  } catch (err) {
-    for (const off of offs) off();
-    throw err;
-  }
-  return () => { for (const off of offs) off(); };
+  return registerAll(registry, defs);
 }

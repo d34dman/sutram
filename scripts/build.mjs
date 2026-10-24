@@ -78,12 +78,24 @@ console.log(`build: wrote dist/sutram.js (${order.map((m) => m.name).join(", ")}
 // Kits: one file each, for hosts that load only the kits a page uses (a
 // Drupal library per kit). A kit file has no copy of Sutram: it takes what
 // it imports from the globalThis.Sutram that dist/sutram.js defined, so it
-// uses the page's one registry, and adds itself to Sutram.kits.
-const KIT_IMPORTS = { CommandError: "Sutram.CommandError", EXIT: "Sutram.EXIT", getRegistry: "() => Sutram.registry" };
-for (const kit of ["nav"]) {
+// uses the page's one registry, and adds itself to Sutram.kits. What the
+// kits share (src/kit.js) is copied into each.
+const KITS = ["nav", "page", "user", "messages"];
+const KIT_IMPORTS = {
+  CommandError: "Sutram.CommandError",
+  EXIT: "Sutram.EXIT",
+  getRegistry: "() => Sutram.registry",
+  getEvents: "() => Sutram.events",
+};
+const kitHelpers = readFileSync(resolve(root, "src", "kit.js"), "utf8")
+  .replace(/^export\s+((?:async\s+)?(?:function|const)\s)/gm, "$1")
+  .replace(/^\/\/.*\n/gm, "")
+  .trim();
+for (const kit of KITS) {
   const text = readFileSync(resolve(root, "src", `${kit}.js`), "utf8");
   const s = text
-    .replace(/^import\s*\{([^}]*)\}\s*from\s*"\.\/core\.js";/gm, (_, list) => list.split(",").map((n) => n.trim()).filter(Boolean).map((n) => {
+    .replace(/^import\s*\{([^}]*)\}\s*from\s*"\.\/kit\.js";/gm, () => `// src/kit.js\n${kitHelpers}`)
+    .replace(/^import\s*\{([^}]*)\}\s*from\s*"\.\/(core|events)\.js";/gm, (_, list) => list.split(",").map((n) => n.trim()).filter(Boolean).map((n) => {
       if (!KIT_IMPORTS[n]) throw new Error(`build: src/${kit}.js imports ${n}, which dist/sutram.js does not expose on globalThis.Sutram`);
       return `const ${n} = ${KIT_IMPORTS[n]};`;
     }).join("\n"))
