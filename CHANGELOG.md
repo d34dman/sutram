@@ -7,7 +7,7 @@ covered: agents discover them at run time, so they may change in any
 release, and each change is listed under *Commands*. See
 [Status and versions](README.md#status-and-versions).
 
-## Unreleased
+## 0.9.0 (2026-10-25)
 
 Agents are sent to the page's tools first, the person approves their calls
 in a dialog of its own and sees what they run, and no caller can approve
