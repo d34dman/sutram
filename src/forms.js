@@ -509,13 +509,13 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
       name: "form status",
       title: "Show form status",
       provider: "form",
-      description: "Show a form's unsaved changes, the required fields still empty, and errors. Without a form, sum up every form on the page",
+      description: "Show a form's unsaved changes, the required fields still empty, and errors. Without a form: the page's only form, or one line for each form when there are several",
       input: { type: "object", properties: { form: FORM } },
       positional: ["form"],
       output: {
         type: "object",
         properties: {
-          forms: { type: "array", description: "Without a form: each form on the page, as form list shows it", items: { type: "object" } },
+          forms: { type: "array", description: "Without a form, on a page with several: each form, as form list shows it", items: { type: "object" } },
           form: { type: "string" },
           entity: { type: "object", description: "What the form edits, as the app describes it" },
           unsaved: { type: "array", items: { type: "object", properties: { field: { type: "string" }, from: {}, to: {} } } },
@@ -531,16 +531,20 @@ export function forms(adapter, { registry = getRegistry() } = {}) {
       seeAlso: ["form list", "form fields", "form submit"],
       suggest,
       async run({ form: id }) {
-        // Without a form, as status asks every provider: one line for them all.
+        // Without a form, as status asks every provider: the only form in
+        // full, or one line for each of several.
         if (id === undefined) {
           const list = (await load()).map(open);
           if (!list.length) return { text: "There is no form on this page.", data: { forms: [] } };
-          const forms = await Promise.all(list.map(async (f) => ({ form: f.id, label: f.label, unsaved: (await f.unsaved()).length, errors: f.errors.length })));
-          const one = (f) => {
-            const what = [f.unsaved && plural(f.unsaved, "unsaved change"), f.errors && plural(f.errors, "error")].filter(Boolean);
-            return `${f.label} (${f.form})${what.length ? `: ${what.join(", ")}` : ""}`;
-          };
-          return { text: `${plural(forms.length, "form")}: ${forms.map(one).join("; ")}. See form status <form>.`, data: { forms } };
+          if (list.length === 1) id = list[0].id;
+          else {
+            const forms = await Promise.all(list.map(async (f) => ({ form: f.id, label: f.label, unsaved: (await f.unsaved()).length, errors: f.errors.length })));
+            const one = (f) => {
+              const what = [f.unsaved && plural(f.unsaved, "unsaved change"), f.errors && plural(f.errors, "error")].filter(Boolean);
+              return `${f.label} (${f.form})${what.length ? `: ${what.join(", ")}` : ""}`;
+            };
+            return { text: `${plural(forms.length, "form")}: ${forms.map(one).join("; ")}. Try form status ${forms[0].form}.`, data: { forms } };
+          }
         }
         const f = await find(id, "status");
         const [changes, missing] = await Promise.all([f.unsaved(), f.missing()]);

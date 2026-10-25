@@ -41,7 +41,7 @@ async function main() {
   events.define("cart.changed", { description: "The cart changed" });
   const next = await events.next("cart.changed", { since: 0, timeout: 1000 });
   if (next) void next.payload;
-  void (await callTool("cart_add", { sku: "V60" }, { confirmed: true })).code;
+  void (await callTool("cart_add", { sku: "V60" }, { signal: AbortSignal.timeout(1000) })).code;
   void listTools().length;
   connectWebMCP()();
   void MESSAGES.withdrawn;

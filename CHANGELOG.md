@@ -33,11 +33,23 @@ run there.
 ### Changed
 
 - `Sutram.call()` and `Sutram.exec()` ask the person through the page's
-  asker (the approval dialog) when it has one, as WebMCP calls do, and
-  `confirmed: true` no longer skips that question: the person answers, not
-  the agent. Only a page with nobody to ask (a headless test without a
-  console or `dist/sutram.js`) still returns 130 and takes
-  `confirmed: true`. Before, the agent could pass it itself.
+  asker (the approval dialog), as WebMCP calls do. The `confirmed` option
+  is gone: the person answers, never the caller. On a page with nobody to
+  ask, a call that needs approval returns 130 and does not run; a test sets
+  an asker that answers yes (`policy.setAsker(() => true)`). Before, the
+  agent could pass `confirmed: true` itself.
+- `Sutram.call()`, `Sutram.exec()`, `callTool()` and `execLines()` always
+  run as the `"agent"` caller; the `caller` option is gone. Another caller
+  hid the run from the console and skipped the wait for a running batch.
+- The drop-down console is a non-modal dialog: no `aria-modal`, and
+  <kbd>Tab</kbd> moves on into the page, which stays usable while it is
+  open. Screen readers hid the page while people could still click it.
+  Closing it gives the focus back only when the focus is still in it.
+- The homepage, README, *Why commands* and *Measurements* lead with what
+  Sutram saved a real agent on the Drupal demo, against the same agent
+  without Sutram (Canvas page: half the task tokens, 21 calls instead of
+  28; article: 11 calls instead of 14; one run each). The byte estimates
+  stay, as where the saving comes from.
 - The console no longer asks about agents' calls, and no longer opens for
   them: the approval dialog asks. `askForAgent()` and the console's
   `agentAsks`, `agentAsksBatch` and `agentBatch` messages are gone; the
@@ -69,6 +81,15 @@ run there.
   a note, and exits 0. It printed a usage error with exit 2 after the
   command had already run, so a caller that ran it again repeated the
   change.
+- `--json=<fields>` also picks fields from the rows of the lists in a
+  result: `form fields contact --json=field,value`, `nav search about
+  --json=title,url` and `listing rows content --json=title` work. A name
+  that is the result's own field is kept as before (`--json=rows` keeps
+  the whole list). Before, only the result's own fields could be named.
+- `form status` without a form, on a page with one form, gives that form's
+  full status (unsaved changes, required fields still empty, errors), so
+  `status` shows them too. With several forms it lists them, as before, and
+  ends `Try form status <form>.` instead of `See form status <form>.`
 
 ### Fixed
 

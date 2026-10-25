@@ -23,9 +23,9 @@ export type SutramGlobal = {
   defineFormat(name: string, def: core.FormatDefinition): () => void;
   register: core.Registry["register"];
   tools(): Tool[];
-  call(name: string, input?: Record<string, unknown>, options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal }): ReturnType<typeof callTool>;
+  call(name: string, input?: Record<string, unknown>, options?: { signal?: AbortSignal }): ReturnType<typeof callTool>;
   /** Command lines as pasted into the console: several as one batch. Answers with the console's text. */
-  exec(text: string, options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal }): ReturnType<typeof execLines>;
+  exec(text: string, options?: { signal?: AbortSignal }): ReturnType<typeof execLines>;
   /** The agent prompt for this page, with its commands: the site's own (defineAgentPrompt) or the default. page defaults to document.title and location.href. */
   agentPrompt(task?: string, page?: { title?: string; url?: string }): string;
   /** core.defineAgentPrompt for this page's registry. */

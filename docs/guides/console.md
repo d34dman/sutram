@@ -27,8 +27,7 @@ a lock. Only a question the agent cannot reach keeps it from approving
 its own calls: the page's WebMCP tools, when the agent does not also drive
 the page, so the [policy](../concepts/annotations-and-policy.md) asks the
 person in the approval dialog. `Sutram.call()` and `Sutram.exec()` ask
-there too; only on a page with nobody to ask does their caller pass
-`{ confirmed: true }` itself.
+there too.
 
 Open it with the key left of <kbd>1</kbd> (outside text fields), or with
 <kbd>Ctrl</kbd> and that key anywhere; it opens with the cursor in the
@@ -37,8 +36,9 @@ command field. Close it with <kbd>Esc</kbd> while it has the focus; an
 found by its position, as game consoles do, so it is <kbd>`</kbd> on a US
 keyboard, <kbd>^</kbd> on a German one and <kbd>²</kbd> on a French one.
 <kbd>Ctrl</kbd>+<kbd>`</kbd> is also VS Code's terminal toggle. The drop-down
-console keeps <kbd>Tab</kbd> inside itself while it is open, and gives focus
-back to where it was when it closes.
+console is a non-modal dialog: the page stays usable while it is open, and
+<kbd>Tab</kbd> on an empty command line moves on into the page. It gives
+focus back to where it was when it closes.
 
 As in a terminal, a click anywhere in the console puts the cursor in the
 command field, and the output has one scroll bar for all of it. Dragging or

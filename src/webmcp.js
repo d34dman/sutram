@@ -124,34 +124,31 @@ function question(steps) {
  * Resolves to { refusal } when the call may not run, else to { asked }:
  * the question a single command asked, which it must still ask when it
  * runs, so a page that changed while the user answered runs nothing.
- * When the page has an asker (the approval dialog, or the app's own), every
- * caller is asked through it, and `confirmed` changes nothing: the person
- * at the page answers, not the agent. Without one, interactive callers
- * (WebMCP) ask with the browser's confirm(), and Sutram.call() and
- * Sutram.exec() tell their caller to ask and call again with
- * { confirmed: true }, for headless browsers with nobody at the page.
+ * Every caller is asked through the page's asker (the approval dialog, or
+ * the app's own): the person at the page answers, never the agent. Without
+ * one, WebMCP calls ask with the browser's confirm(), and anything else
+ * does not run. A test sets an asker that answers for the person.
  */
-async function approve(registry, steps, { confirmed = false, interactive = false, caller = "agent", signal } = {}, label = steps.length === 1 ? toolName(steps[0].def) : BATCH_TOOL.name) {
+async function approve(registry, steps, { interactive = false, signal } = {}, label = steps.length === 1 ? toolName(steps[0].def) : BATCH_TOOL.name) {
   const policy = registry.policy;
   const needing = steps.filter((s) => policy.needs(s.def, "agent"));
   if (!needing.length) return {};
   const asker = policy.hasAsker();
-  if (!asker && confirmed) return {};
-  if (asker || interactive) {
-    // Batches are asked about by their lines, with no question of their own.
-    const asked = steps.length === 1 ? ownQuestion(steps[0].def, steps[0].input) : undefined;
-    const no = (refusal) => ({ refusal });
-    let yes;
-    if (asker) yes = await policy.ask({ who: "agent", caller, steps, signal });
-    else if (typeof globalThis.confirm === "function") yes = globalThis.confirm(`An agent on this page wants to act.\n\n${question(steps)}`);
-    else return no({ code: EXIT.CANCELLED, message: `${label} needs the user's approval, and this page has no way to ask, so it did not run.` });
-    if (signal && signal.aborted) return no({ code: EXIT.CANCELLED, message: `${label}: cancelled` });
-    return yes ? { asked } : no({ code: EXIT.CANCELLED, message: `The user declined ${label}, so nothing ran.` });
+  const no = (refusal) => ({ refusal });
+  const canConfirm = interactive && typeof globalThis.confirm === "function";
+  if (!asker && !canConfirm) {
+    const why = needing.some((s) => s.def.annotations.consequential)
+      ? (steps.length === 1 ? "is consequential" : "contains consequential commands")
+      : "needs the user's approval on this page";
+    return no({ code: EXIT.CANCELLED, message: `${label} ${why}, and this page has no way to ask the user, so it did not run.` });
   }
-  const why = needing.some((s) => s.def.annotations.consequential)
-    ? (steps.length === 1 ? "is consequential" : "contains consequential commands")
-    : "needs the user's approval on this page";
-  return { refusal: { code: EXIT.CANCELLED, message: `${label} ${why}, so it did not run. Ask the user ("${question(steps)}"), then call it again with { confirmed: true }.` } };
+  // Batches are asked about by their lines, with no question of their own.
+  const asked = steps.length === 1 ? ownQuestion(steps[0].def, steps[0].input) : undefined;
+  const yes = asker
+    ? await policy.ask({ who: "agent", caller: "agent", steps, signal })
+    : globalThis.confirm(`An agent on this page wants to act.\n\n${question(steps)}`);
+  if (signal && signal.aborted) return no({ code: EXIT.CANCELLED, message: `${label}: cancelled` });
+  return yes ? { asked } : no({ code: EXIT.CANCELLED, message: `The user declined ${label}, so nothing ran.` });
 }
 
 /** Runs one command for an agent: input errors first, then approval, then the command. */
@@ -234,14 +231,13 @@ async function status(registry, input, options) {
  * converted: an agent's JSON arrives typed.
  *
  * This is a client, like the console, so it follows the page's policy: a
- * tool that needs the user's approval (by default, a consequential one) runs
- * only with `confirmed: true`, which says that the user has agreed. Without
- * it nothing runs and the result says so. `confirmed` is a courtesy between
- * the caller and its user, not a security boundary: code in the page can
- * pass it, or call registry.run(), which never asks.
+ * tool that needs the user's approval (by default, a consequential one) is
+ * asked about through the page's asker, and runs only when the person says
+ * yes. The caller is always "agent". App code that needs no asking calls
+ * registry.run().
  */
-export async function callTool(name, input = {}, { registry = getRegistry(), confirmed = false, caller = "agent", signal } = {}) {
-  const options = { confirmed, caller, signal, interactive: false };
+export async function callTool(name, input = {}, { registry = getRegistry(), signal } = {}) {
+  const options = { caller: "agent", signal, interactive: false };
   if (name === STATUS_TOOL.name) return status(registry, input, options);
   if (name === BATCH_TOOL.name) return runBatchTool(registry, input, options);
   const def = findTool(registry, name);
@@ -257,8 +253,7 @@ const blocksText = (blocks) => blocks.map((b) => (b.kind === "error" ? `${b.text
  * that drives the page from outside: a headless browser, an agent that can
  * run JavaScript in the page. Several lines run as one batch: every line is
  * read and checked first, so a mistake runs nothing; the policy is asked
- * once, as for sutram_batch (without `confirmed`, nothing that needs the
- * user runs, and the text says what to ask); the batch stops at the first
+ * once, as for sutram_batch; the batch stops at the first
  * line that fails, and providers with batch hooks undo the earlier lines.
  * The console reads and runs lines the same way (lines.js), so help, man,
  * status, -h and --json work as there.
@@ -268,7 +263,8 @@ const blocksText = (blocks) => blocks.map((b) => (b.kind === "error" ? `${b.text
  * results' JSON. Strings are converted to the declared types, as in the
  * console.
  */
-export async function execLines(text, { registry = getRegistry(), confirmed = false, caller = "agent", signal } = {}) {
+export async function execLines(text, { registry = getRegistry(), signal } = {}) {
+  const caller = "agent";
   const lines = readLines(text);
   const total = lines.length;
   if (!total) return { code: EXIT.USAGE, text: "exec: no command lines. Start with help.", completed: 0, total };
@@ -282,7 +278,7 @@ export async function execLines(text, { registry = getRegistry(), confirmed = fa
 
   const running = commandSteps(steps);
   const label = running.length === 1 && total === 1 ? toolName(running[0].def) : "exec";
-  const { refusal, asked } = await approve(registry, running.map((s) => ({ def: s.def, input: s.value })), { confirmed, caller, signal, interactive: false }, label);
+  const { refusal, asked } = await approve(registry, running.map((s) => ({ def: s.def, input: s.value })), { signal, interactive: false }, label);
   if (refusal) return { code: refusal.code, text: refusal.message, completed: 0, total };
   // One command asked its own question: it asks again just before it runs, so a page that changed meanwhile runs nothing.
   if (asked !== undefined) running[0].asked = asked;

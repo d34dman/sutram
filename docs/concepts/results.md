@@ -48,7 +48,7 @@ Agents always get `data` as it is.
 | Option | Prints |
 |---|---|
 | `--json` | The data unchanged, exactly as an agent gets it |
-| `--json=sku,price` | Only those fields |
+| `--json=sku,price` | Only those fields: of the record, else of each row in its lists (`{ total, rows }` gives `{ rows: [{ sku, price }, …] }`) |
 | `--wide` | Every column, including those `view.columns` leaves out |
 | `-h`, `--help` | The command's usage |
 

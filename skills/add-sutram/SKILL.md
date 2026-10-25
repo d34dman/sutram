@@ -92,6 +92,6 @@ Sutram.register({
 - `help`, `man <command>`, `status` in the console read well to someone who
   has never seen the app.
 - `Sutram.tools()` lists what you expect; `await Sutram.call("cart_add", {...})`
-  returns `{ code: 0, ... }`; a consequential call returns 130 without
-  `{ confirmed: true }`.
+  returns `{ code: 0, ... }`; a consequential call opens the approval
+  dialog and waits for the person.
 - Add a Playwright test with `Sutram.call()` (see the testing guide).

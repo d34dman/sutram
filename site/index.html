@@ -390,14 +390,14 @@ footer p { margin: 10px 0 0; max-width: 34rem; }
     </div>
   </div>
 
-  <section class="proof" aria-label="Estimated results">
+  <section class="proof" aria-label="Measured results">
     <div class="wrap">
       <div class="stats">
-        <div class="stat"><b>2.5–5×</b><span>less for an agent to read than the page itself</span></div>
-        <div class="stat"><b>17–44 tokens</b><span>to fix a wrong value, instead of about 3,300</span></div>
+        <div class="stat"><b>Half</b><span>the task tokens to build a Drupal Canvas page: 228k instead of 453k</span></div>
+        <div class="stat"><b>21–25%</b><span>fewer model calls on the same task: 21 instead of 28, 11 instead of 14</span></div>
         <div class="stat"><b>~10 lines</b><span>of JavaScript for each thing your app can do</span></div>
       </div>
-      <p class="stats-note">Estimated from captured outputs on Drupal's article form, against a browser agent reading the page, with Sutram 0.3 and 0.4 (tokens as bytes ÷ 4); no agent was run, and not yet measured again with the kits. <a href="./docs/measurements.html">How we measured</a></p>
+      <p class="stats-note">Claude Code driving Chromium on the Drupal demo, two tasks, one run with Sutram and one without on the same set-up: a direction, not a benchmark. Task tokens leave out the harness's own share of each call. <a href="./docs/measurements.html">How we measured</a></p>
     </div>
   </section>
 

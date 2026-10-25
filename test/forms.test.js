@@ -348,16 +348,25 @@ test("a form changed while the user is asked about form submit is not sent", asy
   disconnect();
 });
 
-test("form status without a form sums up the forms, so status has a line for them", async () => {
-  const { r } = setup();
+test("form status without a form gives the only form in full, or one line for each of several", async () => {
+  const { r, a } = setup();
   await line(r, "form set contact email ada@example.com");
-  const all = await line(r, "form status");
-  assert.equal(all.code, EXIT.OK);
-  assert.equal(all.text, "1 form: Contact (contact): 1 unsaved change. See form status <form>.");
-  assert.deepEqual(all.data.forms, [{ form: "contact", label: "Contact", unsaved: 1, errors: 0 }]);
+  // One form: the same as form status contact, so status shows what matters.
+  const only = await line(r, "form status");
+  assert.deepEqual(only, await line(r, "form status contact"));
+  assert.equal(only.data.form, "contact");
   const { runStatus } = await import("../src/client.js");
   const [form] = await runStatus(r, { providers: ["form"] });
   assert.equal(form.code, EXIT.OK);
+  assert.equal(form.data.form, "contact");
+
+  const two = createRegistry();
+  const contact = a.adapter.forms()[0];
+  forms({ ...a.adapter, forms: () => [contact, { ...contact, id: "search", label: "Search", fields: [] }] }, { registry: two });
+  const all = await line(two, "form status");
+  assert.equal(all.code, EXIT.OK);
+  assert.equal(all.text, "2 forms: Contact (contact): 1 unsaved change; Search (search). Try form status contact.");
+  assert.deepEqual(all.data.forms.map((f) => f.form), ["contact", "search"]);
   const none = createRegistry();
   forms({ ...app().adapter, forms: () => [] }, { registry: none });
   assert.equal((await none.run("form status")).text, "There is no form on this page.");

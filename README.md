@@ -117,11 +117,11 @@ form submit node-article-form
 When something is wrong, the error names the field and the fix, so the agent
 corrects one value instead of starting over.
 
-On Drupal's article form, fixing one wrong value cost an agent about 3,300
-tokens by reading the page, and 17 to 44 with Sutram. These are estimates
-(bytes ÷ 4) from the commands of Sutram 0.3 and 0.4, not yet measured again
-with the kits. See
-[Why commands](docs/why.md) and the [measurements](docs/measurements.md).
+On the Drupal demo, Claude Code built a Canvas page with half the task
+tokens and 7 fewer calls (21 instead of 28) than the same agent without
+Sutram, and edited an article in 11 calls instead of 14. One run each, so a
+direction, not a benchmark. See [Why commands](docs/why.md) and the
+[measurements](docs/measurements.md).
 
 ## Why not just WebMCP?
 

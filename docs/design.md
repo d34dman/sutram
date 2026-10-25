@@ -183,9 +183,10 @@ decides what to do with them:
 - **Agents (WebMCP):** annotations become the tool hints, so the agent's host can
   run read-only calls in a batch and ask the user before consequential ones.
 - **Scripts (`Sutram.call`):** headless browsers, tests and agents that run
-  JavaScript in the page call tools by name. A consequential tool runs only with
-  `{ confirmed: true }`; without it, nothing runs and the result says to ask the
-  user. The registry's own `run()` stays neutral: it is for app code.
+  JavaScript in the page call tools by name. A consequential tool asks the
+  person in the page's approval dialog, as a WebMCP call does; on a page with
+  nobody to ask, it does not run. The registry's own `run()` stays neutral: it
+  is for app code.
 
 ## Keeping clients up to date
 
@@ -215,9 +216,8 @@ do. That is a deliberate choice, and it means Sutram checks no permissions:
 The one real change is that **agents** become callers, and they act quickly with
 all of the user's permissions. Annotations handle that: they let a client ask the
 user before a consequential command, without Sutram becoming a permission system.
-The policy is etiquette, not a lock: `Sutram.call(…, { confirmed: true })` and
-`registry.run()` skip the question, because code running in the page could do the
-same by clicking. Access control stays on the server.
+The policy is etiquette, not a lock: `registry.run()` skips the question, and
+code running in the page could click *Yes* or the page's buttons just as well. Access control stays on the server.
 
 ## Forms and widgets
 

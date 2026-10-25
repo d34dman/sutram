@@ -138,25 +138,23 @@ answer may lower the level for the calls that follow.
   is yes.
 - Without `dist/sutram.js`, a console or an asker of your own, the
   browser's `confirm()` asks.
-- `Sutram.call()` and `Sutram.exec()` ask through the same dialog, and
-  there `{ confirmed: true }` changes nothing: the person at the page
-  answers. Only on a page with nobody to ask (no `dist/sutram.js`, console
-  or asker, such as a headless test) does a call that needs approval return
-  exit 130 and run when called again with `{ confirmed: true }`, which says
-  the user agreed.
+- `Sutram.call()` and `Sutram.exec()` ask through the same dialog: the
+  person at the page answers, never the caller. On a page with nobody to
+  ask (no `dist/sutram.js`, console or asker), a call that needs approval
+  returns exit 130 and does not run. A test sets an asker that answers for
+  the person: `policy.setAsker(() => true)`.
 - App code that calls `registry.run()` is never asked. It is the app.
 - The console cannot tell who is typing. Lines typed there follow the
   person's level, and an agent that drives the browser can answer the
   console's questions itself. So can an agent that also drives the
   approval dialog or the browser's `confirm()`. Only a question the agent cannot reach keeps
   it from approving its own calls: WebMCP, when the agent does not also
-  drive the page. On a page without an asker, `Sutram.call()` asks nobody:
-  its caller passes `{ confirmed: true }` itself.
+  drive the page.
 
-`confirmed` is a courtesy between a caller and its user, not a security
-boundary. Any code in the page can pass it, or call `registry.run()`
-directly. The policy makes well-behaved agents ask; it cannot stop code that
-already runs in the page, which could click the buttons just as well.
+The policy is not a security boundary. Any code in the page can call
+`registry.run()` directly, or click *Yes*. The policy makes well-behaved
+agents ask; it cannot stop code that already runs in the page, which could
+click the buttons just as well.
 
 ## Why the page decides
 

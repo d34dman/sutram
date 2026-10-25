@@ -295,14 +295,6 @@ export class SutramConsole extends Base {
         this.input.focus({ preventScroll: true });
         return;
       }
-      // A drop-down console is a modal dialog: Tab stays inside it.
-      if (e.key !== "Tab" || this.inline) return;
-      const items = [...root.querySelectorAll("button, textarea")].filter((el) => el.offsetParent !== null || el === this.input);
-      if (!items.length) return;
-      const at = items.indexOf(root.activeElement);
-      const next = items[(at + (e.shiftKey ? -1 : 1) + items.length) % items.length];
-      e.preventDefault();
-      next.focus();
     });
     this.onGlobalKey = this.onGlobalKey.bind(this);
     this.onPeekEvent = this.onPeekEvent.bind(this);
@@ -382,9 +374,9 @@ export class SutramConsole extends Base {
     if (!this.inline) document.addEventListener("keydown", this.onGlobalKey);
     // Capture, so keys the console or the page stop on their way still end a peek.
     for (const type of ["keydown", "keyup", "pointerdown", "blur"]) window.addEventListener(type, this.onPeekEvent, true);
+    // The page stays usable while a drop-down console is open, so it is a
+    // non-modal dialog: Tab moves on into the page, as from any panel.
     this.panel.setAttribute("role", this.inline ? "region" : "dialog");
-    if (this.inline) this.panel.removeAttribute("aria-modal");
-    else this.panel.setAttribute("aria-modal", "true");
     this.offChange = this.registry.onChange(() => { this.updateCount(); this.renderInput(); });
     this.offResult = this.registry.onResult((run) => this.showAgentRun(run));
     connected.add(this);
@@ -494,7 +486,10 @@ export class SutramConsole extends Base {
     this.removeAttribute("open");
     const back = this.returnFocus;
     this.returnFocus = null;
-    if (back && back.isConnected && typeof back.focus === "function") back.focus();
+    // Only when the focus is still in the console: the person may have moved on into the page.
+    const active = document.activeElement;
+    const here = !active || active === this || active === document.body;
+    if (here && back && back.isConnected && typeof back.focus === "function") back.focus();
     this.dispatchEvent(new CustomEvent("sutram-close"));
   }
 

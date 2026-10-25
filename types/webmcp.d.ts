@@ -1,4 +1,4 @@
-import type { CommandDefinition, Formats, Registry, Result, BatchResult, Caller, Schema } from "./index.js";
+import type { CommandDefinition, Formats, Registry, Result, BatchResult, Schema } from "./index.js";
 
 export interface Tool {
   name: string;
@@ -22,14 +22,14 @@ export declare function toolName(def: CommandDefinition): string;
 export declare function toTool(def: CommandDefinition, formats?: Formats): Tool;
 export declare function listTools(registry?: Registry): Tool[];
 /**
- * Converts strings to the declared types, like console text; WebMCP calls do not. Follows the page's policy:
- * where the page has an asker, the person is asked and `confirmed` changes nothing; without one, a call
- * that needs approval runs only with `confirmed: true`.
+ * Converts strings to the declared types, like console text; WebMCP calls do not. Follows the page's policy
+ * for an agent: a call that needs approval is asked about through the page's asker, and does not run
+ * when the page has none.
  */
 export declare function callTool(
   name: string,
   input?: Record<string, unknown>,
-  options?: { registry?: Registry; confirmed?: boolean; caller?: Caller; signal?: AbortSignal },
+  options?: { registry?: Registry; signal?: AbortSignal },
 ): Promise<Result | BatchResult | QuietBatchResult | { code: 0; data: { providers: Array<{ provider: string } & Result> } }>;
 /** sutram_batch with quiet: true: no results, only the one that failed. */
 export type QuietBatchResult = Omit<BatchResult, "results"> & { failed?: Result };
@@ -40,6 +40,6 @@ export type QuietBatchResult = Omit<BatchResult, "results"> & { failed?: Result 
  */
 export declare function execLines(
   text: string,
-  options?: { registry?: Registry; confirmed?: boolean; caller?: Caller; signal?: AbortSignal },
+  options?: { registry?: Registry; signal?: AbortSignal },
 ): Promise<{ code: number; text: string; completed: number; total: number }>;
 export declare function connectWebMCP(registry?: Registry, modelContext?: ModelContextLike | null): () => void;

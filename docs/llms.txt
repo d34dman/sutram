@@ -54,7 +54,7 @@ Agents using a page: start with `status` (or the `sutram_status` tool), then `he
 ## About
 
 - [Why commands](https://d34dman.github.io/sutram/docs/why.md): Why agents do better with a standard command interface than with screenshots, page snapshots or one big JSON schema.
-- [Measurements](https://d34dman.github.io/sutram/docs/measurements.md): How many tokens an agent spends filling a real Drupal form with and without Sutram, including a correction.
+- [Measurements](https://d34dman.github.io/sutram/docs/measurements.md): What Sutram saved a real agent on the Drupal demo, in calls and task tokens, and an estimate of where the saving comes from.
 
 ## Optional
 

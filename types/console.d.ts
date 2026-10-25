@@ -84,7 +84,7 @@ export declare class SutramConsole extends HTMLElement {
   /** Replaces what is in the input field, for example to suggest a command. */
   setInput(value: string): void;
   /** Runs one line as if it was typed. */
-  submit(line: string, options?: { confirmed?: boolean }): Promise<ExitCode>;
+  submit(line: string): Promise<ExitCode>;
   /** Runs several lines as one batch, as a paste does. */
   runBatch(text: string): Promise<ExitCode>;
   print(text: string, kind?: string): HTMLElement;

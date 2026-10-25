@@ -24,22 +24,21 @@ await page.evaluate(() =>
 );
 // → { code: 0, text: "Added 2 × V60 dripper…", data: { count: 2, total: 48 } }
 
-await page.evaluate(() => Sutram.call("checkout"));
-// → { code: 130,
-//     message: "checkout is consequential, so it did not run. Ask the user …" }
-
-await page.evaluate(() =>
-  Sutram.call("checkout", {}, { confirmed: true }),
-);
+// checkout is consequential: the page's approval dialog asks, and the
+// call waits. The test answers as the person would.
+const checkout = page.evaluate(() => Sutram.call("checkout"));
+await page.locator("sutram-approval").getByRole("button", { name: "Yes" }).click();
+await checkout;
+// → { code: 0, … }; No gives { code: 130, message: "The user declined checkout, so nothing ran." }
 ```
 
 - `tools()` is the list a WebMCP agent gets.
 - `call()` takes the tool name (underscores) and follows the page's policy
-  like a careful host. Where the page can ask (the approval dialog of
-  `dist/sutram.js` or a console, or an asker of the app's), the person is
-  asked and `confirmed` changes nothing. In a test page with nobody to ask,
-  a call that needs approval runs only with `{ confirmed: true }`, which
-  says the user agreed.
+  like a careful host: a call that needs approval asks the person in the
+  page's approval dialog (`dist/sutram.js` and every console set it up), or
+  in the app's own asker, and waits. A page with nobody to ask runs nothing
+  that needs approval. A test that does not care about the question sets an
+  asker that says yes: `Sutram.registry.policy.setAsker(() => true)`.
 - Strings are converted to the declared types, as in the console, so
   `call(name, Sutram.client.parse(line).input)` works. WebMCP calls are
   checked strictly.
@@ -119,10 +118,8 @@ form status contact
   that fails, and providers that support it undo the lines before.
 - `help`, `man`, `status`, `-h` and `--json` work as in the console. Add
   `--json` or `--json=a,b` to a line when you need its data.
-- It follows the page's policy like `call()`: where the page can ask, the
-  person is asked once for the lines; with nobody to ask, nothing runs and
-  the text says what to ask. Ask, then run the same lines with
-  `{ confirmed: true }`.
+- It follows the page's policy like `call()`: the person is asked once for
+  the lines; with nobody to ask, nothing that needs approval runs.
 - A line that leaves the page or starts Sutram again must be the last one.
 - The result is `{ code, text, completed, total }`. `exec` is also exported
   as `execLines(text, { registry })` from `@d34dman/sutram/webmcp`.

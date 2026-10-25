@@ -101,6 +101,35 @@ test("--json=fields keeps only those fields, and names the ones that exist", () 
   assert.deepEqual(JSON.parse(late[1].text), productData.data);
 });
 
+test("--json=fields reaches the rows of a list inside a record, and the record's own fields come first", async () => {
+  const { selectFields } = await import("../src/client.js");
+  const rows = {
+    name: "listing rows", provider: "listing", description: "Rows", annotations: { readOnly: true }, run: () => ({}),
+    output: {
+      type: "object",
+      properties: {
+        total: { type: "integer" },
+        rows: { type: "array", items: { type: "object", properties: { title: { type: "string" }, url: { type: "string" }, total: { type: "integer" } } } },
+      },
+    },
+  };
+  const data = { total: 2, rows: [{ title: "A", url: "/a", total: 1 }, { title: "B", url: "/b", total: 5 }] };
+  assert.equal(checkFields(rows, ["title", "url"]), null);
+  assert.equal(checkFields(rows, ["colour"]), 'listing rows: unknown field "colour". Available: total, rows, title, url');
+  assert.deepEqual(selectFields(data, ["title"], rows.output).data, { rows: [{ title: "A" }, { title: "B" }] });
+  assert.deepEqual(selectFields(data, ["url", "total"], rows.output).data, { total: 2, rows: [{ url: "/a" }, { url: "/b" }] });
+  assert.deepEqual(selectFields(data, ["rows"], rows.output).data, { rows: data.rows });
+  // Rows the schema does not describe (an app's own columns) are checked after the run.
+  const open = { ...rows, output: { type: "object", properties: { total: { type: "integer" }, rows: { type: "array", items: { type: "object" } } } } };
+  assert.equal(checkFields(open, ["title"]), null);
+  assert.deepEqual(selectFields(data, ["title"], open.output).data, { rows: [{ title: "A" }, { title: "B" }] });
+  assert.match(selectFields(data, ["colour"], open.output).error, /unknown field "colour". Available: total, rows, title, url/);
+  // Without a schema, the data says what is there.
+  assert.deepEqual(selectFields({ n: 1, items: [{ a: 1, b: 2 }] }, ["b"]).data, { items: [{ b: 2 }] });
+  // Of several lists, only those with the field.
+  assert.deepEqual(selectFields({ forms: [{ form: "f" }], fields: [{ field: "x", value: 1 }] }, ["value"]).data, { fields: [{ value: 1 }] });
+});
+
 test("help lists commands with usage and annotation", () => {
   const r = createRegistry();
   r.register(cartStatus);

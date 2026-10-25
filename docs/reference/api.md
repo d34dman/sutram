@@ -591,7 +591,7 @@ export declare class SutramConsole extends HTMLElement {
   /** Replaces what is in the input field, for example to suggest a command. */
   setInput(value: string): void;
   /** Runs one line as if it was typed. */
-  submit(line: string, options?: { confirmed?: boolean }): Promise<ExitCode>;
+  submit(line: string): Promise<ExitCode>;
   /** Runs several lines as one batch, as a paste does. */
   runBatch(text: string): Promise<ExitCode>;
   print(text: string, kind?: string): HTMLElement;
@@ -724,19 +724,14 @@ export declare function toolName(def: CommandDefinition): string;
 export declare function toTool(def: CommandDefinition, formats?: Formats): Tool;
 export declare function listTools(registry?: Registry): Tool[];
 /**
- * Converts strings to the declared types, like console text; WebMCP calls do not. Follows the page's policy:
- * where the page has an asker, the person is asked and `confirmed` changes nothing; without one, a call
- * that needs approval runs only with `confirmed: true`.
+ * Converts strings to the declared types, like console text; WebMCP calls do not. Follows the page's policy
+ * for an agent: a call that needs approval is asked about through the page's asker, and does not run
+ * when the page has none.
  */
 export declare function callTool(
   name: string,
   input?: Record<string, unknown>,
-  options?: {
-    registry?: Registry;
-    confirmed?: boolean;
-    caller?: Caller;
-    signal?: AbortSignal;
-  },
+  options?: { registry?: Registry; signal?: AbortSignal },
 ): Promise<Result | BatchResult | QuietBatchResult | {
   code: 0;
   data: { providers: Array<{ provider: string } & Result> };
@@ -750,12 +745,7 @@ export type QuietBatchResult = Omit<BatchResult, "results"> & { failed?: Result 
  */
 export declare function execLines(
   text: string,
-  options?: {
-    registry?: Registry;
-    confirmed?: boolean;
-    caller?: Caller;
-    signal?: AbortSignal;
-  },
+  options?: { registry?: Registry; signal?: AbortSignal },
 ): Promise<{ code: number; text: string; completed: number; total: number }>;
 export declare function connectWebMCP(
   registry?: Registry,
@@ -830,12 +820,12 @@ export type SutramGlobal = {
   call(
     name: string,
     input?: Record<string, unknown>,
-    options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal },
+    options?: { signal?: AbortSignal },
   ): ReturnType<typeof callTool>;
   /** Command lines as pasted into the console: several as one batch. Answers with the console's text. */
   exec(
     text: string,
-    options?: { confirmed?: boolean; caller?: core.Caller; signal?: AbortSignal },
+    options?: { signal?: AbortSignal },
   ): ReturnType<typeof execLines>;
   /** The agent prompt for this page, with its commands: the site's own (defineAgentPrompt) or the default. page defaults to document.title and location.href. */
   agentPrompt(task?: string, page?: { title?: string; url?: string }): string;

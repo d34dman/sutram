@@ -1,16 +1,46 @@
 ---
 title: Measurements
-description: How many tokens an agent spends filling a real Drupal form with and without Sutram, including a correction.
+description: What Sutram saved a real agent on the Drupal demo, in calls and task tokens, and an estimate of where the saving comes from.
 ---
 
 # Measurements
 
-How much does an agent read and write to fill in a form, and how much does a
-mistake cost? This page compares an agent with Sutram against one without it,
-on a real form, so the [case for commands](why.md) rests on numbers, not
-adjectives.
+What does Sutram save an agent? This page compares an agent with Sutram
+against the same agent without it, on the same task, so the
+[case for commands](why.md) rests on numbers, not adjectives.
 
-## The setup
+## Agent runs
+
+Claude Code (Opus 5.5) driving a real Chromium through Playwright on the
+[demo site](https://github.com/d34dman/drupal-sutram-demo), 25 and 26
+October 2026, with a development build of Sutram 0.9. Each task ran once
+with Sutram and once without it, on the same set-up, and every run passed,
+graded from Drupal.
+
+| Task | Calls saved | Task tokens saved |
+|---|--:|--:|
+| Build a Canvas page, starting logged out on the homepage | 7 of 28 (25%) | 225k of 453k (50%) |
+| Edit an article: title, summary, body, tags, unpublished | 3 of 14 (21%) | not split out; prompt tokens 382k → 245k |
+
+- **Task tokens** are prompt tokens without the harness's own share of each
+  call (its system prompt and tools, about 18k per call in Claude Code),
+  which Sutram cannot change. Totals depend mostly on that share, so they do
+  not compare across harnesses.
+- **One run each: a direction, not a benchmark.** Another agent, another
+  harness or another task can come out differently: an earlier outside
+  evaluation, with Sutram 0.6 and agents that read the console off the
+  screen, used more calls with Sutram than without. Since then
+  `agentPrompt()` sends agents to the page's tools first.
+- Most of the saving is the page itself. A browser agent keeps a snapshot of
+  the page in its context, and every later call carries it; Sutram's answers
+  are short text. The estimate below shows where that comes from.
+
+## Where the saving comes from: an estimate
+
+How much does an agent read and write to fill in a form, and how much does a
+mistake cost? Measured in bytes from captured outputs, with no agent run.
+
+### The setup
 
 - **The form:** Drupal's "Create Article" form on the
   [demo site](https://github.com/d34dman/drupal-sutram-demo), with the
@@ -47,7 +77,7 @@ The ways to do it:
   the floor: even the best hand-made schema resends everything after one
   mistake.
 
-## The numbers
+### The numbers
 
 > These numbers were captured on 16 October 2026 with Sutram 0.3 and 0.4,
 > before the forms kit. Then each form had tools of its own
@@ -77,7 +107,7 @@ The same page as raw HTML is 324175 B (≈81044 tokens). A screenshot of the 136
 The wrong value, as the form command reports it: "form node-article-form set: status is a yes/no field. Use true or false."
 <!-- measure:end -->
 
-## What it shows
+### What it shows
 
 - **Reading the page costs a browser agent 2.5 to 5 times more** than reading
   Sutram's commands, and that is with the cheapest view. As HTML the page is
@@ -95,6 +125,10 @@ The wrong value, as the form command reports it: "form node-article-form set: st
 - **A hand-made schema (A) reads less, but someone has to write and maintain
   it for every form**, and it still resends every value after one mistake.
   Here it was built from Sutram's own field data.
+- **It leaves out what every call carries:** the harness's own prompt and
+  tools, and the page snapshot a browser agent keeps in its context. In a
+  real run those decide the totals, which is why the runs above save less
+  than these ratios suggest.
 
 ## Run it yourself
 

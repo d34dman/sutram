@@ -61,14 +61,15 @@ test("a mistake in any line runs nothing; a failing line stops the batch and und
   assert.deepEqual(items(), []);
 });
 
-test("exec follows the policy: nothing that needs the user runs without confirmed", async () => {
+test("exec follows the policy: nothing that needs the user runs until the person says yes", async () => {
   const { r, items } = todos();
   await execLines("todo add a", { registry: r });
   const refused = await execLines("todo add b\ntodo clear", { registry: r });
   assert.equal(refused.code, EXIT.CANCELLED);
-  assert.match(refused.text, /^exec contains consequential commands, so it did not run\. Ask the user .*todo clear.*confirmed: true/s);
+  assert.equal(refused.text, "exec contains consequential commands, and this page has no way to ask the user, so it did not run.");
   assert.deepEqual(items(), ["a"]);
-  assert.equal((await execLines("todo add b\ntodo clear", { registry: r, confirmed: true })).code, 0);
+  r.policy.setAsker(() => true);
+  assert.equal((await execLines("todo add b\ntodo clear", { registry: r })).code, 0);
   assert.deepEqual(items(), []);
 });
 
@@ -160,7 +161,7 @@ test("a single line that needs the user is refused in its own name", async () =>
   const { r } = todos();
   const res = await execLines("todo clear", { registry: r });
   assert.equal(res.code, EXIT.CANCELLED);
-  assert.match(res.text, /^todo_clear is consequential, so it did not run\./);
+  assert.match(res.text, /^todo_clear is consequential, and this page has no way to ask the user, so it did not run\.$/);
 });
 
 test("status inside a batch runs in the batch, instead of waiting for it to end", async () => {

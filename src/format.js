@@ -155,15 +155,45 @@ export function formatResult(result, def = {}, options = {}) {
   return blocks;
 }
 
-/** The fields `--json=` can pick: the properties of each record in a list, or of the record itself. */
-function fieldNames(schema, data) {
-  schema = deref(schema, schema) || {};
-  const target = schema.type === "array" ? deref(schema.items, schema) || {} : schema;
-  if (target.properties) return Object.keys(target.properties);
-  if (isRecords(data)) return [...new Set(data.flatMap(Object.keys))];
-  if (isRecord(data)) return Object.keys(data);
-  return [];
+/**
+ * What `--json=` can pick from: { top, lists, open }. top are the names of a
+ * record's own fields (or of each record, for a list); lists maps each list
+ * of records inside a record to its rows' field names. From the schema when
+ * it declares them, else from the data. open is true when a list's rows are
+ * not declared (an app's own columns), so only the data can say.
+ */
+function fieldSets(schema, data) {
+  const root = schema;
+  schema = deref(schema, root) || {};
+  const names = (s, value) => {
+    s = deref(s, root) || {};
+    if (s.properties) return Object.keys(s.properties);
+    if (isRecords(value)) return [...new Set(value.flatMap(Object.keys))];
+    if (isRecord(value)) return Object.keys(value);
+    return [];
+  };
+  if (schema.type === "array" || Array.isArray(data)) return { top: names(schema.type === "array" ? schema.items : {}, data), lists: {} };
+  const top = names(schema, data);
+  const lists = {};
+  let open = false;
+  const props = schema.properties || {};
+  for (const key of top) {
+    const p = deref(props[key], root) || {};
+    const value = own(data, key) ? data[key] : undefined;
+    const rows = p.type === "array" ? names(p.items, value) : isRecords(value) ? names({}, value) : [];
+    if (rows.length) lists[key] = rows;
+    else if (p.type === "array" && !(deref(p.items, root) || {}).properties && value === undefined) open = true;
+  }
+  return { top, lists, open };
 }
+
+/** Every name `--json=` accepts: a record's own fields, then its lists' row fields. */
+const fieldNames = ({ top, lists }) => [...new Set([...top, ...Object.values(lists).flat()])];
+
+const unknownFields = (fields, known) => {
+  const unknown = fields.filter((f) => !known.includes(f));
+  return unknown.length ? `unknown field ${unknown.map((f) => `"${f}"`).join(", ")}. Available: ${known.join(", ")}` : null;
+};
 
 /**
  * Checks `--json=` field names against a command's output schema before it
@@ -171,28 +201,43 @@ function fieldNames(schema, data) {
  */
 export function checkFields(def, fields) {
   if (!def.output) return null;
-  const known = fieldNames(def.output);
+  const sets = fieldSets(def.output);
+  // Rows the schema does not describe are checked against the data, after the run.
+  if (sets.open) return null;
+  const known = fieldNames(sets);
   if (!known.length) return `${def.name}: --json= needs records, and this command returns ${def.output.type || "no fields"}`;
-  const unknown = fields.filter((f) => !known.includes(f));
-  return unknown.length ? `${def.name}: unknown field ${unknown.map((f) => `"${f}"`).join(", ")}. Available: ${known.join(", ")}` : null;
+  const unknown = unknownFields(fields, known);
+  return unknown ? `${def.name}: ${unknown}` : null;
 }
 
 /**
  * Keeps only the named fields, like `gh … --json=a,b`: of each record in a
- * list, or of a single record. Returns { data } or { error }.
+ * list, or of a single record. A name that is not the record's own picks
+ * that field from the rows of each list in it, so `--json=title,url` works
+ * on { total, rows: […] } and gives { rows: [{ title, url }, …] }. The
+ * record's own fields come first: `--json=rows` keeps the whole list.
+ * Returns { data } or { error }.
  */
 export function selectFields(data, fields, schema) {
-  const known = fieldNames(schema, data);
+  const sets = fieldSets(schema, data);
+  const known = fieldNames(sets);
   // No records is still a list of records: [] stays [], once the fields are known ones.
   if (Array.isArray(data) && !data.length) {
-    const unknown = known.length ? fields.filter((f) => !known.includes(f)) : [];
-    return unknown.length ? { error: `unknown field ${unknown.map((f) => `"${f}"`).join(", ")}. Available: ${known.join(", ")}` } : { data: [] };
+    const unknown = known.length ? unknownFields(fields, known) : null;
+    return unknown ? { error: unknown } : { data: [] };
   }
   if (!isRecord(data) && !isRecords(data)) return { error: "--json= needs records, and this command returned none" };
-  const unknown = fields.filter((f) => !known.includes(f));
-  if (unknown.length) return { error: `unknown field ${unknown.map((f) => `"${f}"`).join(", ")}. Available: ${known.join(", ")}` };
-  const pick = (r) => Object.fromEntries(fields.filter((f) => own(r, f)).map((f) => [f, r[f]]));
-  return { data: Array.isArray(data) ? data.map(pick) : pick(data) };
+  const unknown = unknownFields(fields, known);
+  if (unknown) return { error: unknown };
+  const pick = (r, names) => Object.fromEntries(names.filter((f) => own(r, f)).map((f) => [f, r[f]]));
+  if (Array.isArray(data)) return { data: data.map((r) => pick(r, fields)) };
+  const out = pick(data, fields.filter((f) => sets.top.includes(f)));
+  const rowFields = fields.filter((f) => !sets.top.includes(f));
+  for (const [key, names] of Object.entries(sets.lists)) {
+    const wanted = rowFields.filter((f) => names.includes(f));
+    if (wanted.length && !own(out, key) && Array.isArray(data[key])) out[key] = data[key].map((r) => (isRecord(r) ? pick(r, wanted) : r));
+  }
+  return { data: out };
 }
 
 /** Quotes a word for a command line only when it needs it, the way a shell user would. */
@@ -428,7 +473,7 @@ export function formatMan(def, name = def && def.name, formats = getFormats()) {
         if (isList && depth < 2 && !(raw.items && raw.items.$ref && depth > 0)) fields(p.items, indent + 5, depth + 1);
       }
     })(def.output, 5, 0);
-    L.push("     The console formats this as text; --wide shows every column. --json prints it unchanged, as an agent gets it, and --json=<field,…> keeps only those fields.");
+    L.push("     The console formats this as text; --wide shows every column. --json prints it unchanged, as an agent gets it, and --json=<field,…> keeps only those fields, of the record or of each row in its lists.");
   }
 
   const label = annotationLabel(def.annotations);

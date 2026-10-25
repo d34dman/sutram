@@ -108,11 +108,16 @@ command that ran and failed, `130` for one that was not allowed to run. See
 
 ## What it costs in tokens
 
-We estimated on a real form, Drupal's "Create Article", with one wrong value,
-from captured outputs: no agent was run.
-The method and all numbers are in [Measurements](measurements.md). The
-figures are estimates (bytes ÷ 4), captured with Sutram 0.3 and 0.4, before
-the kits; they have not been measured again yet. In short:
+Claude Code, driving a real browser on the Drupal demo, ran two tasks once
+with Sutram and once without it, on the same set-up. Building a Canvas page
+took half the task tokens (228k instead of 453k) and 21 calls instead of 28;
+editing an article took 11 calls instead of 14. One run each, so a
+direction, not a benchmark; the method and all numbers are in
+[Measurements](measurements.md).
+
+Where the saving comes from, estimated from captured outputs on Drupal's
+"Create Article" form with one wrong value (bytes ÷ 4, Sutram 0.3 and 0.4,
+no agent run):
 
 - **Reading the page:** a browser agent reads about 3,300 tokens of
   accessibility snapshot (about 81,000 as HTML, about 1,600 per screenshot).

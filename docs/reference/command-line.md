@@ -89,7 +89,7 @@ belong to the value. Lines starting with `#` are comments.
 |---|---|
 | `-h`, `--help` | Show the command's usage |
 | `--json` | Print the data unchanged, as agents get it |
-| `--json=a,b` | Print only those fields |
+| `--json=a,b` | Print only those fields: of the record, else of each row in its lists |
 | `--wide` | Show every column |
 
 A command cannot declare inputs named `help`, `json` or `wide`.

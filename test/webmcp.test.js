@@ -16,6 +16,20 @@ function fakeModelContext() {
   };
 }
 
+/** The question WebMCP asks with the browser's confirm() when the page has no asker; the answer is no. */
+async function confirmQuestion(r, tool, input = {}) {
+  const mc = fakeModelContext();
+  const disconnect = connectWebMCP(r, mc);
+  const asked = [];
+  const confirm = globalThis.confirm;
+  globalThis.confirm = (text) => { asked.push(text); return false; };
+  try {
+    assert.equal((await mc.tools.get(tool).execute(input, {})).code, EXIT.CANCELLED);
+  } finally { globalThis.confirm = confirm; disconnect(); }
+  assert.equal(asked.length, 1);
+  return asked[0].replace(/^An agent on this page wants to act\.\n\n/, "");
+}
+
 const goDef = {
   name: "nav go", provider: "nav", description: "Go to a menu item",
   input: { type: "object", properties: { item: { type: "string" } }, required: ["item"] },
@@ -70,9 +84,12 @@ test("listTools and callTool give code outside the page what an agent sees", asy
 
   const refused = await callTool("checkout", {}, { registry: r });
   assert.equal(refused.code, EXIT.CANCELLED);
-  assert.match(refused.message, /Place an order for 2 items\?.*confirmed: true/);
+  assert.equal(refused.message, "checkout is consequential, and this page has no way to ask the user, so it did not run.");
   assert.equal(placed.length, 0);
-  assert.equal((await callTool("checkout", {}, { registry: r, confirmed: true })).code, 0);
+  const questions = [];
+  r.policy.setAsker(({ steps }) => { questions.push(steps.map((s) => s.def.name)); return true; });
+  assert.equal((await callTool("checkout", {}, { registry: r })).code, 0);
+  assert.deepEqual(questions, [["checkout"]]);
   assert.equal(placed.length, 1);
 });
 
@@ -122,8 +139,8 @@ test("the policy decides which agent calls need the user, and WebMCP asks throug
   assert.equal((await mc.tools.get("doc_add").execute({}, {})).code, EXIT.USAGE);
   assert.equal(asked.length, before);
 
-  // Sutram.call and Sutram.exec ask through the asker too, and confirmed
-  // changes nothing there: the person answers, not the agent.
+  // Sutram.call and Sutram.exec ask through the asker too: the person
+  // answers, not the agent, and an old confirmed: true changes nothing.
   const n = asked.length;
   assert.equal((await callTool("doc_add", { item: "d" }, { registry: r, confirmed: true })).code, EXIT.CANCELLED);
   assert.equal((await execLines("doc add d", { registry: r, confirmed: true })).code, EXIT.CANCELLED);
@@ -133,14 +150,24 @@ test("the policy decides which agent calls need the user, and WebMCP asks throug
   assert.deepEqual(log, ["a", "c", "e"]);
 });
 
-test("without an asker, Sutram.call says to ask, and confirmed is the person's yes", async () => {
-  const { r } = counter();
+test("without an asker, Sutram.call runs nothing that needs the user, and the caller cannot say yes", async () => {
+  const { r, log } = counter();
   r.policy.set({ agent: "changes" });
-  const refused = await callTool("doc_add", { item: "d" }, { registry: r });
-  assert.match(refused.message, /needs the user's approval[\s\S]*confirmed: true/);
-  // The generic question shows the arguments.
-  assert.match(refused.message, /"Run doc add\?\ndoc add d"/);
-  assert.equal((await callTool("doc_add", { item: "d" }, { registry: r, confirmed: true })).code, 0);
+  for (const options of [{}, { confirmed: true }, { caller: "code" }]) {
+    const refused = await callTool("doc_add", { item: "d" }, { registry: r, ...options });
+    assert.equal(refused.code, EXIT.CANCELLED);
+    assert.equal(refused.message, "doc_add needs the user's approval on this page, and this page has no way to ask the user, so it did not run.");
+  }
+  assert.deepEqual(log, []);
+});
+
+test("Sutram.call and Sutram.exec always run as the agent", async () => {
+  const { r } = counter();
+  const callers = [];
+  r.onResult(({ caller }) => callers.push(caller));
+  await callTool("doc_add", { item: "a" }, { registry: r, caller: "code" });
+  await execLines("doc add b", { registry: r, caller: "console" });
+  assert.deepEqual(callers, ["agent", "agent"]);
 });
 
 test("sutram_batch runs calls as one batch, asks once, and checks everything first", async () => {
@@ -168,20 +195,18 @@ test("sutram_batch runs calls as one batch, asks once, and checks everything fir
 
   const consequential = await callTool("sutram_batch", { calls: [{ tool: "doc_add", input: { item: "a" } }, { tool: "doc_clear" }] }, { registry: r });
   assert.equal(consequential.code, EXIT.CANCELLED);
-  assert.match(consequential.message, /contains consequential commands.*doc add a\ndoc clear/s);
+  assert.match(consequential.message, /^sutram_batch contains consequential commands, and this page has no way to ask the user/);
+  assert.match(await confirmQuestion(r, "sutram_batch", { calls: [{ tool: "doc_add", input: { item: "a" } }, { tool: "doc_clear" }] }), /doc clear cannot easily be undone\.\ndoc add a\ndoc clear$/);
 });
 
 test("a batch question names its consequential commands and keeps each command to one line", async () => {
   const { r, log } = counter();
   const calls = [{ tool: "doc_clear" }, { tool: "doc_add", input: { item: "x" + "\n".repeat(80) + "y" } }];
 
-  // Sutram.call cannot ask; the question it hands over is short.
-  const refused = await callTool("sutram_batch", { calls }, { registry: r });
-  assert.equal(refused.code, EXIT.CANCELLED);
-  assert.match(refused.message, /Run these 2 commands\? doc clear cannot easily be undone\.\ndoc clear\ndoc add "x…" \(81 lines\)/);
-  assert.ok(!refused.message.includes("\n\n"));
+  // Without an asker, WebMCP falls back to the browser's confirm(), and the question is short.
+  const question = await confirmQuestion(r, "sutram_batch", { calls });
+  assert.equal(question, 'Run these 2 commands? doc clear cannot easily be undone.\ndoc clear\ndoc add "x…" (81 lines)');
 
-  // Without an asker, WebMCP falls back to the browser's confirm().
   const mc = fakeModelContext();
   connectWebMCP(r, mc);
   const asked = [];
@@ -242,17 +267,14 @@ test("the question shows the checked value, and a confirm() that throws gets the
     name: "shop wipe", provider: "shop", description: "Wipe", annotations: { consequential: true },
     confirm: () => { throw new Error("oops"); }, run: () => ({}),
   });
-  const single = await callTool("shop_order", { ids: "1,2,3" }, { registry: r });
-  assert.match(single.message, /"Order 3 × 1\?"/);
-
-  const batch = await callTool("sutram_batch", { calls: [{ tool: "shop_order", input: { ids: [1], all: "false" } }, { tool: "shop_wipe" }] }, { registry: r });
-  assert.match(batch.message, /shop order --ids=1 --no-all --qty=1\nshop wipe/);
+  assert.equal(await confirmQuestion(r, "shop_order", { ids: [1, 2, 3] }), "Order 3 × 1?");
+  assert.match(await confirmQuestion(r, "sutram_batch", { calls: [{ tool: "shop_order", input: { ids: [1], all: false } }, { tool: "shop_wipe" }] }), /shop order --ids=1 --no-all --qty=1\nshop wipe$/);
 
   const warn = console.warn;
   const warned = [];
   console.warn = (m) => warned.push(m);
   try {
-    assert.match((await callTool("shop_wipe", {}, { registry: r })).message, /"Run shop wipe\?"/);
+    assert.equal(await confirmQuestion(r, "shop_wipe"), "Run shop wipe?");
   } finally { console.warn = warn; }
   assert.match(warned[0], /shop wipe: confirm\(\) failed/);
 
@@ -295,7 +317,9 @@ test("sutram_batch refuses a call or input that is not an object", async () => {
   assert.equal((await callTool("sutram_batch", { calls: [{ tool: "doc_add", input: ["a"] }] }, { registry: r })).code, EXIT.USAGE);
   assert.equal((await callTool("sutram_batch", { calls: ["doc_add"] }, { registry: r })).code, EXIT.USAGE);
   assert.deepEqual(log, []);
-  assert.equal((await callTool("sutram_batch", { calls: [{ tool: "doc_clear", input: null }] }, { registry: r, confirmed: true })).code, 0);
+  assert.equal((await callTool("sutram_batch", { calls: [{ tool: "doc_clear", input: null }] }, { registry: r })).code, EXIT.CANCELLED);
+  r.policy.setAsker(() => true);
+  assert.equal((await callTool("sutram_batch", { calls: [{ tool: "doc_clear", input: null }] }, { registry: r })).code, 0);
 });
 
 test("sutram is reserved for Sutram's own tools, and sutram_status follows the policy", async () => {
@@ -308,7 +332,8 @@ test("sutram is reserved for Sutram's own tools, and sutram_status follows the p
   const refused = await callTool("sutram_status", {}, { registry: r });
   assert.equal(refused.code, EXIT.CANCELLED);
   assert.match(refused.message, /^sutram_status is consequential/);
-  const ok = await callTool("sutram_status", {}, { registry: r, confirmed: true });
+  r.policy.setAsker(() => true);
+  const ok = await callTool("sutram_status", {}, { registry: r });
   assert.deepEqual(ok, { code: 0, data: { providers: [{ provider: "bank", code: 0, text: "€12" }] } });
 });
 
@@ -395,7 +420,7 @@ test("a title becomes the tool's title and the generic question", async () => {
   assert.ok(listTools(createRegistry()).every((tool) => tool.title));
   const r = createRegistry();
   r.register({ name: "form save", title: "Save a form.", provider: "form", description: "Save", annotations: { consequential: true }, run: () => ({}) });
-  assert.match((await callTool("form_save", {}, { registry: r })).message, /"Save a form\? \(form save\)"/);
+  assert.equal(await confirmQuestion(r, "form_save"), "Save a form? (form save)");
 });
 
 test("sutram_status and events recent carry the page's own text, so agents get untrustedContentHint", async () => {
