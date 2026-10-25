@@ -10,7 +10,7 @@
 
 import { getRegistry } from "./core.js";
 import { approvalLine } from "./format.js";
-import { genericQuestion, ownQuestion } from "./policy.js";
+import { batchQuestions, genericQuestion, ownQuestion } from "./policy.js";
 
 /**
  * Every text the dialog shows of its own. Set `dialog.messages = { … }` to
@@ -25,6 +25,8 @@ export const APPROVAL_MESSAGES = Object.freeze({
   agentAsksBatch: (n) => `An agent wants to run ${n} commands as one change:`,
   agentBatch: (n) => `Run these ${n} commands?`,
   agentBatchConsequential: (n, names) => `Run these ${n} commands? ${names.join(", ")} cannot easily be undone.`,
+  // A batch step's own question, under the batch's; before is true when earlier steps may change what it says.
+  stepAsks: (name, question, before) => (before ? `${name}, about the page before the commands above run: ${question}` : `${name}: ${question}`),
 });
 
 const STYLE = `
@@ -42,7 +44,7 @@ dialog::backdrop { background: #0006; }
 .lines { margin: 0 0 10px; padding: 0; list-style: none; }
 .lines li { white-space: pre-wrap; word-break: break-word; }
 .lines li::before { content: "› "; color: var(--sutram-warn); }
-.question { color: var(--sutram-warn); margin: 0 0 12px; }
+.question { color: var(--sutram-warn); margin: 0 0 12px; white-space: pre-line; }
 .buttons { display: flex; gap: 8px; justify-content: flex-end; }
 button { font: inherit; border: 1px solid var(--sutram-warn); background: transparent; color: var(--sutram-warn); border-radius: 5px; padding: 2px 14px; cursor: pointer; }
 button.yes { background: var(--sutram-warn); color: var(--sutram-on-warn); }
@@ -64,8 +66,10 @@ export function approvalText(steps, messages = APPROVAL_MESSAGES) {
   const m = { ...APPROVAL_MESSAGES, ...messages };
   // A batch names its consequential commands, as a pasted batch does.
   const consequential = [...new Set(steps.filter((s) => s.def.annotations.consequential).map((s) => s.def.name))];
+  // A batch keeps each consequential command's own question: a read-only step in front must not hide it.
+  const own = steps.length === 1 ? [] : batchQuestions(steps).map((q) => m.stepAsks(q.name, q.question, q.changedBefore));
   const question = steps.length === 1 ? (ownQuestion(steps[0].def, steps[0].input) || m.run(steps[0].def.name, steps[0].def.title))
-    : consequential.length ? m.agentBatchConsequential(steps.length, consequential) : m.agentBatch(steps.length);
+    : [consequential.length ? m.agentBatchConsequential(steps.length, consequential) : m.agentBatch(steps.length), ...own].join("\n");
   return {
     lead: steps.length === 1 ? m.agentAsks : m.agentAsksBatch(steps.length),
     lines: steps.map(({ def, input }) => approvalLine(def, input)),
@@ -92,6 +96,17 @@ export class SutramApproval extends Base {
     root.querySelector(".no").addEventListener("click", () => this.answer(false));
     // Escape closes a modal dialog: that is a no.
     this.dialog.addEventListener("cancel", (e) => { e.preventDefault(); this.answer(false); });
+    // The browser may also close it without a cancel event that can be
+    // stopped: Chromium does after repeated Escapes, to let people out of a
+    // run of dialogs, and closes it again if it is reopened. So that answers
+    // no to the open question and to those waiting; the next one asked opens
+    // the dialog again.
+    this.dialog.addEventListener("close", () => {
+      // The event comes a task later: the dialog may be open again by then, for a new question.
+      if (!this.current || this.dialog.open) return;
+      for (const item of this.queue.splice(0)) item.resolve(false);
+      this.answer(false);
+    });
     this.renderChrome();
   }
 
@@ -150,8 +165,9 @@ export class SutramApproval extends Base {
     clearTimeout(this.armTimer);
     this.armTimer = setTimeout(() => { yes.disabled = false; }, ARM_DELAY);
     if (!this.dialog.open) {
+      // Where the focus goes when the queue is empty: kept from the first question on.
       const active = document.activeElement;
-      this.returnFocus = active && active !== document.body ? active : null;
+      if (!this.returnFocus) this.returnFocus = active && active !== document.body && active !== this ? active : null;
       this.dialog.showModal();
     }
     root.querySelector(".no").focus();

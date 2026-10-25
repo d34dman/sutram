@@ -25,3 +25,13 @@ test("approvalText: a batch names its consequential commands; long values are sh
   assert.equal(approvalText(steps.slice(0, 1).concat(steps.slice(0, 1))).question, "Run these 2 commands?");
   assert.equal(approvalText(steps, { agentAsksBatch: (n) => `${n} Befehle:` }).lead, "2 Befehle:");
 });
+
+test("approvalText: a batch keeps each consequential command's own question, and says when earlier steps change the page", () => {
+  const order = def("order place", { consequential: true }, { confirm: () => "Place an order for 99 items, €4752.00?" });
+  const read = { def: def("listing rows", { readOnly: true }), input: {} };
+  const t = approvalText([read, { def: order, input: {} }]);
+  assert.equal(t.question, "Run these 2 commands? order place cannot easily be undone.\norder place: Place an order for 99 items, €4752.00?");
+  const changed = approvalText([{ def: def("cart add"), input: { item: "V60" } }, { def: order, input: {} }]);
+  assert.match(changed.question, /\norder place, about the page before the commands above run: Place an order for 99 items, €4752\.00\?$/);
+  assert.match(approvalText([read, { def: order, input: {} }], { stepAsks: (n, q) => `${n} → ${q}` }).question, /\norder place → Place/);
+});

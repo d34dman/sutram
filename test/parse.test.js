@@ -203,7 +203,8 @@ test("splitLines is linear on a long paste", () => {
   const text = `doc set --value=${JSON.stringify(html)}\n# a comment\ndoc set --value <<END\n${html}\nEND\n${"x<".repeat(30000)}`;
   const started = performance.now();
   const lines = splitLines(text);
-  assert.ok(performance.now() - started < 200, `took ${Math.round(performance.now() - started)} ms`);
+  // About 100 ms alone; quadratic work on this input takes seconds. The margin is for a busy test run.
+  assert.ok(performance.now() - started < 1000, `took ${Math.round(performance.now() - started)} ms`);
   assert.equal(lines.length, 4);
   assert.equal(lines[1], "# a comment");
   assert.match(lines[2], /<<END\n<p>word/);

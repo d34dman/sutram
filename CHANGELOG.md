@@ -9,8 +9,9 @@ release, and each change is listed under *Commands*. See
 
 ## Unreleased
 
-Agents are sent to the page's tools first, and the person sees what they
-run there.
+Agents are sent to the page's tools first, the person approves their calls
+in a dialog of its own and sees what they run, and no caller can approve
+for the person any more.
 
 ### Added
 
@@ -90,6 +91,8 @@ run there.
   full status (unsaved changes, required fields still empty, errors), so
   `status` shows them too. With several forms it lists them, as before, and
   ends `Try form status <form>.` instead of `See form status <form>.`
+- `sutram_batch` has `untrustedContentHint`: it returns its calls' results
+  as they are, and those can hold the page's own text.
 
 ### Fixed
 
@@ -99,6 +102,19 @@ run there.
 - `Sutram.exec()` asks a command's own question again just before it runs,
   as `Sutram.call()` and the console do: when the page changed while the
   person was asked, it runs nothing (exit 130). It ran the changed command.
+- The approval dialog no longer hangs when the browser closes it without a
+  cancel event (Chromium does after repeated Escapes): the open question
+  and those waiting are answered no, and the next question opens it again.
+  Before, the waiting calls never settled, and every later agent call that
+  needed approval waited behind them.
+- A batch's approval question (the dialog and the browser's `confirm()`)
+  includes each consequential command's own question, such as "Place an
+  order for 99 items, €4752.00?", and says when earlier commands in the
+  batch may change it. Before, a read-only command in front of a
+  consequential one hid that question. `APPROVAL_MESSAGES` has `stepAsks`
+  for it.
+- The "splitLines is linear" test allows a busy test run: it failed now and
+  then on a 200 ms limit.
 
 ## 0.8.1 (2026-10-24)
 

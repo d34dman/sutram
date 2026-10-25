@@ -13,7 +13,7 @@ import { approvalLine, describeShape, formatsUsed, sentence } from "./format.js"
 import { getFormats } from "./formats.js";
 import { LINE_TEXT, commandSteps, readBatch, readLines, runSteps } from "./lines.js";
 import { suggest } from "./parse.js";
-import { genericQuestion, ownQuestion } from "./policy.js";
+import { batchQuestions, genericQuestion, ownQuestion } from "./policy.js";
 
 /** The page's model context (document.modelContext), or null when the browser has none. */
 export function findModelContext() {
@@ -78,7 +78,10 @@ export const BATCH_TOOL = {
     },
     required: ["calls"],
   },
-  annotations: {},
+  // It returns its calls' results as they are, and those can hold the page's
+  // own text. Not consequentialHint: hosts would ask before every batch, and
+  // the page asks when a call in it needs the person.
+  annotations: { untrustedContentHint: true },
 };
 
 /** Every tool an agent sees on the page right now: sutram_status and sutram_batch first, then one per command. */
@@ -116,7 +119,9 @@ function question(steps) {
   }
   const consequential = [...new Set(steps.filter((s) => s.def.annotations.consequential).map((s) => s.def.name))];
   const warning = consequential.length ? ` ${consequential.join(", ")} cannot easily be undone.` : "";
-  return `Run these ${steps.length} commands?${warning}\n${steps.map((s) => approvalLine(s.def, s.input)).join("\n")}`;
+  // Each consequential command's own question too, so a read-only step in front cannot hide it.
+  const own = batchQuestions(steps).map((q) => `${q.name}${q.changedBefore ? ", about the page before the commands above run" : ""}: ${q.question}`);
+  return [`Run these ${steps.length} commands?${warning}`, ...steps.map((s) => approvalLine(s.def, s.input)), ...own].join("\n");
 }
 
 /**

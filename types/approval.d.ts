@@ -11,6 +11,8 @@ export interface ApprovalMessages {
   agentAsksBatch: (n: number) => string;
   agentBatch: (n: number) => string;
   agentBatchConsequential: (n: number, names: string[]) => string;
+  /** A batch step's own question, under the batch's; before is true when earlier steps may change what it says. */
+  stepAsks: (name: string, question: string, before: boolean) => string;
 }
 
 export declare const APPROVAL_MESSAGES: Readonly<ApprovalMessages>;

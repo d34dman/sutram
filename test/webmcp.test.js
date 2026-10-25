@@ -268,7 +268,7 @@ test("the question shows the checked value, and a confirm() that throws gets the
     confirm: () => { throw new Error("oops"); }, run: () => ({}),
   });
   assert.equal(await confirmQuestion(r, "shop_order", { ids: [1, 2, 3] }), "Order 3 × 1?");
-  assert.match(await confirmQuestion(r, "sutram_batch", { calls: [{ tool: "shop_order", input: { ids: [1], all: false } }, { tool: "shop_wipe" }] }), /shop order --ids=1 --no-all --qty=1\nshop wipe$/);
+  assert.match(await confirmQuestion(r, "sutram_batch", { calls: [{ tool: "shop_order", input: { ids: [1], all: false } }, { tool: "shop_wipe" }] }), /shop order --ids=1 --no-all --qty=1\nshop wipe\nshop order: Order 1 × 1\?$/);
 
   const warn = console.warn;
   const warned = [];
@@ -421,6 +421,11 @@ test("a title becomes the tool's title and the generic question", async () => {
   const r = createRegistry();
   r.register({ name: "form save", title: "Save a form.", provider: "form", description: "Save", annotations: { consequential: true }, run: () => ({}) });
   assert.equal(await confirmQuestion(r, "form_save"), "Save a form? (form save)");
+});
+
+test("sutram_batch returns its calls' results as they are, so agents get untrustedContentHint", () => {
+  const batch = listTools(createRegistry()).find((t) => t.name === "sutram_batch");
+  assert.deepEqual(batch.annotations, { untrustedContentHint: true });
 });
 
 test("sutram_status and events recent carry the page's own text, so agents get untrustedContentHint", async () => {

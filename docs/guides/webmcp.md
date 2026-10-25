@@ -38,7 +38,10 @@ connectWebMCP(registry, findModelContext());
   `{ calls: [{ tool: "cart_add", input: { sku: "V60" } }, …] }`. With
   `quiet: true` it leaves out the results of the calls that worked and
   returns `{ code, completed, total }`, plus the failing call's result as
-  `failed`.
+  `failed`. It always has `untrustedContentHint`, as `sutram_status` does:
+  it returns its calls' results as they are, page text included. When the
+  page asks the person about a batch, the question includes each
+  consequential command's own question, such as an order's price.
 
 When commands are added or removed, the tools follow. If you change a
 definition in place, register it again (`registry.register(def)`) so the

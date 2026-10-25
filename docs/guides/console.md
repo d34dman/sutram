@@ -199,7 +199,11 @@ When an agent calls a command through WebMCP that needs the person's
 approval (see the [policy](../concepts/annotations-and-policy.md)),
 `<sutram-approval>` asks: a modal dialog with the commands and the
 question. *No* has the focus and <kbd>Esc</kbd> answers no, so a stray
-key never approves anything. `dist/sutram.js` and every console add it as
+key never approves anything. When the browser closes the dialog itself
+(Chromium does after repeated <kbd>Esc</kbd>, to let people out of a run of
+dialogs), the open question and those waiting are answered no. For a batch,
+the question includes each consequential command's own question, such as
+an order's price. `dist/sutram.js` and every console add it as
 the policy's asker; a page that calls `policy.setAsker()` uses its own.
 It is styled with the console's `--sutram-*` variables and the parts
 `dialog`, `lead`, `lines`, `question`, `yes` and `no`, and translated with

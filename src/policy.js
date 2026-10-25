@@ -97,5 +97,23 @@ export function ownQuestion(def, input) {
   }
 }
 
+/**
+ * The own questions of a batch's consequential commands, so the person sees
+ * what each one says it does, such as the price of an order: [{ name,
+ * question, changedBefore }]. A command asks about the page as it is now;
+ * changedBefore is true when an earlier step that is not read-only may
+ * change what it says.
+ */
+export function batchQuestions(steps) {
+  const out = [];
+  let changed = false;
+  for (const { def, input } of steps) {
+    const q = def.annotations.consequential ? ownQuestion(def, input) : null;
+    if (q) out.push({ name: def.name, question: q, changedBefore: changed });
+    if (!def.annotations.readOnly) changed = true;
+  }
+  return out;
+}
+
 /** The question for a command without its own: its title when it has one, "Submit a form? (form submit)", else "Run form submit?". */
 export const genericQuestion = (def) => (def.title ? `${def.title.trim().replace(/[.?!]+$/, "")}? (${def.name})` : `Run ${def.name}?`);
