@@ -7,7 +7,7 @@
 
 import { CommandError, EXIT, RESERVED_WORDS, checkInput, mayReinitialize, runStatus, unknownProviders } from "./core.js";
 import { checkFields, formatBuiltInUsage, formatHelp, formatMan, formatResult, formatUsage } from "./format.js";
-import { parse, splitLines, tokenize } from "./parse.js";
+import { distance, parse, splitLines, tokenize } from "./parse.js";
 
 /**
  * What lines say of their own, in plain English. The console's MESSAGES take
@@ -73,6 +73,16 @@ export function readBatch(registry, lines, text = LINE_TEXT) {
 /** The steps that run a command, and so may need the user's approval: not help, man, status or -h. */
 export const commandSteps = (steps) => steps.filter((s) => s.def && !s.help);
 
+/** The command or group closest to `name`, for help and man's "did you mean"; null when none is close. */
+function closest(registry, name) {
+  let best = null;
+  for (const n of new Set(registry.list().flatMap((d) => [d.name, d.name.split(" ")[0]]))) {
+    const score = distance(name, n);
+    if (score <= 2 && (!best || score < best.score)) best = { n, score };
+  }
+  return best && best.n;
+}
+
 const usageError = (word, usage) => ({ code: EXIT.USAGE, blocks: [{ kind: "error", text: `${word}: usage: ${usage}`, code: EXIT.USAGE }] });
 const USAGE = { help: "help [provider]", man: "man <command>", status: "status [provider …] [--json]", clear: "clear" };
 
@@ -99,14 +109,21 @@ export async function clientWord(registry, words, { caller, signal, run, text = 
   }
   if (options.length) return usageError(first, USAGE[first]);
   if (first === "help") {
-    const blocks = formatHelp(registry, rest.join(" ").toLowerCase());
-    return { code: blocks[0].kind === "error" ? blocks[0].code : EXIT.OK, blocks };
+    const topic = rest.join(" ").toLowerCase();
+    const blocks = formatHelp(registry, topic);
+    if (blocks[0].kind !== "error") return { code: EXIT.OK, blocks };
+    const guess = closest(registry, topic);
+    return { code: EXIT.NOT_FOUND, blocks: [{ ...blocks[0], text: `${blocks[0].text} ${guess ? `Try help ${guess}.` : "See help."}`, code: EXIT.NOT_FOUND }] };
   }
   if (first === "man") {
     const name = rest.join(" ").toLowerCase();
     if (!name) return { code: EXIT.USAGE, blocks: [{ kind: "error", text: text.manWhich, code: EXIT.USAGE }] };
     const def = registry.get(name);
-    if (!def && !RESERVED_WORDS.includes(name)) return { code: EXIT.FAILED, blocks: [{ kind: "error", text: text.manMissing(name), code: EXIT.FAILED }] };
+    if (!def && !RESERVED_WORDS.includes(name)) {
+      const guess = closest(registry, name);
+      const hint = guess && registry.get(guess) ? ` Try man ${guess}.` : "";
+      return { code: EXIT.NOT_FOUND, blocks: [{ kind: "error", text: text.manMissing(name) + hint, code: EXIT.NOT_FOUND }] };
+    }
     return { code: EXIT.OK, blocks: formatMan(def, name, registry.formats) };
   }
   if (rest.length) return usageError(first, USAGE.clear);
@@ -115,7 +132,8 @@ export async function clientWord(registry, words, { caller, signal, run, text = 
 
 /**
  * Runs steps from readBatch() as one batch, after the client has asked
- * whoever has to agree. `start(step)` is called before each step runs, and
+ * whoever has to agree. A step with `asked`, the question the user said yes
+ * to, runs only if the command still asks it. `start(step)` is called before each step runs, and
  * its output goes to `show(step, blocks, { result?, clear? })`;
  * `formatOptions` are passed to formatResult. Stops at the first
  * step that fails and rolls back what the providers' batch hooks can undo.
@@ -136,7 +154,7 @@ export async function runSteps(registry, steps, { caller, signal, start = () => 
       show(step, formatUsage(step.def), {});
       code = EXIT.OK;
     } else {
-      const result = await batch.run(step.def.name, step.input, { expect: step.def });
+      const result = await batch.run(step.def.name, step.input, { expect: step.def, asked: step.asked });
       show(step, formatResult(result, step.def, { ...formatOptions, json: step.json, wide: step.wide, fields: step.fields }), { result });
       code = result.code;
     }

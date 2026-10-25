@@ -144,10 +144,10 @@ export function parse(registry, line) {
 
   const words = tokens.map((t) => t.value.toLowerCase());
   const guess = suggest(registry, words);
-  throw new CommandError(
-    `${words.slice(0, 2).join(" ")}: command not found.${guess ? ` The most similar command is: ${guess}` : " See help."}`,
-    EXIT.NOT_FOUND,
-  );
+  // A group's name alone, or with a verb it lacks: name the group's commands.
+  const group = !guess && registry.list().filter((d) => d.name.startsWith(`${words[0]} `)).map((d) => d.name);
+  const next = guess ? ` The most similar command is: ${guess}` : group.length ? ` ${words[0]} has: ${group.join(", ")}. Try help ${words[0]}.` : " See help.";
+  throw new CommandError(`${words.slice(0, 2).join(" ")}: command not found.${next}`, EXIT.NOT_FOUND);
 }
 
 /** A boolean property, nullable or not: --key and --no-key. */

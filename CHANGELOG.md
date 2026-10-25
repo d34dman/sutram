@@ -56,6 +56,28 @@ run there.
 
 - `form list` also lists the fields, as `form fields` does, when the page
   has one form, so an agent needs one call less before its first change.
+- `user status`, `user login` and `user logout` are marked
+  `untrustedContent` (WebMCP `untrustedContentHint`): they print the user's
+  name and role labels, which people often choose themselves.
+- A group's name alone, such as `form`, or with a verb it does not have,
+  answers with the group's commands and `Try help form.` (still exit 127).
+- `help <name>` and `man <name>` for a name the page does not have exit
+  127, as an unknown command does, and suggest the closest one
+  (`Try man form set.`). They exited 1.
+- `--json=<field>` with a field the result does not have, on a command
+  without an `output` schema, prints everything the command returned, with
+  a note, and exits 0. It printed a usage error with exit 2 after the
+  command had already run, so a caller that ran it again repeated the
+  change.
+
+### Fixed
+
+- The approval dialog keeps Yes disabled for half a second after each
+  question appears. A double-click on Yes approved the next question in the
+  queue as well, before the person could see it.
+- `Sutram.exec()` asks a command's own question again just before it runs,
+  as `Sutram.call()` and the console do: when the page changed while the
+  person was asked, it runs nothing (exit 130). It ran the changed command.
 
 ## 0.8.1 (2026-10-24)
 

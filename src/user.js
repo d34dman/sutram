@@ -48,7 +48,8 @@ async function load(adapter) {
  */
 export function user(adapter, { registry = getRegistry() } = {}) {
   checkAdapter("user", adapter, { "user()": "function", "login()": "function", "logout()": "function", reloads: "boolean" });
-  const moves = adapter.reloads ? { navigates: true } : { reinitializes: true };
+  // Names and role labels are the site's text: on many sites people choose their own.
+  const moves = adapter.reloads ? { navigates: true, untrustedContent: true } : { reinitializes: true, untrustedContent: true };
 
   return registerAll(registry, [
     {
@@ -67,7 +68,7 @@ export function user(adapter, { registry = getRegistry() } = {}) {
           roles: { type: "array", items: { type: "string" } },
         },
       },
-      annotations: { readOnly: true },
+      annotations: { readOnly: true, untrustedContent: true },
       seeAlso: ["user login", "user logout"],
       async run() {
         const u = await load(adapter);

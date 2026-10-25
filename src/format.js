@@ -108,7 +108,9 @@ export function formatResult(result, def = {}, options = {}) {
     let data = result.data === undefined ? null : result.data;
     if (options.fields) {
       const picked = selectFields(data, options.fields, def.output);
-      if (picked.error) return [{ kind: "error", text: `${def.name || "--json"}: ${picked.error}`, code: 2 }];
+      // The command has run by now (declared fields are checked before it
+      // runs), so this is no usage error: running it again would repeat it.
+      if (picked.error) return [{ kind: "dim", text: `${def.name || "--json"}: ${picked.error}. It ran; here is all it returned.` }, { kind: "json", text: JSON.stringify(data, null, 2) }];
       data = picked.data;
     }
     return [{ kind: "json", text: JSON.stringify(data, null, 2) }];
@@ -332,7 +334,7 @@ const HELP_FOOTER = [
 /** `help` and `help <provider>`: one line per command. */
 export function formatHelp(registry, prefix = "") {
   const list = registry.list().filter((d) => !prefix || d.name === prefix || d.name.startsWith(prefix + " "));
-  if (!list.length) return [{ kind: "error", text: `help: nothing called "${prefix}" on this page`, code: 1 }];
+  if (!list.length) return [{ kind: "error", text: `help: nothing called "${prefix}" on this page.`, code: 127 }];
   const usages = list.map(synopsis);
   const w = Math.min(40, Math.max(...usages.map((u) => u.length)));
   const lines = list.map((d, i) => {

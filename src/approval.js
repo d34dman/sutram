@@ -5,6 +5,8 @@
 //
 // A modal <dialog> in its own shadow root. No has the focus, and Escape
 // answers no, so a stray Enter or a closed dialog never approves anything.
+// Yes waits a moment after each question appears, so a double-click on the
+// last one cannot approve the next one, unread.
 
 import { getRegistry } from "./core.js";
 import { approvalLine } from "./format.js";
@@ -44,10 +46,14 @@ dialog::backdrop { background: #0006; }
 .buttons { display: flex; gap: 8px; justify-content: flex-end; }
 button { font: inherit; border: 1px solid var(--sutram-warn); background: transparent; color: var(--sutram-warn); border-radius: 5px; padding: 2px 14px; cursor: pointer; }
 button.yes { background: var(--sutram-warn); color: var(--sutram-on-warn); }
+button:disabled { opacity: 0.5; cursor: default; }
 button:focus-visible { outline: 2px solid var(--sutram-accent); outline-offset: 2px; }
 `;
 
 const Base = globalThis.HTMLElement || class {};
+
+/** How long Yes stays disabled after a question appears, in milliseconds. */
+const ARM_DELAY = 500;
 
 /**
  * What the dialog says about an agent's request: the lead, one line per
@@ -138,6 +144,11 @@ export class SutramApproval extends Base {
       return li;
     }));
     root.querySelector(".question").textContent = question;
+    // A click meant for the last question must not land on this one.
+    const yes = root.querySelector(".yes");
+    yes.disabled = true;
+    clearTimeout(this.armTimer);
+    this.armTimer = setTimeout(() => { yes.disabled = false; }, ARM_DELAY);
     if (!this.dialog.open) {
       const active = document.activeElement;
       this.returnFocus = active && active !== document.body ? active : null;
@@ -163,6 +174,7 @@ export class SutramApproval extends Base {
   }
 
   disconnectedCallback() {
+    clearTimeout(this.armTimer);
     // Nobody can answer here any more: open and queued questions are answered no.
     for (const item of this.queue.splice(0)) item.resolve(false);
     if (this.current) { this.current.resolve(false); this.current = null; }

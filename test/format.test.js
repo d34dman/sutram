@@ -95,7 +95,10 @@ test("--json=fields keeps only those fields, and names the ones that exist", () 
   assert.deepEqual(picked, { total: { amount: 60.9, currency: "EUR" } });
   assert.equal(checkFields(products, ["sku"]), null);
   assert.equal(checkFields(products, ["sku", "colour"]), 'product list: unknown field "colour". Available: sku, name, origin, price');
-  assert.deepEqual(formatResult(productData, products, { json: true, fields: ["colour"] })[0].code, 2);
+  // After the run, a field it lacks is a note, not an error: the command has run.
+  const late = formatResult(productData, products, { json: true, fields: ["colour"] });
+  assert.equal(late[0].kind, "dim");
+  assert.deepEqual(JSON.parse(late[1].text), productData.data);
 });
 
 test("help lists commands with usage and annotation", () => {

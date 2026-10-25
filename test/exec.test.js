@@ -80,8 +80,48 @@ test("exec answers help, man, status and -h as the console does", async () => {
   assert.match(res.text, /› man todo add\n.*Add a todo/s);
   assert.match(res.text, /› status\ntodo {2}0 todos/);
   assert.match(res.text, /› todo add -h\n.*todo add/s);
-  assert.equal((await execLines("man nope", { registry: r })).code, EXIT.FAILED);
+  const man = await execLines("man todo ad", { registry: r });
+  assert.equal(man.code, EXIT.NOT_FOUND);
+  assert.match(man.text, /No manual entry for todo ad\. See help\. Try man todo add\./);
+  const help = await execLines("help tod", { registry: r });
+  assert.equal(help.code, EXIT.NOT_FOUND);
+  assert.match(help.text, /help: nothing called "tod" on this page\. Try help todo\./);
+  assert.match((await execLines("help nope", { registry: r })).text, /on this page\. See help\./);
   assert.equal((await execLines("  \n# only a comment", { registry: r })).code, EXIT.USAGE);
+});
+
+test("a group's name alone names its commands", async () => {
+  const { r } = todos();
+  const res = await execLines("todo", { registry: r });
+  assert.equal(res.code, EXIT.NOT_FOUND);
+  assert.match(res.text, /todo: command not found\. todo has: todo add, todo clear, todo status\. Try help todo\./);
+});
+
+test("a command's own question is asked again before exec runs it: a page that changed meanwhile runs nothing", async () => {
+  const r = createRegistry();
+  r.initialized();
+  let total = 1;
+  let paid = null;
+  r.register({
+    name: "shop pay", provider: "shop", description: "Pay", annotations: { consequential: true },
+    confirm: () => `Pay €${total}?`, run: () => { paid = total; return "Paid."; },
+  });
+  r.policy.setAsker(async () => { total = 9999; return true; });
+  const changed = await execLines("shop pay", { registry: r });
+  assert.equal(changed.code, EXIT.CANCELLED);
+  assert.match(changed.text, /the page changed while the user was asked/);
+  assert.equal(paid, null);
+  r.policy.setAsker(async () => true);
+  assert.equal((await execLines("shop pay", { registry: r })).code, 0);
+  assert.equal(paid, 9999);
+});
+
+test("--json= with a field the result lacks still answers 0, with everything it returned: the command ran", async () => {
+  const { r } = todos();
+  const res = await execLines("todo add a --json=nope", { registry: r });
+  assert.equal(res.code, 0);
+  assert.doesNotMatch(res.text, /exit 2/);
+  assert.match(res.text, /unknown field "nope"\. Available: count\. It ran; here is all it returned\.\n\{\n {2}"count": 1\n\}/);
 });
 
 test("a line that leaves the page goes last, and the answer says to wait", async () => {

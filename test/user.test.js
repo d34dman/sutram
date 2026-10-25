@@ -23,13 +23,15 @@ function setup(over = {}) {
 test("registers user status, login and logout with titles; reloads picks the annotations", () => {
   const { r, off } = setup();
   assert.equal(r.get("user status").title, "Show who is logged in");
-  assert.deepEqual(r.get("user login").annotations, { navigates: true });
-  assert.deepEqual(r.get("user logout").annotations, { navigates: true, consequential: true });
+  // Names and role labels are the site's text.
+  assert.deepEqual(r.get("user status").annotations, { readOnly: true, untrustedContent: true });
+  assert.deepEqual(r.get("user login").annotations, { navigates: true, untrustedContent: true });
+  assert.deepEqual(r.get("user logout").annotations, { navigates: true, untrustedContent: true, consequential: true });
   off();
   assert.equal(r.get("user login"), undefined);
   const spa = setup({ reloads: false }).r;
-  assert.deepEqual(spa.get("user login").annotations, { reinitializes: true });
-  assert.deepEqual(spa.get("user logout").annotations, { reinitializes: true, consequential: true });
+  assert.deepEqual(spa.get("user login").annotations, { reinitializes: true, untrustedContent: true });
+  assert.deepEqual(spa.get("user logout").annotations, { reinitializes: true, untrustedContent: true, consequential: true });
 });
 
 test("user status: who, with role labels in the text and ids in the data", async () => {

@@ -282,8 +282,10 @@ export async function execLines(text, { registry = getRegistry(), confirmed = fa
 
   const running = commandSteps(steps);
   const label = running.length === 1 && total === 1 ? toolName(running[0].def) : "exec";
-  const { refusal } = await approve(registry, running.map((s) => ({ def: s.def, input: s.value })), { confirmed, caller, signal, interactive: false }, label);
+  const { refusal, asked } = await approve(registry, running.map((s) => ({ def: s.def, input: s.value })), { confirmed, caller, signal, interactive: false }, label);
   if (refusal) return { code: refusal.code, text: refusal.message, completed: 0, total };
+  // One command asked its own question: it asks again just before it runs, so a page that changed meanwhile runs nothing.
+  if (asked !== undefined) running[0].asked = asked;
 
   const out = [];
   const before = registry.generation;
