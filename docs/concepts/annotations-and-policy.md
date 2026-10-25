@@ -138,17 +138,20 @@ answer may lower the level for the calls that follow.
   is yes.
 - Without `dist/sutram.js`, a console or an asker of your own, the
   browser's `confirm()` asks.
-- `Sutram.call()` from a headless browser cannot ask anyone: a call that
-  needs approval returns exit 130 and runs only when called again with
-  `{ confirmed: true }`, which says the user agreed.
+- `Sutram.call()` and `Sutram.exec()` ask through the same dialog, and
+  there `{ confirmed: true }` changes nothing: the person at the page
+  answers. Only on a page with nobody to ask (no `dist/sutram.js`, console
+  or asker, such as a headless test) does a call that needs approval return
+  exit 130 and run when called again with `{ confirmed: true }`, which says
+  the user agreed.
 - App code that calls `registry.run()` is never asked. It is the app.
 - The console cannot tell who is typing. Lines typed there follow the
   person's level, and an agent that drives the browser can answer the
   console's questions itself. So can an agent that also drives the
   approval dialog or the browser's `confirm()`. Only a question the agent cannot reach keeps
   it from approving its own calls: WebMCP, when the agent does not also
-  drive the page. `Sutram.call()` asks nobody: its caller passes
-  `{ confirmed: true }` itself.
+  drive the page. On a page without an asker, `Sutram.call()` asks nobody:
+  its caller passes `{ confirmed: true }` itself.
 
 `confirmed` is a courtesy between a caller and its user, not a security
 boundary. Any code in the page can pass it, or call `registry.run()`

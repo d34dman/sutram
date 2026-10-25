@@ -32,6 +32,12 @@ run there.
 
 ### Changed
 
+- `Sutram.call()` and `Sutram.exec()` ask the person through the page's
+  asker (the approval dialog) when it has one, as WebMCP calls do, and
+  `confirmed: true` no longer skips that question: the person answers, not
+  the agent. Only a page with nobody to ask (a headless test without a
+  console or `dist/sutram.js`) still returns 130 and takes
+  `confirmed: true`. Before, the agent could pass it itself.
 - The console no longer asks about agents' calls, and no longer opens for
   them: the approval dialog asks. `askForAgent()` and the console's
   `agentAsks`, `agentAsksBatch` and `agentBatch` messages are gone; the

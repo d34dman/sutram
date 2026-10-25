@@ -124,20 +124,25 @@ function question(steps) {
  * Resolves to { refusal } when the call may not run, else to { asked }:
  * the question a single command asked, which it must still ask when it
  * runs, so a page that changed while the user answered runs nothing.
- * Interactive callers (WebMCP) ask through the policy's asker, or the
- * browser's confirm() when there is none; Sutram.call() cannot ask, so it
- * tells its caller to ask and call again with { confirmed: true }.
+ * When the page has an asker (the approval dialog, or the app's own), every
+ * caller is asked through it, and `confirmed` changes nothing: the person
+ * at the page answers, not the agent. Without one, interactive callers
+ * (WebMCP) ask with the browser's confirm(), and Sutram.call() and
+ * Sutram.exec() tell their caller to ask and call again with
+ * { confirmed: true }, for headless browsers with nobody at the page.
  */
 async function approve(registry, steps, { confirmed = false, interactive = false, caller = "agent", signal } = {}, label = steps.length === 1 ? toolName(steps[0].def) : BATCH_TOOL.name) {
   const policy = registry.policy;
   const needing = steps.filter((s) => policy.needs(s.def, "agent"));
-  if (!needing.length || confirmed) return {};
-  if (interactive) {
+  if (!needing.length) return {};
+  const asker = policy.hasAsker();
+  if (!asker && confirmed) return {};
+  if (asker || interactive) {
     // Batches are asked about by their lines, with no question of their own.
     const asked = steps.length === 1 ? ownQuestion(steps[0].def, steps[0].input) : undefined;
     const no = (refusal) => ({ refusal });
     let yes;
-    if (policy.hasAsker()) yes = await policy.ask({ who: "agent", caller, steps, signal });
+    if (asker) yes = await policy.ask({ who: "agent", caller, steps, signal });
     else if (typeof globalThis.confirm === "function") yes = globalThis.confirm(`An agent on this page wants to act.\n\n${question(steps)}`);
     else return no({ code: EXIT.CANCELLED, message: `${label} needs the user's approval, and this page has no way to ask, so it did not run.` });
     if (signal && signal.aborted) return no({ code: EXIT.CANCELLED, message: `${label}: cancelled` });

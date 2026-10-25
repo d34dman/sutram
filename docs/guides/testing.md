@@ -35,8 +35,11 @@ await page.evaluate(() =>
 
 - `tools()` is the list a WebMCP agent gets.
 - `call()` takes the tool name (underscores) and follows the page's policy
-  like a careful host: a call that needs approval runs only with
-  `{ confirmed: true }`, which says the user agreed.
+  like a careful host. Where the page can ask (the approval dialog of
+  `dist/sutram.js` or a console, or an asker of the app's), the person is
+  asked and `confirmed` changes nothing. In a test page with nobody to ask,
+  a call that needs approval runs only with `{ confirmed: true }`, which
+  says the user agreed.
 - Strings are converted to the declared types, as in the console, so
   `call(name, Sutram.client.parse(line).input)` works. WebMCP calls are
   checked strictly.
@@ -116,9 +119,10 @@ form status contact
   that fails, and providers that support it undo the lines before.
 - `help`, `man`, `status`, `-h` and `--json` work as in the console. Add
   `--json` or `--json=a,b` to a line when you need its data.
-- It follows the page's policy like `call()`: when a line needs the user,
-  nothing runs and the text says what to ask. Ask, then run the same lines
-  with `{ confirmed: true }`.
+- It follows the page's policy like `call()`: where the page can ask, the
+  person is asked once for the lines; with nobody to ask, nothing runs and
+  the text says what to ask. Ask, then run the same lines with
+  `{ confirmed: true }`.
 - A line that leaves the page or starts Sutram again must be the last one.
 - The result is `{ code, text, completed, total }`. `exec` is also exported
   as `execLines(text, { registry })` from `@d34dman/sutram/webmcp`.

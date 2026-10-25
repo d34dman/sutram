@@ -26,7 +26,8 @@ console's questions itself, by typing `y` or clicking *Yes*. The
 a lock. Only a question the agent cannot reach keeps it from approving
 its own calls: the page's WebMCP tools, when the agent does not also drive
 the page, so the [policy](../concepts/annotations-and-policy.md) asks the
-person. `Sutram.call()` is no lock either: its caller passes
+person in the approval dialog. `Sutram.call()` and `Sutram.exec()` ask
+there too; only on a page with nobody to ask does their caller pass
 `{ confirmed: true }` itself.
 
 Open it with the key left of <kbd>1</kbd> (outside text fields), or with

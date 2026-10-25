@@ -50,9 +50,12 @@ console whichever way you use.
 In the console, a command that needs the person's approval asks a y/n
 question. Leave the answer to the person; never type it yourself.
 
-Through tools, a call that needs the person's approval returns exit 130 and
-the question to ask. Ask the person. Only if they agree, call again with
-`{ confirmed: true }`. Never pass `confirmed: true` on your own.
+Through tools (WebMCP, `Sutram.exec()`, `Sutram.call()`), a call that
+needs the person's approval waits while the page asks them in its approval
+dialog; leave the answer to them. On a page with nobody to ask, it returns
+exit 130 and the question instead. Ask the person. Only if they agree,
+call again with `{ confirmed: true }`. Never pass `confirmed: true` on
+your own.
 
 ## Results
 

@@ -21,7 +21,11 @@ export declare function findModelContext(): ModelContextLike | null;
 export declare function toolName(def: CommandDefinition): string;
 export declare function toTool(def: CommandDefinition, formats?: Formats): Tool;
 export declare function listTools(registry?: Registry): Tool[];
-/** Converts strings to the declared types, like console text; WebMCP calls do not. Follows the page's policy. */
+/**
+ * Converts strings to the declared types, like console text; WebMCP calls do not. Follows the page's policy:
+ * where the page has an asker, the person is asked and `confirmed` changes nothing; without one, a call
+ * that needs approval runs only with `confirmed: true`.
+ */
 export declare function callTool(
   name: string,
   input?: Record<string, unknown>,
@@ -31,7 +35,7 @@ export declare function callTool(
 export type QuietBatchResult = Omit<BatchResult, "results"> & { failed?: Result };
 /**
  * Runs command lines as pasted into the console: several lines as one batch,
- * checked first and approved once. Follows the page's policy. Resolves to the
+ * checked first and approved once. Follows the page's policy, as callTool does. Resolves to the
  * console's text, each line after "› ".
  */
 export declare function execLines(

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createRegistry, EXIT } from "../src/index.js";
-import { connectWebMCP, toTool, listTools, callTool, REINITIALIZED_NOTE } from "../src/webmcp.js";
+import { connectWebMCP, toTool, listTools, callTool, execLines, REINITIALIZED_NOTE } from "../src/webmcp.js";
 
 function fakeModelContext() {
   const tools = new Map();
@@ -122,7 +122,20 @@ test("the policy decides which agent calls need the user, and WebMCP asks throug
   assert.equal((await mc.tools.get("doc_add").execute({}, {})).code, EXIT.USAGE);
   assert.equal(asked.length, before);
 
-  // Sutram.call cannot ask; it says to.
+  // Sutram.call and Sutram.exec ask through the asker too, and confirmed
+  // changes nothing there: the person answers, not the agent.
+  const n = asked.length;
+  assert.equal((await callTool("doc_add", { item: "d" }, { registry: r, confirmed: true })).code, EXIT.CANCELLED);
+  assert.equal((await execLines("doc add d", { registry: r, confirmed: true })).code, EXIT.CANCELLED);
+  assert.equal(asked.length, n + 2);
+  answer = true;
+  assert.equal((await callTool("doc_add", { item: "e" }, { registry: r })).code, 0);
+  assert.deepEqual(log, ["a", "c", "e"]);
+});
+
+test("without an asker, Sutram.call says to ask, and confirmed is the person's yes", async () => {
+  const { r } = counter();
+  r.policy.set({ agent: "changes" });
   const refused = await callTool("doc_add", { item: "d" }, { registry: r });
   assert.match(refused.message, /needs the user's approval[\s\S]*confirmed: true/);
   // The generic question shows the arguments.
